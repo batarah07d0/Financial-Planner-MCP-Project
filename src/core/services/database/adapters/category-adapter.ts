@@ -1,6 +1,18 @@
 import { useDatabase } from '../../../providers/DatabaseProvider';
-import { TABLES } from '../sqlite-database';
-import { CategoryModel } from '../sqlite-service';
+import { TABLES } from '../supabase-tables';
+
+// Model untuk Category
+export interface CategoryModel {
+  id: string;
+  user_id?: string;
+  name: string;
+  type: 'income' | 'expense';
+  icon?: string;
+  color?: string;
+  is_default?: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Adapter untuk model Category

@@ -26,14 +26,41 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-location",
-      "expo-camera",
-      "expo-barcode-scanner",
-      "expo-face-detector",
-      "expo-media-library",
-      "expo-image-picker",
-      "expo-file-system",
-      "expo-sensors",
+      [
+        "expo-location",
+        {}
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Aplikasi memerlukan akses ke kamera Anda untuk fitur pemindaian barcode dan struk."
+        }
+      ],
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Aplikasi memerlukan akses ke kamera Anda untuk fitur pemindaian barcode."
+        }
+      ],
+      [
+        "expo-media-library",
+        {}
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Aplikasi memerlukan akses ke galeri foto Anda untuk memilih gambar.",
+          "cameraPermission": "Aplikasi memerlukan akses ke kamera Anda untuk mengambil foto."
+        }
+      ],
+      [
+        "expo-file-system",
+        {}
+      ],
+      [
+        "expo-sensors",
+        {}
+      ],
       [
         "expo-notifications",
         {
@@ -44,10 +71,14 @@
           ]
         }
       ],
-      "expo-local-authentication",
-      "expo-haptics",
-      "expo-speech",
-      "expo-av"
+      [
+        "expo-local-authentication",
+        {}
+      ],
+      [
+        "expo-av",
+        {}
+      ]
     ],
     "extra": {
       "eas": {

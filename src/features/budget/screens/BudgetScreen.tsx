@@ -18,6 +18,7 @@ import { getCategories } from '../../../core/services/supabase/category.service'
 import { getBudgetSpending } from '../../../core/services/supabase/budget.service';
 import { Category } from '../../../core/services/supabase/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useBudgetMonitor } from '../../../core/hooks/useBudgetMonitor';
 
 // Interface untuk data budget yang ditampilkan di UI
 interface BudgetDisplay {
@@ -49,6 +50,7 @@ export const BudgetScreen = () => {
   // Menggunakan store untuk state management
   const { budgets: supabaseBudgets, fetchBudgets } = useBudgetStore();
   const { user } = useAuthStore();
+  const { checkBudgetThresholds } = useBudgetMonitor();
 
   // Fungsi untuk memuat kategori
   const loadCategories = async () => {
@@ -174,6 +176,11 @@ export const BudgetScreen = () => {
         }
 
         setBudgets(displayBudgets);
+
+        // Setelah memuat budget, cek threshold untuk notifikasi
+        if (displayBudgets.length > 0) {
+          checkBudgetThresholds();
+        }
       } catch (error: any) {
         // Jika error terkait kolom period, tampilkan pesan yang lebih informatif
         if (error.message && error.message.includes('period does not exist')) {
@@ -339,15 +346,7 @@ export const BudgetScreen = () => {
     );
   };
 
-  // Fungsi untuk navigasi ke layar zona hemat
-  const handleNavigateToSavingZones = () => {
-    navigation.navigate('SavingZones' as never);
-  };
 
-  // Fungsi untuk navigasi ke layar perbandingan harga
-  const handleNavigateToPriceComparison = () => {
-    navigation.navigate('PriceComparison' as never);
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -360,36 +359,7 @@ export const BudgetScreen = () => {
           </View>
         </View>
 
-        {/* Feature Buttons Row */}
-        <View style={styles.featureButtonsContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleNavigateToSavingZones}
-          >
-            <Typography
-              variant="body2"
-              color={theme.colors.primary[500]}
-              weight="500"
-              align="center"
-            >
-              Zona Hemat
-            </Typography>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleNavigateToPriceComparison}
-          >
-            <Typography
-              variant="body2"
-              color={theme.colors.primary[500]}
-              weight="500"
-              align="center"
-            >
-              Harga Pasar
-            </Typography>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Period Selection */}

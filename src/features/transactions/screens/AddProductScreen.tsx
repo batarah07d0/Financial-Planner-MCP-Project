@@ -20,7 +20,7 @@ import { BarcodeDataInput } from '../models/Barcode';
 import { addCommunityBarcodeData } from '../services/barcodeService';
 import { useAuthStore } from '../../../core/services/store';
 import * as ImagePicker from 'expo-image-picker';
-import { BASIC_PRODUCT_CATEGORIES } from '../../budget/models/Product';
+import { BASIC_PRODUCT_CATEGORIES } from '../../../core/constants/productCategories';
 
 type AddProductScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddProduct'>;
 type AddProductScreenRouteProp = RouteProp<RootStackParamList, 'AddProduct'>;

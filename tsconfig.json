@@ -14,6 +14,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "src/types/env.d.ts"
+    "src/types/env.d.ts",
+    ".eslintrc.js"
   ]
 }

@@ -9,6 +9,7 @@ import { DashboardScreen } from '../../features/dashboard/screens';
 import { TransactionsScreen } from '../../features/transactions/screens';
 import { BudgetScreen } from '../../features/budget/screens';
 import { AnalyticsScreen } from '../../features/analytics/screens';
+import { MoreScreen } from '../../features/more/screens';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
@@ -55,7 +56,7 @@ export const TabNavigator = () => {
         options={{
           tabBarLabel: 'Transaksi',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="swap-horizontal" size={size} color={color} />
+            <Ionicons name="cash-outline" size={size} color={color} />
           ),
         }}
       />
@@ -76,6 +77,16 @@ export const TabNavigator = () => {
           tabBarLabel: 'Analisis',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bar-chart" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="More"
+        component={MoreScreen}
+        options={{
+          tabBarLabel: 'Lainnya',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="ellipsis-horizontal" size={size} color={color} />
           ),
         }}
       />

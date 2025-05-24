@@ -164,9 +164,11 @@ const styles = StyleSheet.create({
   },
   leftIcon: {
     paddingLeft: theme.spacing.md,
+    paddingRight: theme.spacing.md, // Added padding to create more space
   },
   rightIcon: {
     paddingRight: theme.spacing.md,
+    paddingLeft: theme.spacing.md, // Added padding to create more space
   },
   focused: {
     borderColor: theme.colors.primary[500],

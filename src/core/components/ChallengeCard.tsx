@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   Image,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Typography } from './Typography';
 import { Card } from './Card';
 import { theme } from '../theme';
 import { formatCurrency, formatDate } from '../utils';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export interface ChallengeProps {
   id: string;
@@ -52,8 +55,22 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     image,
   } = challenge;
 
+  // Animasi untuk efek press dan progress bar
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
   // Hitung persentase penyelesaian
   const progress = Math.min(Math.round((current / target) * 100), 100);
+
+  // Animasi progress bar saat komponen di-render
+  React.useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progress / 100,
+      duration: 1000,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false, // Karena kita menganimasikan width
+    }).start();
+  }, [progress]);
 
   // Mendapatkan ikon berdasarkan tipe tantangan
   const getChallengeIcon = () => {
@@ -83,6 +100,20 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     }
   };
 
+  // Mendapatkan gradient colors berdasarkan tipe tantangan
+  const getGradientColors = () => {
+    switch (type) {
+      case 'saving':
+        return [theme.colors.success[400], theme.colors.success[600]];
+      case 'spending':
+        return [theme.colors.danger[400], theme.colors.danger[600]];
+      case 'tracking':
+        return [theme.colors.primary[400], theme.colors.primary[600]];
+      default:
+        return [theme.colors.warning[400], theme.colors.warning[600]];
+    }
+  };
+
   // Mendapatkan teks tipe tantangan
   const getChallengeTypeText = () => {
     switch (type) {
@@ -97,6 +128,26 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     }
   };
 
+  // Fungsi untuk menangani press in
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Fungsi untuk menangani press out
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
   // Fungsi untuk menangani klik pada kartu
   const handlePress = () => {
     if (onPress) {
@@ -105,163 +156,218 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   };
 
   return (
-    <Card style={styles.container}>
-      <TouchableOpacity
-        style={styles.content}
-        onPress={handlePress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: getChallengeColor() },
-              ]}
-            >
-              <Ionicons
-                name={getChallengeIcon() as any}
-                size={20}
-                color={theme.colors.white}
-              />
-            </View>
-            <View style={styles.titleContent}>
-              <Typography variant="body1" weight="600">
-                {title}
-              </Typography>
-              <Typography variant="caption" color={theme.colors.neutral[600]}>
-                {getChallengeTypeText()}
-              </Typography>
-            </View>
-          </View>
-
-          {isCompleted && (
-            <View style={styles.completedBadge}>
-              <Ionicons
-                name="checkmark-circle"
-                size={20}
-                color={theme.colors.success[500]}
-              />
-            </View>
-          )}
-        </View>
-
-        <Typography
-          variant="body2"
-          color={theme.colors.neutral[700]}
-          style={styles.description}
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
+    >
+      <Card elevation="md" style={styles.card}>
+        <TouchableOpacity
+          style={styles.content}
+          onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={0.9}
         >
-          {description}
-        </Typography>
+          <View style={styles.header}>
+            <View style={styles.titleContainer}>
+              <LinearGradient
+                colors={getGradientColors()}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconContainer}
+              >
+                <Ionicons
+                  name={getChallengeIcon() as any}
+                  size={20}
+                  color={theme.colors.white}
+                />
+              </LinearGradient>
+              <View style={styles.titleContent}>
+                <Typography variant="body1" weight="600">
+                  {title}
+                </Typography>
+                <Typography variant="caption" color={theme.colors.neutral[600]}>
+                  {getChallengeTypeText()}
+                </Typography>
+              </View>
+            </View>
 
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${progress}%`,
-                  backgroundColor: getChallengeColor(),
-                },
-              ]}
-            />
+            {isCompleted && (
+              <View style={styles.completedBadge}>
+                <LinearGradient
+                  colors={[theme.colors.success[400], theme.colors.success[600]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.completedBadgeGradient}
+                >
+                  <Ionicons
+                    name="checkmark"
+                    size={14}
+                    color={theme.colors.white}
+                  />
+                </LinearGradient>
+              </View>
+            )}
           </View>
-          <Typography variant="caption" align="right">
-            {progress}%
+
+          <Typography
+            variant="body2"
+            color={theme.colors.neutral[700]}
+            style={styles.description}
+          >
+            {description}
           </Typography>
-        </View>
 
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailItem}>
-            <Typography variant="caption" color={theme.colors.neutral[600]}>
-              Target
-            </Typography>
-            <Typography variant="body2">
-              {formatCurrency(target)}
-            </Typography>
-          </View>
-
-          <View style={styles.detailItem}>
-            <Typography variant="caption" color={theme.colors.neutral[600]}>
-              Saat Ini
-            </Typography>
-            <Typography variant="body2">
-              {formatCurrency(current)}
-            </Typography>
-          </View>
-
-          <View style={styles.detailItem}>
-            <Typography variant="caption" color={theme.colors.neutral[600]}>
-              Tenggat
-            </Typography>
-            <Typography variant="body2">
-              {formatDate(endDate, { format: 'short' })}
-            </Typography>
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          <View style={styles.reward}>
-            <Ionicons
-              name="star"
-              size={16}
-              color={theme.colors.warning[500]}
-            />
-            <Typography
-              variant="caption"
-              color={theme.colors.neutral[700]}
-              style={styles.rewardText}
-            >
-              {reward.points} poin
-            </Typography>
-          </View>
-
-          {participants && (
-            <View style={styles.participants}>
-              <Ionicons
-                name="people-outline"
-                size={16}
-                color={theme.colors.neutral[700]}
-              />
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
+              >
+                <LinearGradient
+                  colors={getGradientColors()}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.progressGradient}
+                />
+              </Animated.View>
+            </View>
+            <View style={styles.progressTextContainer}>
               <Typography
                 variant="caption"
-                color={theme.colors.neutral[700]}
-                style={styles.participantsText}
+                weight="600"
+                color={getChallengeColor()}
               >
-                {participants} peserta
+                {progress}%
               </Typography>
             </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    </Card>
+          </View>
+
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailItem}>
+              <Typography variant="caption" color={theme.colors.neutral[600]}>
+                Target
+              </Typography>
+              <Typography variant="body2" weight="600">
+                {formatCurrency(target)}
+              </Typography>
+            </View>
+
+            <View style={styles.detailItem}>
+              <Typography variant="caption" color={theme.colors.neutral[600]}>
+                Saat Ini
+              </Typography>
+              <Typography
+                variant="body2"
+                weight="600"
+                color={current >= target ? theme.colors.success[500] : theme.colors.neutral[800]}
+              >
+                {formatCurrency(current)}
+              </Typography>
+            </View>
+
+            <View style={styles.detailItem}>
+              <Typography variant="caption" color={theme.colors.neutral[600]}>
+                Tenggat
+              </Typography>
+              <Typography variant="body2" weight="600">
+                {formatDate(endDate, { format: 'short' })}
+              </Typography>
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <View style={styles.reward}>
+              <LinearGradient
+                colors={[theme.colors.warning[400], theme.colors.warning[600]]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.rewardBadge}
+              >
+                <Ionicons
+                  name="star"
+                  size={12}
+                  color={theme.colors.white}
+                />
+              </LinearGradient>
+              <Typography
+                variant="caption"
+                weight="600"
+                color={theme.colors.neutral[700]}
+                style={styles.rewardText}
+              >
+                {reward.points} poin
+              </Typography>
+            </View>
+
+            {participants && (
+              <View style={styles.participants}>
+                <View style={styles.participantsBadge}>
+                  <Ionicons
+                    name="people"
+                    size={12}
+                    color={theme.colors.neutral[600]}
+                  />
+                </View>
+                <Typography
+                  variant="caption"
+                  weight="600"
+                  color={theme.colors.neutral[700]}
+                  style={styles.participantsText}
+                >
+                  {participants} peserta
+                </Typography>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Card>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     marginBottom: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+  },
+  card: {
+    borderRadius: theme.borderRadius.lg,
+    overflow: 'hidden',
+    backgroundColor: theme.colors.white,
   },
   content: {
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.sm,
+    marginRight: theme.spacing.md,
   },
   titleContent: {
     flex: 1,
@@ -269,17 +375,25 @@ const styles = StyleSheet.create({
   completedBadge: {
     marginLeft: theme.spacing.sm,
   },
+  completedBadgeGradient: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   description: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    lineHeight: 20,
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
   progressBar: {
     flex: 1,
-    height: 8,
+    height: 10,
     backgroundColor: theme.colors.neutral[200],
     borderRadius: theme.borderRadius.round,
     marginRight: theme.spacing.sm,
@@ -287,20 +401,33 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
+    borderRadius: theme.borderRadius.round,
+  },
+  progressGradient: {
+    width: '100%',
+    height: '100%',
+  },
+  progressTextContainer: {
+    minWidth: 40,
+    alignItems: 'flex-end',
   },
   detailsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    backgroundColor: theme.colors.neutral[50],
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
   },
   detailItem: {
     flex: 1,
+    alignItems: 'center',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: theme.spacing.sm,
+    paddingTop: theme.spacing.md,
     borderTopWidth: 1,
     borderTopColor: theme.colors.neutral[200],
   },
@@ -308,14 +435,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  rewardBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   rewardText: {
-    marginLeft: theme.spacing.xs,
+    marginLeft: theme.spacing.sm,
   },
   participants: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  participantsBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.neutral[200],
+  },
   participantsText: {
-    marginLeft: theme.spacing.xs,
+    marginLeft: theme.spacing.sm,
   },
 });

@@ -11,6 +11,7 @@ import { Typography } from './Typography';
 import { Button } from './Button';
 import { theme } from '../theme';
 import { useSensors } from '../hooks';
+import { useNotificationManager } from '../hooks/useNotificationManager';
 import { formatCurrency } from '../utils';
 
 interface BudgetAlertProps {
@@ -34,6 +35,7 @@ export const BudgetAlert: React.FC<BudgetAlertProps> = ({
 }) => {
   const [animatedValue] = useState(new Animated.Value(0));
   const { triggerHapticFeedback } = useSensors();
+  const { sendBudgetAlert } = useNotificationManager();
 
   // Animasi untuk alert
   useEffect(() => {
@@ -57,8 +59,11 @@ export const BudgetAlert: React.FC<BudgetAlertProps> = ({
       } else {
         triggerHapticFeedback('medium');
       }
+
+      // Kirim notifikasi budget alert
+      sendBudgetAlert(budgetName, percentageUsed, remainingBudget);
     }
-  }, [visible]);
+  }, [visible, budgetName, percentageUsed, remainingBudget]);
 
   // Animasi untuk scale dan opacity
   const scale = animatedValue.interpolate({

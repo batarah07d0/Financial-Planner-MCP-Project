@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,39 +7,123 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography, Card, SyncIndicator, VoiceAssistant } from '../../../core/components';
+import { Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { useSync } from '../../../core/hooks';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { useAuthStore } from '../../../core/services/store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const DashboardScreen = () => {
-  const { sync } = useSync();
-  const [showVoiceAssistant, setShowVoiceAssistant] = useState(false);
   const [scrollY] = useState(new Animated.Value(0));
+  const [greetingMessage, setGreetingMessage] = useState('');
+  const [visitCount, setVisitCount] = useState(0);
   const navigation = useNavigation();
+  const { user } = useAuthStore();
 
-  // Fungsi untuk menangani sinkronisasi manual
-  const handleSync = async () => {
-    await sync(true);
+  // Fungsi untuk mendapatkan greeting message
+  const getGreetingMessage = () => {
+    const hour = new Date().getHours();
+    const userName = user?.name || 'Pengguna';
+
+    const greetingMessages = {
+      morning: [
+        `Selamat Pagi, ${userName}!`,
+        `Pagi yang cerah, ${userName}!`,
+        `Semangat pagi, ${userName}!`,
+      ],
+      afternoon: [
+        `Selamat Siang, ${userName}!`,
+        `Siang yang produktif, ${userName}!`,
+        `Halo ${userName}, semangat siang!`,
+      ],
+      evening: [
+        `Selamat Malam, ${userName}!`,
+        `Malam yang tenang, ${userName}!`,
+        `Halo ${userName}, selamat beristirahat!`,
+      ],
+    };
+
+    const returnVisitMessages = [
+      `Kembali lagi, ${userName}!`,
+      `Hai ${userName}, gimana kabar?`,
+      `Senang melihatmu lagi, ${userName}!`,
+      `Halo lagi, ${userName}!`,
+      `Welcome back, ${userName}!`,
+    ];
+
+    let timeBasedMessages;
+    if (hour >= 5 && hour < 12) {
+      timeBasedMessages = greetingMessages.morning;
+    } else if (hour >= 12 && hour < 18) {
+      timeBasedMessages = greetingMessages.afternoon;
+    } else {
+      timeBasedMessages = greetingMessages.evening;
+    }
+
+    // Jika user sudah berkunjung >2 kali, gunakan pesan return visit
+    if (visitCount > 2) {
+      const randomIndex = Math.floor(Math.random() * returnVisitMessages.length);
+      return returnVisitMessages[randomIndex];
+    } else {
+      const randomIndex = Math.floor(Math.random() * timeBasedMessages.length);
+      return timeBasedMessages[randomIndex];
+    }
   };
 
-  // Fungsi untuk menangani klik pada tombol asisten suara
-  const handleVoiceAssistantToggle = () => {
-    setShowVoiceAssistant(prev => !prev);
+  // Effect untuk load dan update visit count
+  useEffect(() => {
+    const loadVisitCount = async () => {
+      try {
+        const storedCount = await AsyncStorage.getItem('dashboard_visit_count');
+        const currentCount = storedCount ? parseInt(storedCount, 10) : 0;
+        const newCount = currentCount + 1;
+
+        setVisitCount(newCount);
+        await AsyncStorage.setItem('dashboard_visit_count', newCount.toString());
+
+        // Update greeting message setelah visit count di-set
+        setTimeout(() => {
+          setGreetingMessage(getGreetingMessage());
+        }, 100);
+      } catch (error) {
+        console.error('Error loading visit count:', error);
+        setVisitCount(1);
+        setGreetingMessage(getGreetingMessage());
+      }
+    };
+
+    if (user) {
+      loadVisitCount();
+    }
+  }, [user]);
+
+  // Fungsi navigasi
+  const handleNavigateToAddTransaction = (type?: 'income' | 'expense') => {
+    (navigation as any).navigate('AddTransaction', type ? { type } : {});
   };
 
-  // Fungsi untuk menangani perintah suara
-  const handleVoiceCommand = (command: string) => {
-    console.log('Voice command:', command);
-    // Implementasi logika berdasarkan perintah
+  const handleNavigateToAnalytics = () => {
+    (navigation as any).navigate('Analytics');
+  };
+
+  const handleNavigateToSavingGoals = () => {
+    (navigation as any).navigate('SavingGoals');
+  };
+
+  const handleNavigateToTransactions = () => {
+    (navigation as any).navigate('Transactions');
+  };
+
+  const handleAddTransaction = () => {
+    (navigation as any).navigate('AddTransaction');
   };
 
   // Efek animasi untuk header
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 100],
-    outputRange: [200, 120],
+    outputRange: [220, 140],
     extrapolate: 'clamp',
   });
 
@@ -55,11 +139,6 @@ export const DashboardScreen = () => {
     extrapolate: 'clamp',
   });
 
-  // Navigasi ke halaman tambah transaksi
-  const handleAddTransaction = () => {
-    navigation.navigate('AddTransaction' as never);
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left']}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary[700]} />
@@ -67,15 +146,21 @@ export const DashboardScreen = () => {
       {/* Header Animasi */}
       <Animated.View style={[styles.animatedHeader, { height: headerHeight }]}>
         <LinearGradient
-          colors={[theme.colors.primary[700], theme.colors.primary[500]]}
+          colors={[
+            theme.colors.primary[800],
+            theme.colors.primary[600],
+            theme.colors.primary[500]
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <Animated.View style={[styles.headerContent, { opacity: headerOpacity }]}>
-            <Typography variant="h4" color={theme.colors.white} weight="600">
-              Selamat Datang di BudgetWise
+            <Typography variant="h3" color={theme.colors.white} weight="700" style={styles.greetingText}>
+              {greetingMessage}
             </Typography>
-            <Typography variant="body2" color={theme.colors.white}>
-              Kelola keuangan Anda dengan mudah
+            <Typography variant="body1" color={theme.colors.white} style={styles.subtitleText}>
+              Kelola keuangan Anda dengan bijak
             </Typography>
           </Animated.View>
 
@@ -84,16 +169,6 @@ export const DashboardScreen = () => {
               BudgetWise
             </Typography>
           </Animated.View>
-
-          <View style={styles.headerButtons}>
-            <TouchableOpacity
-              style={styles.voiceButton}
-              onPress={handleVoiceAssistantToggle}
-            >
-              <Ionicons name="mic-outline" size={24} color={theme.colors.white} />
-            </TouchableOpacity>
-            <SyncIndicator onPress={handleSync} color={theme.colors.white} />
-          </View>
         </LinearGradient>
       </Animated.View>
 
@@ -129,28 +204,40 @@ export const DashboardScreen = () => {
           </View>
 
           <View style={styles.balanceActions}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleNavigateToAddTransaction('income')}
+            >
               <View style={[styles.actionIcon, { backgroundColor: theme.colors.success[50] }]}>
                 <Ionicons name="arrow-down" size={20} color={theme.colors.success[500]} />
               </View>
               <Typography variant="caption" align="center">Pemasukan</Typography>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleNavigateToAddTransaction('expense')}
+            >
               <View style={[styles.actionIcon, { backgroundColor: theme.colors.danger[50] }]}>
                 <Ionicons name="arrow-up" size={20} color={theme.colors.danger[500]} />
               </View>
               <Typography variant="caption" align="center">Pengeluaran</Typography>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleNavigateToAnalytics}
+            >
               <View style={[styles.actionIcon, { backgroundColor: theme.colors.info[50] }]}>
                 <MaterialCommunityIcons name="chart-line" size={20} color={theme.colors.info[500]} />
               </View>
               <Typography variant="caption" align="center">Analisis</Typography>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleNavigateToSavingGoals}
+            >
               <View style={[styles.actionIcon, { backgroundColor: theme.colors.warning[50] }]}>
                 <FontAwesome5 name="piggy-bank" size={18} color={theme.colors.warning[500]} />
               </View>
@@ -165,7 +252,7 @@ export const DashboardScreen = () => {
             <Typography variant="h5" weight="600" style={styles.sectionTitle}>
               Ringkasan Bulan Ini
             </Typography>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleNavigateToAnalytics}>
               <Typography variant="caption" color={theme.colors.primary[500]}>
                 Lihat Detail
               </Typography>
@@ -209,7 +296,7 @@ export const DashboardScreen = () => {
             <Typography variant="h5" weight="600" style={styles.sectionTitle}>
               Transaksi Terbaru
             </Typography>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleNavigateToTransactions}>
               <Typography variant="caption" color={theme.colors.primary[500]}>
                 Lihat Semua
               </Typography>
@@ -264,12 +351,6 @@ export const DashboardScreen = () => {
           </Card>
         </View>
       </Animated.ScrollView>
-
-      <VoiceAssistant
-        visible={showVoiceAssistant}
-        onClose={() => setShowVoiceAssistant(false)}
-        onCommand={handleVoiceCommand}
-      />
     </SafeAreaView>
   );
 };
@@ -297,22 +378,26 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     marginTop: 20,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  greetingText: {
+    textAlign: 'center',
+    marginBottom: theme.spacing.xs,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  subtitleText: {
+    textAlign: 'center',
+    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   headerTitle: {
     position: 'absolute',
     bottom: 15,
     left: theme.spacing.layout.sm,
-  },
-  headerButtons: {
-    position: 'absolute',
-    right: theme.spacing.layout.sm,
-    bottom: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  voiceButton: {
-    padding: theme.spacing.xs,
-    marginRight: theme.spacing.sm as number,
   },
 
   // ScrollView Styles
@@ -321,7 +406,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingTop: 210, // Header height + some extra space
+    paddingTop: 230, // Header height + some extra space
     paddingBottom: theme.spacing.layout.lg,
   },
 
@@ -330,7 +415,15 @@ const styles = StyleSheet.create({
     marginHorizontal: theme.spacing.layout.sm,
     marginBottom: theme.spacing.layout.md,
     padding: theme.spacing.layout.md,
-    borderRadius: 16,
+    borderRadius: 20,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   balanceHeader: {
     flexDirection: 'row',
@@ -361,14 +454,24 @@ const styles = StyleSheet.create({
   actionButton: {
     alignItems: 'center',
     width: '23%',
+    paddingVertical: theme.spacing.sm,
+    borderRadius: 12,
   },
   actionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing.xs,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   // Section Styles
@@ -396,6 +499,14 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: theme.spacing.md,
     borderRadius: 16,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
   },
   summaryIconContainer: {
     marginBottom: theme.spacing.sm,
@@ -426,6 +537,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 3,
   },
   emptyStateContainer: {
     alignItems: 'center',
@@ -453,6 +572,14 @@ const styles = StyleSheet.create({
     padding: 0,
     overflow: 'hidden',
     borderRadius: 16,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
   },
   tipGradient: {
     padding: theme.spacing.md,

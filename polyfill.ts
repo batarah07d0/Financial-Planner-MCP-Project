@@ -4,39 +4,8 @@
  */
 
 // Deklarasi tipe untuk global
-declare global {
-  interface Window {
-    self: any;
-    process: any;
-    URL: any;
-    Buffer: any;
-    TextEncoder: any;
-    TextDecoder: any;
-    RNMapsAirModule: any;
-    _WORKLET: boolean;
-    crypto: any;
-    setTimeout: any;
-    clearTimeout: any;
-    setInterval: any;
-    clearInterval: any;
-    console: any;
-    fetch: any;
-    XMLHttpRequest: any;
-    WebSocket: any;
-    atob: any;
-    btoa: any;
-  }
-
-  var self: any;
-  var process: any;
-  var URL: any;
-  var Buffer: any;
-  var TextEncoder: any;
-  var TextDecoder: any;
-  var RNMapsAirModule: any;
-  var _WORKLET: boolean;
-  var crypto: any;
-}
+// Kita tidak perlu mendeklarasikan tipe di sini karena TypeScript sudah memiliki definisi tipe untuk global
+// Jika ada tipe khusus yang perlu ditambahkan, gunakan augmentation yang tepat
 
 // Polyfill untuk global
 if (typeof (global as any).self === 'undefined') {
