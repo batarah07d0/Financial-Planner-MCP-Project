@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
-import { Platform } from 'react-native';
 
 // Tipe data untuk status audio
 export interface AudioStatus {
@@ -81,7 +80,7 @@ export const useAudio = () => {
               isPlaying: status.isPlaying,
               isBuffering: status.isBuffering,
               positionMillis: status.positionMillis,
-              durationMillis: status.durationMillis,
+              durationMillis: status.durationMillis ?? 0,
               didJustFinish: status.didJustFinish,
               volume: status.volume,
               rate: status.rate,

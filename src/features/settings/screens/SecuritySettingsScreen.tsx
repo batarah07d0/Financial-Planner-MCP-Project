@@ -6,53 +6,90 @@ import {
   Switch,
   TouchableOpacity,
   Alert,
+  Animated,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Typography, Card, BiometricAuth } from '../../../core/components';
-import { theme } from '../../../core/theme';
-import { useBiometrics } from '../../../core/hooks';
-import {
-  SecurityLevel,
-  PrivacyMode,
-  SensitiveData,
-  getSecurityLevel,
-  setSecurityLevel,
-  getPrivacyMode,
-  setPrivacyMode,
-  getSensitiveDataSettings,
-  setSensitiveDataSettings,
-} from '../../../core/services/security';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { Typography, Card } from '../../../core/components';
+import { theme } from '../../../core/theme';
+import { useAuthStore } from '../../../core/services/store';
+import { RootStackParamList } from '../../../core/navigation/types';
+import {
+  SecuritySettings,
+  UserSettings,
+  getSecuritySettings,
+  updateSecuritySettings,
+  getUserSettings,
+  updateUserSettings,
+} from '../services/userSettingsService';
+
+type SecurityLevel = 'low' | 'medium' | 'high';
+type PrivacyMode = 'standard' | 'enhanced' | 'maximum';
 
 export const SecuritySettingsScreen = () => {
-  const navigation = useNavigation();
-  const { isAvailable, isEnabled, enableBiometrics, disableBiometrics } = useBiometrics();
-  
-  const [securityLevel, setSecurityLevelState] = useState<SecurityLevel>('medium');
-  const [privacyMode, setPrivacyModeState] = useState<PrivacyMode>('standard');
-  const [sensitiveData, setSensitiveDataState] = useState<SensitiveData>({
-    hideBalances: false,
-    hideTransactions: false,
-    hideBudgets: false,
-    requireAuthForSensitiveActions: true,
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuthStore();
+
+  const [settings, setSettings] = useState<SecuritySettings>({
+    security_level: 'medium',
+    privacy_mode: 'standard',
+    hide_balances: false,
+    hide_transactions: false,
+    hide_budgets: false,
+    require_auth_for_sensitive_actions: true,
+    auto_lock_timeout: 300,
+    failed_attempts_limit: 5,
+    session_timeout: 3600,
   });
-  
-  const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+
+  const [userSettings, setUserSettings] = useState<UserSettings>({
+    notification_enabled: true,
+    biometric_enabled: false,
+    budget_alert_threshold: 80,
+  });
+
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Memuat pengaturan keamanan
-  const loadSecuritySettings = async () => {
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    loadSettings();
+
+    // Animasi fade in
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
+    // Setup status bar
+    StatusBar.setBarStyle('dark-content');
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor('transparent');
+      StatusBar.setTranslucent(true);
+    }
+  }, []);
+
+  const loadSettings = async () => {
+    if (!user) return;
+
     try {
       setIsLoading(true);
-      
-      const level = await getSecurityLevel();
-      const mode = await getPrivacyMode();
-      const settings = await getSensitiveDataSettings();
-      
-      setSecurityLevelState(level);
-      setPrivacyModeState(mode);
-      setSensitiveDataState(settings);
+      const [securitySettings, userSettingsData] = await Promise.all([
+        getSecuritySettings(user.id),
+        getUserSettings(user.id),
+      ]);
+
+      if (securitySettings) {
+        setSettings(securitySettings);
+      }
+      if (userSettingsData) {
+        setUserSettings(userSettingsData);
+      }
     } catch (error) {
       console.error('Error loading security settings:', error);
       Alert.alert('Error', 'Gagal memuat pengaturan keamanan');
@@ -60,428 +97,276 @@ export const SecuritySettingsScreen = () => {
       setIsLoading(false);
     }
   };
-  
-  // Memuat pengaturan saat komponen dimount
-  useEffect(() => {
-    loadSecuritySettings();
-  }, []);
-  
-  // Fungsi untuk menangani perubahan tingkat keamanan
-  const handleSecurityLevelChange = async (level: SecurityLevel) => {
+
+  const updateSetting = async (key: keyof SecuritySettings, value: any) => {
+    if (!user) return;
+
     try {
-      // Jika tingkat keamanan tinggi, tampilkan autentikasi biometrik
-      if (level === 'high' && isAvailable) {
-        setShowBiometricAuth(true);
-        return;
-      }
-      
-      // Simpan tingkat keamanan
-      const success = await setSecurityLevel(level);
-      
-      if (success) {
-        setSecurityLevelState(level);
-        Alert.alert('Sukses', 'Tingkat keamanan berhasil diperbarui');
-      } else {
-        Alert.alert('Error', 'Gagal memperbarui tingkat keamanan');
-      }
+      const newSettings = { ...settings, [key]: value };
+      setSettings(newSettings);
+
+      await updateSecuritySettings(user.id, { [key]: value });
     } catch (error) {
-      console.error('Error changing security level:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat mengubah tingkat keamanan');
+      console.error('Error updating security setting:', error);
+      Alert.alert('Error', 'Gagal memperbarui pengaturan');
+      // Revert state on error
+      setSettings(settings);
     }
   };
-  
-  // Fungsi untuk menangani perubahan mode privasi
-  const handlePrivacyModeChange = async (mode: PrivacyMode) => {
+
+  const updateUserSetting = async (key: keyof UserSettings, value: any) => {
+    if (!user) return;
+
     try {
-      // Jika mode privasi maksimum, tampilkan autentikasi biometrik
-      if (mode === 'maximum' && isAvailable) {
-        setShowBiometricAuth(true);
-        return;
-      }
-      
-      // Simpan mode privasi
-      const success = await setPrivacyMode(mode);
-      
-      if (success) {
-        setPrivacyModeState(mode);
-        Alert.alert('Sukses', 'Mode privasi berhasil diperbarui');
-      } else {
-        Alert.alert('Error', 'Gagal memperbarui mode privasi');
-      }
+      const newSettings = { ...userSettings, [key]: value };
+      setUserSettings(newSettings);
+
+      await updateUserSettings(user.id, { [key]: value });
     } catch (error) {
-      console.error('Error changing privacy mode:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat mengubah mode privasi');
+      console.error('Error updating user setting:', error);
+      Alert.alert('Error', 'Gagal memperbarui pengaturan');
+      // Revert state on error
+      setUserSettings(userSettings);
     }
   };
-  
-  // Fungsi untuk menangani perubahan pengaturan data sensitif
-  const handleSensitiveDataChange = async (key: keyof SensitiveData, value: boolean) => {
-    try {
-      const newSettings = {
-        ...sensitiveData,
-        [key]: value,
-      };
-      
-      // Simpan pengaturan data sensitif
-      const success = await setSensitiveDataSettings(newSettings);
-      
-      if (success) {
-        setSensitiveDataState(newSettings);
-      } else {
-        Alert.alert('Error', 'Gagal memperbarui pengaturan data sensitif');
-      }
-    } catch (error) {
-      console.error('Error changing sensitive data settings:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat mengubah pengaturan data sensitif');
-    }
-  };
-  
-  // Fungsi untuk menangani perubahan biometrik
-  const handleBiometricChange = async (enabled: boolean) => {
-    try {
-      if (enabled) {
-        const success = await enableBiometrics();
-        
-        if (!success) {
-          Alert.alert('Error', 'Gagal mengaktifkan biometrik');
-        }
-      } else {
-        const success = await disableBiometrics();
-        
-        if (!success) {
-          Alert.alert('Error', 'Gagal menonaktifkan biometrik');
-        }
-      }
-    } catch (error) {
-      console.error('Error changing biometric settings:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat mengubah pengaturan biometrik');
-    }
-  };
-  
-  // Fungsi untuk menangani keberhasilan autentikasi biometrik
-  const handleBiometricSuccess = async () => {
-    setShowBiometricAuth(false);
-    
-    // Simpan tingkat keamanan tinggi
-    const success = await setSecurityLevel('high');
-    
-    if (success) {
-      setSecurityLevelState('high');
-      Alert.alert('Sukses', 'Tingkat keamanan berhasil diperbarui');
-    } else {
-      Alert.alert('Error', 'Gagal memperbarui tingkat keamanan');
-    }
-  };
-  
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Typography variant="body1" color={theme.colors.primary[500]}>
-            Kembali
+
+  const SecurityLevelCard = () => (
+    <Card style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.iconContainer}>
+          <LinearGradient
+            colors={[theme.colors.primary[500], theme.colors.primary[600]]}
+            style={styles.iconGradient}
+          >
+            <Ionicons name="shield-checkmark" size={24} color="white" />
+          </LinearGradient>
+        </View>
+        <View style={styles.headerText}>
+          <Typography variant="h5" weight="600">Tingkat Keamanan</Typography>
+          <Typography variant="body2" color={theme.colors.neutral[600]}>
+            Pilih tingkat keamanan yang sesuai
           </Typography>
-        </TouchableOpacity>
-        <Typography variant="h4">Pengaturan Keamanan</Typography>
-        <View style={{ width: 50 }} />
+        </View>
       </View>
-      
-      <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.section}>
-          <Typography variant="h5" style={styles.sectionTitle}>
-            Tingkat Keamanan
+
+      <View style={styles.optionsContainer}>
+        {(['low', 'medium', 'high'] as SecurityLevel[]).map((level) => (
+          <TouchableOpacity
+            key={level}
+            style={[
+              styles.optionItem,
+              settings.security_level === level && styles.optionItemActive
+            ]}
+            onPress={() => updateSetting('security_level', level)}
+          >
+            <View style={styles.optionContent}>
+              <Typography
+                variant="body1"
+                weight={settings.security_level === level ? '600' : '400'}
+                color={settings.security_level === level ? theme.colors.primary[600] : theme.colors.neutral[800]}
+              >
+                {level === 'low' ? 'Rendah' : level === 'medium' ? 'Sedang' : 'Tinggi'}
+              </Typography>
+              <Typography
+                variant="body2"
+                color={settings.security_level === level ? theme.colors.primary[500] : theme.colors.neutral[600]}
+              >
+                {level === 'low'
+                  ? 'Keamanan dasar dengan autentikasi standar'
+                  : level === 'medium'
+                  ? 'Keamanan seimbang dengan verifikasi tambahan'
+                  : 'Keamanan maksimal dengan enkripsi penuh'
+                }
+              </Typography>
+            </View>
+            {settings.security_level === level && (
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary[500]} />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </Card>
+  );
+
+  const BiometricCard = () => (
+    <Card style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.iconContainer}>
+          <LinearGradient
+            colors={[theme.colors.success[500], theme.colors.success[600]]}
+            style={styles.iconGradient}
+          >
+            <Ionicons name="finger-print" size={24} color="white" />
+          </LinearGradient>
+        </View>
+        <View style={styles.headerText}>
+          <Typography variant="h5" weight="600">Autentikasi Biometrik</Typography>
+          <Typography variant="body2" color={theme.colors.neutral[600]}>
+            Gunakan sidik jari atau wajah untuk login
           </Typography>
-          
-          <TouchableOpacity
-            style={[
-              styles.optionItem,
-              securityLevel === 'low' && styles.selectedOption,
-            ]}
-            onPress={() => handleSecurityLevelChange('low')}
+        </View>
+      </View>
+
+      <View style={styles.biometricOptions}>
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <Typography variant="body1" weight="500">Aktifkan Biometrik</Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Gunakan sidik jari atau wajah untuk login
+            </Typography>
+          </View>
+          <Switch
+            value={userSettings.biometric_enabled}
+            onValueChange={(value) => updateUserSetting('biometric_enabled', value)}
+            trackColor={{
+              false: theme.colors.neutral[300],
+              true: theme.colors.success[300],
+            }}
+            thumbColor={
+              userSettings.biometric_enabled
+                ? theme.colors.success[500]
+                : theme.colors.neutral[100]
+            }
+          />
+        </View>
+
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <Typography variant="body1" weight="500">Autentikasi untuk Tindakan Sensitif</Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Minta autentikasi untuk tindakan sensitif
+            </Typography>
+          </View>
+          <Switch
+            value={settings.require_auth_for_sensitive_actions}
+            onValueChange={(value) => updateSetting('require_auth_for_sensitive_actions', value)}
+            trackColor={{
+              false: theme.colors.neutral[300],
+              true: theme.colors.success[300],
+            }}
+            thumbColor={
+              settings.require_auth_for_sensitive_actions
+                ? theme.colors.success[500]
+                : theme.colors.neutral[100]
+            }
+          />
+        </View>
+      </View>
+    </Card>
+  );
+
+  const PrivacyCard = () => (
+    <Card style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.iconContainer}>
+          <LinearGradient
+            colors={[theme.colors.warning[500], theme.colors.warning[600]]}
+            style={styles.iconGradient}
           >
-            <View style={styles.optionContent}>
-              <Typography variant="body1" weight="600">
-                Rendah
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Autentikasi minimal, tidak ada enkripsi
-              </Typography>
-            </View>
-            {securityLevel === 'low' && (
-              <Ionicons
-                name="checkmark-circle"
-                size={24}
-                color={theme.colors.primary[500]}
-              />
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.optionItem,
-              securityLevel === 'medium' && styles.selectedOption,
-            ]}
-            onPress={() => handleSecurityLevelChange('medium')}
-          >
-            <View style={styles.optionContent}>
-              <Typography variant="body1" weight="600">
-                Menengah
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Autentikasi untuk tindakan sensitif
-              </Typography>
-            </View>
-            {securityLevel === 'medium' && (
-              <Ionicons
-                name="checkmark-circle"
-                size={24}
-                color={theme.colors.primary[500]}
-              />
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.optionItem,
-              securityLevel === 'high' && styles.selectedOption,
-            ]}
-            onPress={() => handleSecurityLevelChange('high')}
-          >
-            <View style={styles.optionContent}>
-              <Typography variant="body1" weight="600">
-                Tinggi
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Autentikasi untuk semua tindakan, enkripsi data
-              </Typography>
-            </View>
-            {securityLevel === 'high' && (
-              <Ionicons
-                name="checkmark-circle"
-                size={24}
-                color={theme.colors.primary[500]}
-              />
-            )}
-          </TouchableOpacity>
-        </Card>
-        
-        <Card style={styles.section}>
-          <Typography variant="h5" style={styles.sectionTitle}>
-            Biometrik
+            <Ionicons name="eye-off" size={24} color="white" />
+          </LinearGradient>
+        </View>
+        <View style={styles.headerText}>
+          <Typography variant="h5" weight="600">Privasi Data</Typography>
+          <Typography variant="body2" color={theme.colors.neutral[600]}>
+            Kontrol visibilitas data sensitif
           </Typography>
-          
-          <View style={styles.switchItem}>
-            <View style={styles.switchContent}>
-              <Typography variant="body1">
-                Aktifkan Autentikasi Biometrik
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                {isAvailable
-                  ? 'Gunakan sidik jari atau wajah untuk autentikasi'
-                  : 'Perangkat Anda tidak mendukung biometrik'}
-              </Typography>
-            </View>
-            <Switch
-              value={isEnabled}
-              onValueChange={handleBiometricChange}
-              disabled={!isAvailable}
-              trackColor={{
-                false: theme.colors.neutral[300],
-                true: theme.colors.primary[300],
-              }}
-              thumbColor={
-                isEnabled ? theme.colors.primary[500] : theme.colors.neutral[100]
-              }
-            />
+        </View>
+      </View>
+
+      <View style={styles.privacyOptions}>
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <Typography variant="body1" weight="500">Sembunyikan Saldo</Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Sembunyikan saldo di dashboard
+            </Typography>
           </View>
-        </Card>
-        
-        <Card style={styles.section}>
-          <Typography variant="h5" style={styles.sectionTitle}>
-            Mode Privasi
-          </Typography>
-          
-          <TouchableOpacity
-            style={[
-              styles.optionItem,
-              privacyMode === 'standard' && styles.selectedOption,
-            ]}
-            onPress={() => handlePrivacyModeChange('standard')}
-          >
-            <View style={styles.optionContent}>
-              <Typography variant="body1" weight="600">
-                Standar
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Tampilkan semua data keuangan
-              </Typography>
-            </View>
-            {privacyMode === 'standard' && (
-              <Ionicons
-                name="checkmark-circle"
-                size={24}
-                color={theme.colors.primary[500]}
-              />
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.optionItem,
-              privacyMode === 'enhanced' && styles.selectedOption,
-            ]}
-            onPress={() => handlePrivacyModeChange('enhanced')}
-          >
-            <View style={styles.optionContent}>
-              <Typography variant="body1" weight="600">
-                Ditingkatkan
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Sembunyikan data sensitif, enkripsi data
-              </Typography>
-            </View>
-            {privacyMode === 'enhanced' && (
-              <Ionicons
-                name="checkmark-circle"
-                size={24}
-                color={theme.colors.primary[500]}
-              />
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.optionItem,
-              privacyMode === 'maximum' && styles.selectedOption,
-            ]}
-            onPress={() => handlePrivacyModeChange('maximum')}
-          >
-            <View style={styles.optionContent}>
-              <Typography variant="body1" weight="600">
-                Maksimum
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Autentikasi untuk semua tindakan, enkripsi semua data
-              </Typography>
-            </View>
-            {privacyMode === 'maximum' && (
-              <Ionicons
-                name="checkmark-circle"
-                size={24}
-                color={theme.colors.primary[500]}
-              />
-            )}
-          </TouchableOpacity>
-        </Card>
-        
-        <Card style={styles.section}>
-          <Typography variant="h5" style={styles.sectionTitle}>
-            Data Sensitif
-          </Typography>
-          
-          <View style={styles.switchItem}>
-            <View style={styles.switchContent}>
-              <Typography variant="body1">
-                Sembunyikan Saldo
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Sembunyikan saldo di dashboard
-              </Typography>
-            </View>
-            <Switch
-              value={sensitiveData.hideBalances}
-              onValueChange={value => handleSensitiveDataChange('hideBalances', value)}
-              trackColor={{
-                false: theme.colors.neutral[300],
-                true: theme.colors.primary[300],
-              }}
-              thumbColor={
-                sensitiveData.hideBalances
-                  ? theme.colors.primary[500]
-                  : theme.colors.neutral[100]
-              }
-            />
+          <Switch
+            value={settings.hide_balances}
+            onValueChange={(value) => updateSetting('hide_balances', value)}
+            trackColor={{
+              false: theme.colors.neutral[300],
+              true: theme.colors.warning[300],
+            }}
+            thumbColor={
+              settings.hide_balances
+                ? theme.colors.warning[500]
+                : theme.colors.neutral[100]
+            }
+          />
+        </View>
+
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <Typography variant="body1" weight="500">Sembunyikan Transaksi</Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Sembunyikan detail transaksi
+            </Typography>
           </View>
-          
-          <View style={styles.switchItem}>
-            <View style={styles.switchContent}>
-              <Typography variant="body1">
-                Sembunyikan Transaksi
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Sembunyikan detail transaksi
-              </Typography>
-            </View>
-            <Switch
-              value={sensitiveData.hideTransactions}
-              onValueChange={value => handleSensitiveDataChange('hideTransactions', value)}
-              trackColor={{
-                false: theme.colors.neutral[300],
-                true: theme.colors.primary[300],
-              }}
-              thumbColor={
-                sensitiveData.hideTransactions
-                  ? theme.colors.primary[500]
-                  : theme.colors.neutral[100]
-              }
-            />
+          <Switch
+            value={settings.hide_transactions}
+            onValueChange={(value) => updateSetting('hide_transactions', value)}
+            trackColor={{
+              false: theme.colors.neutral[300],
+              true: theme.colors.warning[300],
+            }}
+            thumbColor={
+              settings.hide_transactions
+                ? theme.colors.warning[500]
+                : theme.colors.neutral[100]
+            }
+          />
+        </View>
+
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <Typography variant="body1" weight="500">Sembunyikan Anggaran</Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Sembunyikan detail anggaran
+            </Typography>
           </View>
-          
-          <View style={styles.switchItem}>
-            <View style={styles.switchContent}>
-              <Typography variant="body1">
-                Sembunyikan Anggaran
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Sembunyikan detail anggaran
-              </Typography>
-            </View>
-            <Switch
-              value={sensitiveData.hideBudgets}
-              onValueChange={value => handleSensitiveDataChange('hideBudgets', value)}
-              trackColor={{
-                false: theme.colors.neutral[300],
-                true: theme.colors.primary[300],
-              }}
-              thumbColor={
-                sensitiveData.hideBudgets
-                  ? theme.colors.primary[500]
-                  : theme.colors.neutral[100]
-              }
-            />
-          </View>
-          
-          <View style={styles.switchItem}>
-            <View style={styles.switchContent}>
-              <Typography variant="body1">
-                Autentikasi untuk Tindakan Sensitif
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Minta autentikasi untuk tindakan sensitif
-              </Typography>
-            </View>
-            <Switch
-              value={sensitiveData.requireAuthForSensitiveActions}
-              onValueChange={value => handleSensitiveDataChange('requireAuthForSensitiveActions', value)}
-              trackColor={{
-                false: theme.colors.neutral[300],
-                true: theme.colors.primary[300],
-              }}
-              thumbColor={
-                sensitiveData.requireAuthForSensitiveActions
-                  ? theme.colors.primary[500]
-                  : theme.colors.neutral[100]
-              }
-            />
-          </View>
-        </Card>
-      </ScrollView>
-      
-      <BiometricAuth
-        visible={showBiometricAuth}
-        onSuccess={handleBiometricSuccess}
-        onCancel={() => setShowBiometricAuth(false)}
-        promptMessage="Autentikasi untuk mengaktifkan keamanan tingkat tinggi"
-      />
+          <Switch
+            value={settings.hide_budgets}
+            onValueChange={(value) => updateSetting('hide_budgets', value)}
+            trackColor={{
+              false: theme.colors.neutral[300],
+              true: theme.colors.warning[300],
+            }}
+            thumbColor={
+              settings.hide_budgets
+                ? theme.colors.warning[500]
+                : theme.colors.neutral[100]
+            }
+          />
+        </View>
+      </View>
+    </Card>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+        </TouchableOpacity>
+        <Typography variant="h4" weight="600">Pengaturan Keamanan</Typography>
+        <View style={styles.headerRight} />
+      </View>
+
+      <Animated.ScrollView
+        style={[styles.scrollView, { opacity: fadeAnim }]}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <SecurityLevelCard />
+        <BiometricCard />
+        <PrivacyCard />
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 };
@@ -495,45 +380,89 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.layout.sm,
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.neutral[200],
+    ...theme.elevation.sm,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerRight: {
+    width: 40,
+    height: 40,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: theme.spacing.layout.sm,
-    paddingBottom: theme.spacing.md,
+    paddingBottom: theme.spacing.layout.xl,
   },
-  content: {
-    padding: theme.spacing.layout.sm,
-    paddingBottom: theme.spacing.layout.lg,
+  card: {
+    marginBottom: theme.spacing.lg,
+    padding: theme.spacing.lg,
   },
-  section: {
-    marginBottom: theme.spacing.md,
-    padding: theme.spacing.md,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
   },
-  sectionTitle: {
-    marginBottom: theme.spacing.md,
+  iconContainer: {
+    marginRight: theme.spacing.md,
+  },
+  iconGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
+  optionsContainer: {
+    gap: theme.spacing.sm,
   },
   optionItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral[200],
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.neutral[200],
+    backgroundColor: theme.colors.white,
+  },
+  optionItemActive: {
+    borderColor: theme.colors.primary[300],
+    backgroundColor: theme.colors.primary[50],
   },
   optionContent: {
     flex: 1,
-    marginRight: theme.spacing.sm,
   },
-  selectedOption: {
-    backgroundColor: theme.colors.primary[50],
+  switchContainer: {
+    alignItems: 'flex-end',
   },
-  switchItem: {
+  biometricOptions: {
+    gap: theme.spacing.xs,
+  },
+  privacyOptions: {
+    gap: theme.spacing.xs,
+  },
+  settingItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral[200],
+    borderBottomColor: theme.colors.neutral[100],
   },
-  switchContent: {
+  settingContent: {
     flex: 1,
-    marginRight: theme.spacing.sm,
+    marginRight: theme.spacing.md,
   },
 });

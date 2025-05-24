@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +19,7 @@ import { Typography, Input, Card, LocationPicker } from '../../../core/component
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { Ionicons } from '@expo/vector-icons';
+import { useNotificationManager } from '../../../core/hooks';
 
 // Tipe data untuk form transaksi
 interface TransactionFormData {
@@ -54,6 +56,7 @@ export const AddTransactionScreen = () => {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const { checkSpecificBudget, updateGoalProgress } = useNotificationManager();
 
   // Tidak perlu animasi lagi
 
@@ -129,8 +132,29 @@ export const AddTransactionScreen = () => {
       // Simulasi delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Kembali ke halaman sebelumnya
-      navigation.goBack();
+      // Setelah transaksi berhasil disimpan, cek budget dan saving goals
+      if (data.type === 'expense') {
+        // Cek budget alert untuk kategori ini
+        await checkSpecificBudget(data.category, 1000000); // Contoh budget amount
+      }
+
+      // Jika ada saving goal terkait, update progress
+      // Contoh: jika ini transaksi income, bisa update saving goal
+      if (data.type === 'income') {
+        // Update saving goal progress (contoh goal ID)
+        // await updateGoalProgress('goal-id', newAmount);
+      }
+
+      Alert.alert(
+        'Sukses',
+        'Transaksi berhasil disimpan',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (error) {
       console.error('Error submitting transaction:', error);
       Alert.alert('Error', 'Terjadi kesalahan saat menyimpan transaksi');
@@ -200,17 +224,24 @@ export const AddTransactionScreen = () => {
         <View style={styles.typeButtonContent}>
           <Ionicons
             name="arrow-up"
-            size={18}
+            size={20}
             color={transactionType === 'expense' ? theme.colors.white : '#F44336'}
             style={styles.typeIcon}
           />
-          <Typography
-            variant="body1"
-            weight="600"
-            color={transactionType === 'expense' ? theme.colors.white : '#212121'}
+          <Text
+            style={{
+              fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+              fontSize: 16,
+              fontWeight: '600',
+              color: transactionType === 'expense' ? theme.colors.white : '#212121',
+              lineHeight: 28,
+              paddingBottom: 4,
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+            }}
           >
             Pengeluaran
-          </Typography>
+          </Text>
         </View>
       </TouchableOpacity>
 
@@ -225,17 +256,24 @@ export const AddTransactionScreen = () => {
         <View style={styles.typeButtonContent}>
           <Ionicons
             name="arrow-down"
-            size={18}
+            size={20}
             color={transactionType === 'income' ? theme.colors.white : '#26A69A'}
             style={styles.typeIcon}
           />
-          <Typography
-            variant="body1"
-            weight="600"
-            color={transactionType === 'income' ? theme.colors.white : '#212121'}
+          <Text
+            style={{
+              fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+              fontSize: 16,
+              fontWeight: '600',
+              color: transactionType === 'income' ? theme.colors.white : '#212121',
+              lineHeight: 28,
+              paddingBottom: 4,
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+            }}
           >
             Pemasukan
-          </Typography>
+          </Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -638,29 +676,32 @@ const styles = StyleSheet.create({
   },
   typeContainer: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 24,
     borderRadius: 8,
     overflow: 'hidden',
     marginHorizontal: 0,
     marginTop: 0,
+    minHeight: 60,
   },
   typeButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 16,
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
     marginHorizontal: 4,
     borderRadius: 8,
     ...theme.elevation.xs,
-    height: 44,
+    minHeight: 60,
   },
   typeButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 6,
+    minHeight: 44,
   },
   typeIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   activeTypeButton: {
     backgroundColor: '#F44336', // Warna merah sesuai gambar

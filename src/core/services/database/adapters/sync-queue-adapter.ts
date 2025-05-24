@@ -1,5 +1,21 @@
 import { useDatabase } from '../../../providers/DatabaseProvider';
-import { SyncQueueModel, TABLES } from '../async-storage-db';
+import { TABLES } from '../supabase-tables';
+
+// Model untuk SyncQueue
+export interface SyncQueueModel {
+  id: string;
+  user_id: string;
+  table_name: string;
+  record_id: string;
+  operation: 'create' | 'update' | 'delete';
+  data: string;
+  status: 'pending' | 'processing' | 'failed';
+  error: string | null;
+  retry_count: number;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Adapter untuk model SyncQueue
@@ -51,7 +67,7 @@ export const useSyncQueueAdapter = () => {
      * Memperbarui status item antrian
      */
     updateStatus: async (id: string, status: 'pending' | 'processing' | 'failed', error?: string): Promise<SyncQueueModel | null> => {
-      const item = await this.getById(id);
+      const item = await db.getById<SyncQueueModel>(TABLES.SYNC_QUEUE, id);
       return await db.update<SyncQueueModel>(TABLES.SYNC_QUEUE, id, {
         status,
         error: error || null,
@@ -70,9 +86,9 @@ export const useSyncQueueAdapter = () => {
      * Menghapus semua item yang sudah berhasil diproses
      */
     clearProcessed: async (): Promise<void> => {
-      const processed = await this.getByStatus('processing');
+      const processed = await db.getWhere<SyncQueueModel>(TABLES.SYNC_QUEUE, { status: 'processing' });
       for (const item of processed) {
-        await this.dequeue(item.id);
+        await db.delete(TABLES.SYNC_QUEUE, item.id);
       }
     }
   };

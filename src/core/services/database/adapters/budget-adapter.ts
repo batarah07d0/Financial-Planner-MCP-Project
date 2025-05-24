@@ -1,6 +1,19 @@
 import { useDatabase } from '../../../providers/DatabaseProvider';
-import { TABLES } from '../sqlite-database';
-import { BudgetModel } from '../sqlite-service';
+import { TABLES } from '../supabase-tables';
+
+// Model untuk Budget
+export interface BudgetModel {
+  id: string;
+  user_id: string;
+  category_id: string;
+  amount: number;
+  start_date: string;
+  end_date: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Adapter untuk model Budget

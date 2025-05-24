@@ -19,14 +19,24 @@ import {
 } from '../../features/transactions/screens';
 import {
   AddBudgetScreen,
-  SavingZonesScreen,
-  AddSavingZoneScreen,
-  EditSavingZoneScreen,
-  PriceComparisonScreen,
-  ProductDetailScreen,
-  AddPriceScreen,
 } from '../../features/budget/screens';
-import { SecuritySettingsScreen } from '../../features/settings/screens';
+import {
+  SavingGoalsScreen,
+  AddSavingGoalScreen,
+  EditSavingGoalScreen,
+  SavingGoalDetailScreen,
+} from '../../features/savings/screens';
+import {
+  SecuritySettingsScreen,
+  BackupRestoreScreen,
+  SettingsScreen,
+  AccountInfoScreen,
+  ChangePasswordScreen,
+  AboutAppScreen,
+  PrivacyPolicyScreen,
+  TermsConditionsScreen
+} from '../../features/settings/screens';
+import { ChallengesScreen, AddChallengeScreen } from '../../features/challenges/screens';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -61,18 +71,25 @@ export const RootNavigator = () => {
             <Stack.Screen name="Main" component={TabNavigator} />
             <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
             <Stack.Screen name="AddBudget" component={AddBudgetScreen} />
-            <Stack.Screen name="SavingZones" component={SavingZonesScreen} />
-            <Stack.Screen name="AddSavingZone" component={AddSavingZoneScreen} />
-            <Stack.Screen name="EditSavingZone" component={EditSavingZoneScreen} />
-            <Stack.Screen name="PriceComparison" component={PriceComparisonScreen} />
-            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
-            <Stack.Screen name="AddPrice" component={AddPriceScreen} />
+            <Stack.Screen name="SavingGoals" component={SavingGoalsScreen} />
+            <Stack.Screen name="AddSavingGoal" component={AddSavingGoalScreen} />
+            <Stack.Screen name="EditSavingGoal" component={EditSavingGoalScreen} />
+            <Stack.Screen name="SavingGoalDetail" component={SavingGoalDetailScreen} />
             <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
             <Stack.Screen name="BarcodeScanHistory" component={BarcodeScanHistoryScreen} />
             <Stack.Screen name="AddProduct" component={AddProductScreen} />
             <Stack.Screen name="ReceiptScanner" component={ReceiptScannerScreen} />
             <Stack.Screen name="ExpenseMap" component={ExpenseMapScreen} />
             <Stack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
+            <Stack.Screen name="BackupRestore" component={BackupRestoreScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Challenges" component={ChallengesScreen} />
+            <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
+            <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />
+            <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+            <Stack.Screen name="AboutApp" component={AboutAppScreen} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+            <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
           </>
         )}
       </Stack.Navigator>

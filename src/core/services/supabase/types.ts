@@ -96,8 +96,6 @@ export interface Settings {
   id: string;
   user_id: string;
   currency: string;
-  language: string;
-  theme: 'light' | 'dark' | 'system';
   notification_enabled: boolean;
   created_at: string;
   updated_at: string;

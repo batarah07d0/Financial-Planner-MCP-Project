@@ -275,6 +275,186 @@ export const useNotifications = () => {
     };
   }, []);
 
+  // Fungsi khusus untuk notifikasi budget alert
+  const sendBudgetAlert = async (
+    budgetName: string,
+    percentageUsed: number,
+    remainingAmount: number
+  ): Promise<string | null> => {
+    try {
+      let title = '';
+      let body = '';
+
+      if (percentageUsed >= 90) {
+        title = '🚨 Anggaran Hampir Habis!';
+        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Sisa Rp ${remainingAmount.toLocaleString('id-ID')}`;
+      } else if (percentageUsed >= 75) {
+        title = '⚠️ Peringatan Anggaran';
+        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Berhati-hatilah dengan pengeluaran.`;
+      } else {
+        title = '💰 Update Anggaran';
+        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Anggaran masih aman.`;
+      }
+
+      return await sendLocalNotification({
+        title,
+        body,
+        data: { type: 'budget_alert', budgetName, percentageUsed },
+      });
+    } catch (error) {
+      console.error('Error sending budget alert:', error);
+      return null;
+    }
+  };
+
+  // Fungsi untuk notifikasi challenge reminder
+  const sendChallengeReminder = async (
+    challengeTitle: string,
+    daysLeft: number
+  ): Promise<string | null> => {
+    try {
+      let title = '';
+      let body = '';
+
+      if (daysLeft === 0) {
+        title = '🏁 Tantangan Berakhir Hari Ini!';
+        body = `"${challengeTitle}" berakhir hari ini. Selesaikan sekarang!`;
+      } else if (daysLeft === 1) {
+        title = '⏰ Tantangan Berakhir Besok';
+        body = `"${challengeTitle}" berakhir besok. Jangan sampai terlewat!`;
+      } else {
+        title = '🎯 Pengingat Tantangan';
+        body = `"${challengeTitle}" berakhir dalam ${daysLeft} hari. Tetap semangat!`;
+      }
+
+      return await sendLocalNotification({
+        title,
+        body,
+        data: { type: 'challenge_reminder', challengeTitle, daysLeft },
+      });
+    } catch (error) {
+      console.error('Error sending challenge reminder:', error);
+      return null;
+    }
+  };
+
+  // Fungsi untuk notifikasi saving goal progress
+  const sendSavingGoalProgress = async (
+    goalName: string,
+    progressPercentage: number,
+    currentAmount: number,
+    targetAmount: number
+  ): Promise<string | null> => {
+    try {
+      let title = '';
+      let body = '';
+
+      if (progressPercentage >= 100) {
+        title = '🎉 Target Tabungan Tercapai!';
+        body = `Selamat! Anda telah mencapai target "${goalName}" sebesar Rp ${targetAmount.toLocaleString('id-ID')}`;
+      } else if (progressPercentage >= 75) {
+        title = '🌟 Hampir Mencapai Target!';
+        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai. Sisa Rp ${(targetAmount - currentAmount).toLocaleString('id-ID')} lagi!`;
+      } else if (progressPercentage >= 50) {
+        title = '💪 Setengah Perjalanan!';
+        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai. Tetap konsisten menabung!`;
+      } else {
+        title = '📈 Progress Tabungan';
+        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai. Terus tingkatkan!`;
+      }
+
+      return await sendLocalNotification({
+        title,
+        body,
+        data: { type: 'saving_goal', goalName, progressPercentage },
+      });
+    } catch (error) {
+      console.error('Error sending saving goal progress:', error);
+      return null;
+    }
+  };
+
+  // Fungsi untuk notifikasi account update
+  const sendAccountUpdateNotification = async (
+    updateType: 'password' | 'email' | 'profile',
+    success: boolean = true
+  ): Promise<string | null> => {
+    try {
+      let title = '';
+      let body = '';
+
+      if (success) {
+        switch (updateType) {
+          case 'password':
+            title = '🔐 Password Berhasil Diubah';
+            body = 'Password akun Anda telah berhasil diperbarui. Akun Anda tetap aman.';
+            break;
+          case 'email':
+            title = '📧 Email Berhasil Diubah';
+            body = 'Alamat email akun Anda telah berhasil diperbarui.';
+            break;
+          case 'profile':
+            title = '👤 Profil Berhasil Diperbarui';
+            body = 'Informasi profil Anda telah berhasil disimpan.';
+            break;
+        }
+      } else {
+        title = '❌ Gagal Memperbarui Akun';
+        body = 'Terjadi kesalahan saat memperbarui informasi akun. Silakan coba lagi.';
+      }
+
+      return await sendLocalNotification({
+        title,
+        body,
+        data: { type: 'account_update', updateType, success },
+      });
+    } catch (error) {
+      console.error('Error sending account update notification:', error);
+      return null;
+    }
+  };
+
+  // Fungsi untuk notifikasi transaction reminder
+  const sendTransactionReminder = async (): Promise<string | null> => {
+    try {
+      const title = '📝 Jangan Lupa Catat Transaksi';
+      const body = 'Sudahkah Anda mencatat semua pengeluaran hari ini? Catat sekarang untuk tracking yang akurat.';
+
+      return await sendLocalNotification({
+        title,
+        body,
+        data: { type: 'transaction_reminder' },
+      });
+    } catch (error) {
+      console.error('Error sending transaction reminder:', error);
+      return null;
+    }
+  };
+
+  // Fungsi untuk menjadwalkan reminder harian
+  const scheduleDailyReminder = async (
+    hour: number = 20, // Default jam 8 malam
+    minute: number = 0
+  ): Promise<string | null> => {
+    try {
+      return await scheduleNotification(
+        {
+          title: '📊 Review Keuangan Harian',
+          body: 'Waktunya review pengeluaran dan progress keuangan Anda hari ini!',
+          data: { type: 'daily_review' },
+        },
+        {
+          hours: hour,
+          minutes: minute,
+          repeats: true,
+        }
+      );
+    } catch (error) {
+      console.error('Error scheduling daily reminder:', error);
+      return null;
+    }
+  };
+
   return {
     expoPushToken,
     notification,
@@ -286,5 +466,12 @@ export const useNotifications = () => {
     cancelNotification,
     cancelAllNotifications,
     getAllScheduledNotifications,
+    // Fungsi notifikasi khusus
+    sendBudgetAlert,
+    sendChallengeReminder,
+    sendSavingGoalProgress,
+    sendAccountUpdateNotification,
+    sendTransactionReminder,
+    scheduleDailyReminder,
   };
 };

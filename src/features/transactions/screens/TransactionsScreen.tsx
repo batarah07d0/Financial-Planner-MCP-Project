@@ -169,6 +169,9 @@ export const TransactionsScreen = () => {
         });
       },
     });
+
+    // Tampilkan pesan untuk debugging
+    console.log('Navigating to BarcodeScanner screen');
   };
 
   // Fungsi untuk menangani klik pada tombol riwayat pemindaian barcode

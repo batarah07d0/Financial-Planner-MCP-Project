@@ -1,6 +1,24 @@
 import { useDatabase } from '../../../providers/DatabaseProvider';
-import { TABLES } from '../sqlite-database';
-import { TransactionModel } from '../sqlite-service';
+import { TABLES } from '../supabase-tables';
+
+// Model untuk Transaction
+export interface TransactionModel {
+  id: string;
+  user_id: string;
+  category_id: string;
+  amount: number;
+  date: string;
+  description: string;
+  type: 'income' | 'expense';
+  payment_method?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  image_url?: string;
+  tags?: string[];
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Adapter untuk model Transaction

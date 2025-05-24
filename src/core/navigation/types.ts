@@ -6,6 +6,7 @@ export type TabParamList = {
   Transactions: undefined;
   Budget: undefined;
   Analytics: undefined;
+  More: undefined;
 };
 
 // Tipe untuk navigasi autentikasi
@@ -52,18 +53,8 @@ export type RootStackParamList = {
   AddBudget: undefined;
   EditBudget: { id: string };
   BudgetDetail: { id: string };
-  SavingZones: undefined;
-  AddSavingZone: undefined;
-  EditSavingZone: { zoneId: string };
-  PriceComparison: undefined;
-  ProductDetail: { productId: string };
-  AddPrice: { productId?: string };
   AddProduct: {
     barcode?: string;
-  };
-  AddStore: undefined;
-  SelectProduct: {
-    onSelect: (product: any) => void;
   };
   BarcodeScanner: {
     onScanComplete?: (data: {
@@ -77,4 +68,20 @@ export type RootStackParamList = {
   ReceiptScanner: undefined;
   ExpenseMap: undefined;
   SecuritySettings: undefined;
+  BackupRestore: undefined;
+  CameraTest: undefined;
+  CameraTestSimple: undefined;
+  Settings: undefined;
+  Challenges: undefined;
+  AddChallenge: undefined;
+  ChallengeDetail: { id: string };
+  SavingGoals: undefined;
+  AddSavingGoal: undefined;
+  EditSavingGoal: { goalId: string };
+  SavingGoalDetail: { goalId: string };
+  AccountInfo: undefined;
+  ChangePassword: undefined;
+  AboutApp: undefined;
+  PrivacyPolicy: undefined;
+  TermsConditions: undefined;
 };
