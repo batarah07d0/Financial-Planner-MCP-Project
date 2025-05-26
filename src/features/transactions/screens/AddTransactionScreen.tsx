@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Modal,
   ActivityIndicator,
   Text,
@@ -14,12 +13,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
-import { Button as PaperButton, Dialog, Portal } from 'react-native-paper';
-import { Typography, Input, Card, LocationPicker } from '../../../core/components';
+import { Button as PaperButton } from 'react-native-paper';
+import { Typography, Input, Card, LocationPicker, DatePicker, CategoryPicker, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotificationManager } from '../../../core/hooks';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 // Tipe data untuk form transaksi
 interface TransactionFormData {
@@ -57,6 +57,7 @@ export const AddTransactionScreen = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const { checkSpecificBudget, updateGoalProgress } = useNotificationManager();
+  const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
 
   // Tidak perlu animasi lagi
 
@@ -113,13 +114,13 @@ export const AddTransactionScreen = () => {
 
       // Validasi amount
       if (isNaN(amount) || amount <= 0) {
-        Alert.alert('Error', 'Jumlah harus lebih dari 0');
+        showError('Error', 'Jumlah harus lebih dari 0');
         return;
       }
 
       // Validasi kategori
       if (!data.category) {
-        Alert.alert('Error', 'Kategori harus dipilih');
+        showError('Error', 'Kategori harus dipilih');
         return;
       }
 
@@ -145,19 +146,11 @@ export const AddTransactionScreen = () => {
         // await updateGoalProgress('goal-id', newAmount);
       }
 
-      Alert.alert(
-        'Sukses',
-        'Transaksi berhasil disimpan',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      showSuccess('Sukses', 'Transaksi berhasil disimpan');
+      setTimeout(() => navigation.goBack(), 2000);
     } catch (error) {
       console.error('Error submitting transaction:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat menyimpan transaksi');
+      showError('Error', 'Terjadi kesalahan saat menyimpan transaksi');
     } finally {
       setIsSubmitting(false);
     }
@@ -279,53 +272,7 @@ export const AddTransactionScreen = () => {
     </View>
   );
 
-  // Render kategori picker
-  const renderCategoryPicker = () => {
-    const filteredCategories = categories.filter(cat => cat.type === transactionType);
 
-    return (
-      <View style={styles.categoryPickerContainer}>
-        <Typography variant="body1" style={styles.pickerTitle}>
-          Pilih Kategori
-        </Typography>
-
-        {isLoadingCategories ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007BFF" />
-            <Typography variant="body2">
-              Memuat kategori...
-            </Typography>
-          </View>
-        ) : filteredCategories.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Typography variant="body2">
-              Tidak ada kategori untuk tipe transaksi ini.
-            </Typography>
-          </View>
-        ) : (
-          <View style={styles.categoryGrid}>
-            {filteredCategories.map(category => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryItem,
-                  selectedCategory === category.id && styles.selectedCategoryItem,
-                ]}
-                onPress={() => handleCategorySelect(category.id)}
-              >
-                <Typography
-                  variant="body2"
-                  color={selectedCategory === category.id ? theme.colors.white : theme.colors.neutral[700]}
-                >
-                  {category.name}
-                </Typography>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -397,7 +344,7 @@ export const AddTransactionScreen = () => {
             <View>
               <TouchableOpacity
                 style={styles.pickerButton}
-                onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+                onPress={() => setShowCategoryPicker(true)}
                 activeOpacity={0.7}
               >
                 <View style={styles.pickerLabelContainer}>
@@ -427,7 +374,21 @@ export const AddTransactionScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {showCategoryPicker && renderCategoryPicker()}
+            <Modal
+              visible={showCategoryPicker}
+              animationType="slide"
+              onRequestClose={() => setShowCategoryPicker(false)}
+            >
+              <CategoryPicker
+                categories={categories}
+                selectedCategoryId={selectedCategory}
+                transactionType={transactionType}
+                onCategorySelected={handleCategorySelect}
+                onCancel={() => setShowCategoryPicker(false)}
+                title={`Pilih Kategori ${transactionType === 'expense' ? 'Pengeluaran' : 'Pemasukan'}`}
+                isLoading={isLoadingCategories}
+              />
+            </Modal>
 
             <View style={{ marginTop: 8 }}>
               <Controller
@@ -485,73 +446,19 @@ export const AddTransactionScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <Portal>
-              <Dialog visible={showDatePicker} onDismiss={() => setShowDatePicker(false)}>
-                <Dialog.Title>Pilih Tanggal</Dialog.Title>
-                <Dialog.Content>
-                  <View style={styles.datePickerContainer}>
-                    {/* Tampilkan tanggal dalam format yang mudah dibaca */}
-                    <Typography variant="h4" style={styles.selectedDate}>
-                      {formatDate(selectedDate, { format: 'full' })}
-                    </Typography>
-
-                    {/* Tombol untuk mengubah tanggal */}
-                    <View style={styles.dateControls}>
-                      <View style={styles.dateControlRow}>
-                        <PaperButton
-                          mode="outlined"
-                          onPress={() => {
-                            const newDate = new Date(selectedDate);
-                            newDate.setDate(newDate.getDate() - 1);
-                            handleDateChange(newDate);
-                          }}
-                          style={styles.dateButton}
-                          icon="chevron-left"
-                        >
-                          Hari Sebelumnya
-                        </PaperButton>
-                      </View>
-
-                      <View style={styles.dateControlRow}>
-                        <PaperButton
-                          mode="contained"
-                          onPress={() => {
-                            const today = new Date();
-                            handleDateChange(today);
-                          }}
-                          style={styles.dateButton}
-                          icon="calendar-today"
-                        >
-                          Hari Ini
-                        </PaperButton>
-                      </View>
-
-                      <View style={styles.dateControlRow}>
-                        <PaperButton
-                          mode="outlined"
-                          disabled={selectedDate.toDateString() === new Date().toDateString()}
-                          onPress={() => {
-                            const newDate = new Date(selectedDate);
-                            newDate.setDate(newDate.getDate() + 1);
-                            const today = new Date();
-                            if (newDate <= today) {
-                              handleDateChange(newDate);
-                            }
-                          }}
-                          style={styles.dateButton}
-                          icon="chevron-right"
-                        >
-                          Hari Berikutnya
-                        </PaperButton>
-                      </View>
-                    </View>
-                  </View>
-                </Dialog.Content>
-                <Dialog.Actions>
-                  <PaperButton onPress={() => setShowDatePicker(false)}>Tutup</PaperButton>
-                </Dialog.Actions>
-              </Dialog>
-            </Portal>
+            <Modal
+              visible={showDatePicker}
+              animationType="slide"
+              onRequestClose={() => setShowDatePicker(false)}
+            >
+              <DatePicker
+                selectedDate={selectedDate}
+                onDateSelected={handleDateChange}
+                onCancel={() => setShowDatePicker(false)}
+                title="Pilih Tanggal Transaksi"
+                maxDate={new Date()} // Tidak bisa pilih tanggal masa depan
+              />
+            </Modal>
 
             <View style={{ marginTop: 8 }}>
               <TouchableOpacity
@@ -624,6 +531,18 @@ export const AddTransactionScreen = () => {
             onCancel={() => setShowLocationPicker(false)}
           />
         </Modal>
+
+        {/* Superior Dialog */}
+        <SuperiorDialog
+          visible={dialogState.visible}
+          type={dialogState.type}
+          title={dialogState.title}
+          message={dialogState.message}
+          actions={dialogState.actions}
+          onClose={hideDialog}
+          icon={dialogState.icon}
+          autoClose={dialogState.autoClose}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -736,55 +655,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
     color: theme.colors.primary[500],
   },
-  categoryPickerContainer: {
-    marginBottom: theme.spacing.md,
-    backgroundColor: theme.colors.neutral[100],
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    ...theme.elevation.xs,
-  },
-  pickerTitle: {
-    marginBottom: theme.spacing.sm,
-    fontWeight: '600',
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  categoryItem: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.neutral[200],
-    borderRadius: theme.borderRadius.md,
-    margin: theme.spacing.xs,
-    ...theme.elevation.xs,
-  },
-  selectedCategoryItem: {
-    backgroundColor: theme.colors.primary[500],
-    ...theme.elevation.sm,
-  },
-  // Style untuk date picker
-  datePickerContainer: {
-    alignItems: 'center',
-    padding: theme.spacing.md,
-  },
-  selectedDate: {
-    marginBottom: theme.spacing.md,
-    textAlign: 'center',
-  },
-  dateControls: {
-    flexDirection: 'column',
-    width: '100%',
-    gap: theme.spacing.sm,
-  },
-  dateControlRow: {
-    width: '100%',
-    marginBottom: theme.spacing.xs,
-  },
-  dateButton: {
-    width: '100%',
-    borderRadius: theme.borderRadius.md,
-  },
+
+
   footer: {
     padding: 0, // Menghilangkan padding
     paddingVertical: 10, // Hanya memberikan padding vertikal

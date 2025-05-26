@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, Card } from '../../../core/components';
+import { Typography, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
 import {
@@ -24,6 +23,7 @@ import {
   deleteSavingGoal,
   SavingGoal
 } from '../../../core/services/supabase/savingGoal.service';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 type SavingGoalsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SavingGoals'>;
 
@@ -211,6 +211,7 @@ export const SavingGoalsScreen = () => {
   const [goals, setGoals] = useState<SavingGoal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { dialogState, showError, showDelete, showSuccess, hideDialog } = useSuperiorDialog();
 
   const loadSavingGoals = async () => {
     if (!user) return;
@@ -223,7 +224,7 @@ export const SavingGoalsScreen = () => {
       }
     } catch (error) {
       console.error('Error loading saving goals:', error);
-      Alert.alert('Error', 'Gagal memuat data tujuan tabungan');
+      showError('Error', 'Gagal memuat data tujuan tabungan');
     } finally {
       setIsLoading(false);
     }
@@ -248,30 +249,23 @@ export const SavingGoalsScreen = () => {
   };
 
   const handleDeleteGoal = (goal: SavingGoal) => {
-    Alert.alert(
+    showDelete(
       'Hapus Tujuan Tabungan',
-      `Apakah Anda yakin ingin menghapus "${goal.name}"?`,
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const success = await deleteSavingGoal(goal.id);
-              if (success) {
-                setGoals(prev => prev.filter(g => g.id !== goal.id));
-                Alert.alert('Sukses', 'Tujuan tabungan berhasil dihapus');
-              } else {
-                Alert.alert('Error', 'Gagal menghapus tujuan tabungan');
-              }
-            } catch (error) {
-              console.error('Error deleting goal:', error);
-              Alert.alert('Error', 'Gagal menghapus tujuan tabungan');
-            }
-          },
-        },
-      ]
+      `Apakah Anda yakin ingin menghapus "${goal.name}"? Tindakan ini tidak dapat dibatalkan.`,
+      async () => {
+        try {
+          const success = await deleteSavingGoal(goal.id);
+          if (success) {
+            setGoals(prev => prev.filter(g => g.id !== goal.id));
+            showSuccess('Sukses', 'Tujuan tabungan berhasil dihapus');
+          } else {
+            showError('Error', 'Gagal menghapus tujuan tabungan');
+          }
+        } catch (error) {
+          console.error('Error deleting goal:', error);
+          showError('Error', 'Gagal menghapus tujuan tabungan');
+        }
+      }
     );
   };
 
@@ -411,6 +405,18 @@ export const SavingGoalsScreen = () => {
           </LinearGradient>
         </TouchableOpacity>
       )}
+
+      {/* Superior Dialog */}
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };

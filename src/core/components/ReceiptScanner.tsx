@@ -14,8 +14,8 @@ import { Typography } from './Typography';
 import { Button } from './Button';
 import { Card } from './Card';
 import { theme } from '../theme';
-import { useCamera, useOCR, ImageResult, OCRResult, ParsedReceipt } from '../hooks';
-import { formatCurrency, formatDate } from '../utils';
+import { useCamera, useOCR, ImageResult, ParsedReceipt } from '../hooks';
+import { formatCurrency } from '../utils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -40,7 +40,6 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 }) => {
   const [step, setStep] = useState<'capture' | 'preview' | 'processing' | 'result'>('capture');
   const [capturedImage, setCapturedImage] = useState<ImageResult | null>(null);
-  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [parsedReceipt, setParsedReceipt] = useState<ParsedReceipt | null>(null);
 
   const {
@@ -53,9 +52,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const {
     recognizeText,
     parseReceipt,
-    isLoading: ocrLoading,
     progress: ocrProgress,
-    error: ocrError,
   } = useOCR();
 
   // Fungsi untuk mengambil gambar dari kamera
@@ -89,8 +86,6 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       const result = await recognizeText(capturedImage.uri);
 
       if (result) {
-        setOcrResult(result);
-
         // Parse hasil OCR
         const parsed = parseReceipt(result);
         setParsedReceipt(parsed);
@@ -133,7 +128,6 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   // Fungsi untuk mengambil ulang gambar
   const handleRetake = () => {
     setCapturedImage(null);
-    setOcrResult(null);
     setParsedReceipt(null);
     setStep('capture');
   };

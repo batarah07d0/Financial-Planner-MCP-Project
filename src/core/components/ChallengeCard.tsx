@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Animated,
   Easing,
 } from 'react-native';
@@ -47,12 +46,10 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     type,
     target,
     current,
-    startDate,
     endDate,
     reward,
     participants,
     isCompleted,
-    image,
   } = challenge;
 
   // Animasi untuk efek press dan progress bar
@@ -101,7 +98,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
   };
 
   // Mendapatkan gradient colors berdasarkan tipe tantangan
-  const getGradientColors = () => {
+  const getGradientColors = (): [string, string] => {
     switch (type) {
       case 'saving':
         return [theme.colors.success[400], theme.colors.success[600]];

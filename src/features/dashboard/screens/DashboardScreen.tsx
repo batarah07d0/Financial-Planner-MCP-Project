@@ -13,6 +13,7 @@ import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-ico
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../../core/services/store';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const DashboardScreen = () => {
@@ -21,6 +22,19 @@ export const DashboardScreen = () => {
   const [visitCount, setVisitCount] = useState(0);
   const navigation = useNavigation();
   const { user } = useAuthStore();
+
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
 
   // Fungsi untuk mendapatkan greeting message
   const getGreetingMessage = () => {
@@ -120,10 +134,18 @@ export const DashboardScreen = () => {
     (navigation as any).navigate('AddTransaction');
   };
 
-  // Efek animasi untuk header
+  // Efek animasi untuk header dengan responsivitas
+  const getResponsiveHeaderHeight = () => {
+    if (isSmallDevice) return { expanded: 200, collapsed: 120 };
+    if (isLargeDevice) return { expanded: 260, collapsed: 160 };
+    return { expanded: 220, collapsed: 140 }; // default untuk medium device
+  };
+
+  const headerHeights = getResponsiveHeaderHeight();
+
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 100],
-    outputRange: [220, 140],
+    outputRange: [headerHeights.expanded, headerHeights.collapsed],
     extrapolate: 'clamp',
   });
 
@@ -153,10 +175,20 @@ export const DashboardScreen = () => {
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
+          style={[styles.headerGradient, {
+            paddingTop: responsiveSpacing(40),
+            paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+            paddingBottom: responsiveSpacing(theme.spacing.md)
+          }]}
         >
-          <Animated.View style={[styles.headerContent, { opacity: headerOpacity }]}>
-            <Typography variant="h3" color={theme.colors.white} weight="700" style={styles.greetingText}>
+          <Animated.View style={[styles.headerContent, {
+            opacity: headerOpacity,
+            marginTop: responsiveSpacing(20),
+            paddingHorizontal: responsiveSpacing(theme.spacing.xs)
+          }]}>
+            <Typography variant="h3" color={theme.colors.white} weight="700" style={[styles.greetingText, {
+              marginBottom: responsiveSpacing(theme.spacing.xs)
+            }]}>
               {greetingMessage}
             </Typography>
             <Typography variant="body1" color={theme.colors.white} style={styles.subtitleText}>
@@ -164,7 +196,11 @@ export const DashboardScreen = () => {
             </Typography>
           </Animated.View>
 
-          <Animated.View style={[styles.headerTitle, { opacity: headerTitleOpacity }]}>
+          <Animated.View style={[styles.headerTitle, {
+            opacity: headerTitleOpacity,
+            bottom: responsiveSpacing(15),
+            left: responsiveSpacing(theme.spacing.layout.sm)
+          }]}>
             <Typography variant="h5" color={theme.colors.white} weight="600">
               BudgetWise
             </Typography>
@@ -174,7 +210,13 @@ export const DashboardScreen = () => {
 
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: headerHeights.expanded + responsiveSpacing(20),
+            paddingBottom: responsiveSpacing(theme.spacing.layout.lg)
+          }
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -183,8 +225,15 @@ export const DashboardScreen = () => {
         scrollEventThrottle={16}
       >
         {/* Kartu Saldo */}
-        <Card style={styles.balanceCard} elevation="md">
-          <View style={styles.balanceHeader}>
+        <Card style={[styles.balanceCard, {
+          marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+          marginBottom: responsiveSpacing(theme.spacing.layout.md),
+          padding: responsiveSpacing(theme.spacing.layout.md),
+          borderRadius: responsiveSpacing(20)
+        }] as any} elevation="md">
+          <View style={[styles.balanceHeader, {
+            marginBottom: responsiveSpacing(theme.spacing.md)
+          }]}>
             <View>
               <Typography variant="body2" color={theme.colors.neutral[600]}>
                 Saldo Saat Ini
@@ -193,53 +242,92 @@ export const DashboardScreen = () => {
                 Rp 0
               </Typography>
             </View>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddTransaction}>
+            <TouchableOpacity style={[styles.addButton, {
+              width: responsiveSpacing(48),
+              height: responsiveSpacing(48),
+              borderRadius: responsiveSpacing(24)
+            }]} onPress={handleAddTransaction}>
               <LinearGradient
                 colors={[theme.colors.primary[500], theme.colors.primary[700]]}
                 style={styles.addButtonGradient}
               >
-                <Ionicons name="add" size={24} color={theme.colors.white} />
+                <Ionicons name="add" size={responsiveFontSize(24)} color={theme.colors.white} />
               </LinearGradient>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.balanceActions}>
+          <View style={[styles.balanceActions, {
+            marginTop: responsiveSpacing(theme.spacing.md),
+            paddingTop: responsiveSpacing(theme.spacing.md)
+          }]}>
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, {
+                width: isSmallDevice ? '22%' : '23%',
+                paddingVertical: responsiveSpacing(theme.spacing.sm)
+              }]}
               onPress={() => handleNavigateToAddTransaction('income')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: theme.colors.success[50] }]}>
-                <Ionicons name="arrow-down" size={20} color={theme.colors.success[500]} />
+              <View style={[styles.actionIcon, {
+                backgroundColor: theme.colors.success[50],
+                width: responsiveSpacing(44),
+                height: responsiveSpacing(44),
+                borderRadius: responsiveSpacing(22)
+              }]}>
+                <Ionicons name="arrow-down" size={responsiveFontSize(20)} color={theme.colors.success[500]} />
               </View>
               <Typography variant="caption" align="center">Pemasukan</Typography>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, {
+                width: isSmallDevice ? '22%' : '23%',
+                paddingVertical: responsiveSpacing(theme.spacing.sm)
+              }]}
               onPress={() => handleNavigateToAddTransaction('expense')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: theme.colors.danger[50] }]}>
-                <Ionicons name="arrow-up" size={20} color={theme.colors.danger[500]} />
+              <View style={[styles.actionIcon, {
+                backgroundColor: theme.colors.danger[50],
+                width: responsiveSpacing(44),
+                height: responsiveSpacing(44),
+                borderRadius: responsiveSpacing(22)
+              }]}>
+                <Ionicons name="arrow-up" size={responsiveFontSize(20)} color={theme.colors.danger[500]} />
               </View>
               <Typography variant="caption" align="center">Pengeluaran</Typography>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, {
+                width: isSmallDevice ? '22%' : '23%',
+                paddingVertical: responsiveSpacing(theme.spacing.sm)
+              }]}
               onPress={handleNavigateToAnalytics}
             >
-              <View style={[styles.actionIcon, { backgroundColor: theme.colors.info[50] }]}>
-                <MaterialCommunityIcons name="chart-line" size={20} color={theme.colors.info[500]} />
+              <View style={[styles.actionIcon, {
+                backgroundColor: theme.colors.info[50],
+                width: responsiveSpacing(44),
+                height: responsiveSpacing(44),
+                borderRadius: responsiveSpacing(22)
+              }]}>
+                <MaterialCommunityIcons name="chart-line" size={responsiveFontSize(20)} color={theme.colors.info[500]} />
               </View>
               <Typography variant="caption" align="center">Analisis</Typography>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, {
+                width: isSmallDevice ? '22%' : '23%',
+                paddingVertical: responsiveSpacing(theme.spacing.sm)
+              }]}
               onPress={handleNavigateToSavingGoals}
             >
-              <View style={[styles.actionIcon, { backgroundColor: theme.colors.warning[50] }]}>
-                <FontAwesome5 name="piggy-bank" size={18} color={theme.colors.warning[500]} />
+              <View style={[styles.actionIcon, {
+                backgroundColor: theme.colors.warning[50],
+                width: responsiveSpacing(44),
+                height: responsiveSpacing(44),
+                borderRadius: responsiveSpacing(22)
+              }]}>
+                <FontAwesome5 name="piggy-bank" size={responsiveFontSize(18)} color={theme.colors.warning[500]} />
               </View>
               <Typography variant="caption" align="center">Tabungan</Typography>
             </TouchableOpacity>
@@ -247,8 +335,13 @@ export const DashboardScreen = () => {
         </Card>
 
         {/* Ringkasan Bulan Ini */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.section, {
+          marginBottom: responsiveSpacing(theme.spacing.layout.md)
+        }]}>
+          <View style={[styles.sectionHeader, {
+            marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+            marginBottom: responsiveSpacing(theme.spacing.md)
+          }]}>
             <Typography variant="h5" weight="600" style={styles.sectionTitle}>
               Ringkasan Bulan Ini
             </Typography>
@@ -259,11 +352,28 @@ export const DashboardScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.summaryContainer}>
-            <Card style={{ ...styles.summaryCard, ...styles.incomeCard }} elevation="sm">
-              <View style={styles.summaryIconContainer}>
-                <View style={[styles.summaryIcon, { backgroundColor: theme.colors.success[50] }]}>
-                  <Ionicons name="arrow-down" size={20} color={theme.colors.success[500]} />
+          <View style={[styles.summaryContainer, {
+            marginHorizontal: responsiveSpacing(theme.spacing.layout.sm)
+          }]}>
+            <Card style={[
+              styles.summaryCard,
+              styles.incomeCard,
+              {
+                padding: responsiveSpacing(theme.spacing.md),
+                borderRadius: responsiveSpacing(16),
+                marginRight: responsiveSpacing(theme.spacing.sm)
+              }
+            ] as any} elevation="sm">
+              <View style={[styles.summaryIconContainer, {
+                marginBottom: responsiveSpacing(theme.spacing.sm)
+              }]}>
+                <View style={[styles.summaryIcon, {
+                  backgroundColor: theme.colors.success[50],
+                  width: responsiveSpacing(36),
+                  height: responsiveSpacing(36),
+                  borderRadius: responsiveSpacing(18)
+                }]}>
+                  <Ionicons name="arrow-down" size={responsiveFontSize(20)} color={theme.colors.success[500]} />
                 </View>
               </View>
               <Typography variant="body2" color={theme.colors.neutral[600]}>
@@ -274,10 +384,25 @@ export const DashboardScreen = () => {
               </Typography>
             </Card>
 
-            <Card style={{ ...styles.summaryCard, ...styles.expenseCard }} elevation="sm">
-              <View style={styles.summaryIconContainer}>
-                <View style={[styles.summaryIcon, { backgroundColor: theme.colors.danger[50] }]}>
-                  <Ionicons name="arrow-up" size={20} color={theme.colors.danger[500]} />
+            <Card style={[
+              styles.summaryCard,
+              styles.expenseCard,
+              {
+                padding: responsiveSpacing(theme.spacing.md),
+                borderRadius: responsiveSpacing(16),
+                marginLeft: responsiveSpacing(theme.spacing.sm)
+              }
+            ] as any} elevation="sm">
+              <View style={[styles.summaryIconContainer, {
+                marginBottom: responsiveSpacing(theme.spacing.sm)
+              }]}>
+                <View style={[styles.summaryIcon, {
+                  backgroundColor: theme.colors.danger[50],
+                  width: responsiveSpacing(36),
+                  height: responsiveSpacing(36),
+                  borderRadius: responsiveSpacing(18)
+                }]}>
+                  <Ionicons name="arrow-up" size={responsiveFontSize(20)} color={theme.colors.danger[500]} />
                 </View>
               </View>
               <Typography variant="body2" color={theme.colors.neutral[600]}>
@@ -291,8 +416,13 @@ export const DashboardScreen = () => {
         </View>
 
         {/* Transaksi Terbaru */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.section, {
+          marginBottom: responsiveSpacing(theme.spacing.layout.md)
+        }]}>
+          <View style={[styles.sectionHeader, {
+            marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+            marginBottom: responsiveSpacing(theme.spacing.md)
+          }]}>
             <Typography variant="h5" weight="600" style={styles.sectionTitle}>
               Transaksi Terbaru
             </Typography>
@@ -303,14 +433,31 @@ export const DashboardScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <Card style={styles.emptyTransactionCard} elevation="sm">
-            <View style={styles.emptyStateContainer}>
-              <Ionicons name="receipt-outline" size={48} color={theme.colors.neutral[300]} />
-              <Typography variant="body1" color={theme.colors.neutral[500]} align="center" style={styles.emptyText}>
+          <Card style={[
+            styles.emptyTransactionCard,
+            {
+              marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+              padding: responsiveSpacing(theme.spacing.layout.md),
+              borderRadius: responsiveSpacing(16)
+            }
+          ] as any} elevation="sm">
+            <View style={[styles.emptyStateContainer, {
+              padding: responsiveSpacing(theme.spacing.md)
+            }]}>
+              <Ionicons name="receipt-outline" size={responsiveFontSize(48)} color={theme.colors.neutral[300]} />
+              <Typography variant="body1" color={theme.colors.neutral[500]} align="center" style={[styles.emptyText, {
+                marginTop: responsiveSpacing(theme.spacing.md),
+                marginBottom: responsiveSpacing(theme.spacing.md)
+              }]}>
                 Belum ada transaksi
               </Typography>
               <TouchableOpacity
-                style={styles.addTransactionButton}
+                style={[styles.addTransactionButton, {
+                  paddingVertical: responsiveSpacing(theme.spacing.sm),
+                  paddingHorizontal: responsiveSpacing(theme.spacing.md),
+                  borderRadius: responsiveSpacing(theme.borderRadius.md),
+                  marginTop: responsiveSpacing(theme.spacing.sm)
+                }]}
                 onPress={handleAddTransaction}
               >
                 <Typography variant="body2" color={theme.colors.primary[500]}>
@@ -322,29 +469,47 @@ export const DashboardScreen = () => {
         </View>
 
         {/* Tips Keuangan */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.section, {
+          marginBottom: responsiveSpacing(theme.spacing.layout.md)
+        }]}>
+          <View style={[styles.sectionHeader, {
+            marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+            marginBottom: responsiveSpacing(theme.spacing.md)
+          }]}>
             <Typography variant="h5" weight="600" style={styles.sectionTitle}>
               Tips Keuangan
             </Typography>
           </View>
 
-          <Card style={styles.tipCard} elevation="sm">
+          <Card style={[
+            styles.tipCard,
+            {
+              marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+              borderRadius: responsiveSpacing(16)
+            }
+          ] as any} elevation="sm">
             <LinearGradient
               colors={[theme.colors.info[50], theme.colors.info[100]]}
-              style={styles.tipGradient}
+              style={[styles.tipGradient, {
+                padding: responsiveSpacing(theme.spacing.md)
+              }]}
             >
               <View style={styles.tipContent}>
-                <View>
+                <View style={{ maxWidth: isSmallDevice ? '75%' : '85%' }}>
                   <Typography variant="body1" weight="600" color={theme.colors.info[900]}>
                     Atur Anggaran Bulanan
                   </Typography>
-                  <Typography variant="body2" color={theme.colors.info[800]} style={styles.tipDescription}>
+                  <Typography variant="body2" color={theme.colors.info[800]} style={[styles.tipDescription, {
+                    marginTop: responsiveSpacing(theme.spacing.xs)
+                  }]}>
                     Tetapkan anggaran untuk setiap kategori pengeluaran untuk mengontrol keuangan Anda.
                   </Typography>
                 </View>
-                <View style={styles.tipIconContainer}>
-                  <Ionicons name="wallet-outline" size={40} color={theme.colors.info[300]} />
+                <View style={[styles.tipIconContainer, {
+                  width: responsiveSpacing(60),
+                  height: responsiveSpacing(60)
+                }]}>
+                  <Ionicons name="wallet-outline" size={responsiveFontSize(40)} color={theme.colors.info[300]} />
                 </View>
               </View>
             </LinearGradient>
@@ -406,7 +571,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingTop: 230, // Header height + some extra space
+    paddingTop: 240, // Header height + some extra space (akan di-override dengan responsif)
     paddingBottom: theme.spacing.layout.lg,
   },
 

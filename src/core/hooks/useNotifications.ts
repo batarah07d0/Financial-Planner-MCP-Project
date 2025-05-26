@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
@@ -33,7 +33,7 @@ export interface NotificationSchedule {
   repeats?: boolean;
 }
 
-export const useNotifications = () => {
+export const useNotifications = (showErrorDialog?: (title: string, message: string) => void) => {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -49,10 +49,12 @@ export const useNotifications = () => {
 
     try {
       if (!Device.isDevice) {
-        Alert.alert(
-          'Notifikasi tidak tersedia',
-          'Notifikasi hanya tersedia pada perangkat fisik'
-        );
+        if (showErrorDialog) {
+          showErrorDialog(
+            'Notifikasi tidak tersedia',
+            'Notifikasi hanya tersedia pada perangkat fisik'
+          );
+        }
         return false;
       }
 
@@ -65,10 +67,12 @@ export const useNotifications = () => {
       }
 
       if (finalStatus !== 'granted') {
-        Alert.alert(
-          'Izin Notifikasi Diperlukan',
-          'Aplikasi memerlukan izin notifikasi untuk fitur ini. Silakan aktifkan izin notifikasi di pengaturan perangkat Anda.'
-        );
+        if (showErrorDialog) {
+          showErrorDialog(
+            'Izin Notifikasi Diperlukan',
+            'Aplikasi memerlukan izin notifikasi untuk fitur ini. Silakan aktifkan izin notifikasi di pengaturan perangkat Anda.'
+          );
+        }
         setHasPermission(false);
         return false;
       }

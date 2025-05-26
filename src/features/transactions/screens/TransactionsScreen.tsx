@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   StatusBar,
   Platform,
 } from 'react-native';
@@ -15,12 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { Typography, TransactionCard } from '../../../core/components';
+import { Typography, TransactionCard, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Transaction } from '../../../core/services/supabase/types';
 import { RootStackParamList } from '../../../core/navigation/types';
 import { useTransactionStore, useAuthStore } from '../../../core/services/store';
 import { supabase } from '../../../config/supabase';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 // Definisikan tipe untuk navigasi dengan keyof untuk memastikan nama screen valid
 type TransactionsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -49,11 +49,12 @@ export const TransactionsScreen = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
+  const { dialogState, showError, showDelete, showSuccess, hideDialog } = useSuperiorDialog();
 
   // Fungsi untuk memuat transaksi dari Supabase
   const loadTransactions = async () => {
     if (!user) {
-      Alert.alert('Error', 'Anda harus login terlebih dahulu');
+      showError('Error', 'Anda harus login terlebih dahulu');
       return;
     }
 
@@ -66,7 +67,7 @@ export const TransactionsScreen = () => {
       await loadCategories();
     } catch (error) {
       console.error('Error loading transactions:', error);
-      Alert.alert('Error', 'Gagal memuat transaksi');
+      showError('Error', 'Gagal memuat transaksi');
     }
   };
 
@@ -107,28 +108,18 @@ export const TransactionsScreen = () => {
 
   // Fungsi untuk menghapus transaksi
   const handleDeleteTransaction = (id: string) => {
-    Alert.alert(
-      'Konfirmasi',
-      'Apakah Anda yakin ingin menghapus transaksi ini?',
-      [
-        {
-          text: 'Batal',
-          style: 'cancel',
-        },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteTransaction(id);
-              Alert.alert('Sukses', 'Transaksi berhasil dihapus');
-            } catch (error) {
-              console.error('Error deleting transaction:', error);
-              Alert.alert('Error', 'Gagal menghapus transaksi');
-            }
-          },
-        },
-      ]
+    showDelete(
+      'Hapus Transaksi',
+      'Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.',
+      async () => {
+        try {
+          await deleteTransaction(id);
+          showSuccess('Sukses', 'Transaksi berhasil dihapus');
+        } catch (error) {
+          console.error('Error deleting transaction:', error);
+          showError('Error', 'Gagal menghapus transaksi');
+        }
+      }
     );
   };
 
@@ -204,7 +195,7 @@ export const TransactionsScreen = () => {
   // Tampilkan error jika ada
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error);
+      showError('Error', error);
     }
   }, [error]);
 
@@ -405,6 +396,18 @@ export const TransactionsScreen = () => {
       >
         <Ionicons name="add" size={24} color={theme.colors.white} />
       </TouchableOpacity>
+
+      {/* Superior Dialog */}
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };

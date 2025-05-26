@@ -3,13 +3,10 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Dimensions,
   StatusBar,
-  Image,
   Animated,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -18,6 +15,7 @@ import { AuthStackParamList } from '../../../core/navigation/types';
 import { Button, Input, Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -29,13 +27,23 @@ interface LoginParams {
   password?: string;
 }
 
-const { width, height } = Dimensions.get('window');
-const LOGO_SIZE = width * 0.3;
-
 export const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const route = useRoute<LoginScreenRouteProp>();
   const { login, isLoading, error, clearError } = useAuthStore();
+
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
 
   // Animasi untuk logo dan form
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -44,6 +52,39 @@ export const LoginScreen = () => {
   // State untuk form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Responsive logo size berdasarkan device dan orientasi
+  const getLogoSize = () => {
+    if (isLandscape) {
+      return isSmallDevice ? width * 0.15 : width * 0.12;
+    }
+    if (isSmallDevice) return width * 0.25;
+    if (isLargeDevice) return width * 0.2;
+    return width * 0.28; // medium device
+  };
+
+  const LOGO_SIZE = getLogoSize();
+
+  // Responsive padding top berdasarkan device dan orientasi
+  const getResponsivePaddingTop = () => {
+    if (isLandscape) {
+      return responsiveSpacing(theme.spacing.layout.sm);
+    }
+    if (isSmallDevice) return width * 0.12;
+    if (isLargeDevice) return width * 0.08;
+    return width * 0.1; // medium device
+  };
+
+  // Responsive form max width untuk tablet
+  const getFormMaxWidth = () => {
+    if (isLargeDevice && !isLandscape) {
+      return width * 0.6; // Limit form width di tablet portrait
+    }
+    if (isLargeDevice && isLandscape) {
+      return width * 0.5; // Limit form width di tablet landscape
+    }
+    return '100%'; // Full width untuk phone
+  };
 
   // Mengisi form dari parameter route jika ada
   useEffect(() => {
@@ -106,24 +147,49 @@ export const LoginScreen = () => {
       >
         <LinearGradient
           colors={[theme.colors.primary[50], theme.colors.white]}
-          style={styles.gradientBackground}
+          style={[
+            styles.gradientBackground,
+            {
+              paddingTop: getResponsivePaddingTop(),
+              paddingHorizontal: responsiveSpacing(theme.spacing.layout.md),
+            }
+          ]}
         >
           <Animated.View
             style={[
               styles.logoContainer,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
+                transform: [{ translateY: slideAnim }],
+                marginBottom: isLandscape
+                  ? responsiveSpacing(theme.spacing.layout.sm)
+                  : responsiveSpacing(theme.spacing.layout.lg)
               }
             ]}
           >
-            <View style={styles.logoCircle}>
+            <View style={[
+              styles.logoCircle,
+              {
+                width: LOGO_SIZE,
+                height: LOGO_SIZE,
+                borderRadius: LOGO_SIZE / 2,
+              }
+            ]}>
               <Ionicons name="wallet-outline" size={LOGO_SIZE * 0.5} color={theme.colors.primary[500]} />
             </View>
-            <Typography variant="h2" color={theme.colors.primary[700]} weight="700" style={styles.appName}>
+            <Typography
+              variant={isSmallDevice ? "h3" : "h2"}
+              color={theme.colors.primary[700]}
+              weight="700"
+              style={styles.appName}
+            >
               BudgetWise
             </Typography>
-            <Typography variant="body1" color={theme.colors.neutral[600]} align="center">
+            <Typography
+              variant={isSmallDevice ? "body2" : "body1"}
+              color={theme.colors.neutral[600]}
+              align="center"
+            >
               Kelola keuangan Anda dengan mudah
             </Typography>
           </Animated.View>
@@ -133,7 +199,9 @@ export const LoginScreen = () => {
               styles.formContainer,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
+                transform: [{ translateY: slideAnim }],
+                maxWidth: getFormMaxWidth(),
+                alignSelf: 'center',
               }
             ]}
           >
@@ -221,18 +289,12 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     flex: 1,
-    paddingHorizontal: theme.spacing.layout.md,
-    paddingTop: width * 0.15,
     paddingBottom: theme.spacing.layout.md,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: theme.spacing.layout.lg,
   },
   logoCircle: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-    borderRadius: LOGO_SIZE / 2,
     backgroundColor: theme.colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',

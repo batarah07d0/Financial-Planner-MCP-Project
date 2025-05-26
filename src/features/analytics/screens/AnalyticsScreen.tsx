@@ -446,8 +446,11 @@ export const AnalyticsScreen = () => {
 
   // Render bar chart untuk tren pengeluaran
   const renderExpenseTrendsChart = () => {
+    // Cek apakah ada data yang tidak kosong
+    const hasData = expenseTrends.length > 0 && expenseTrends.some(trend => trend.income > 0 || trend.expense > 0);
     const maxValue = Math.max(
-      ...expenseTrends.map(trend => Math.max(trend.income, trend.expense))
+      ...expenseTrends.map(trend => Math.max(trend.income, trend.expense)),
+      1 // Minimum value untuk menghindari pembagian dengan 0
     );
 
     return (
@@ -468,7 +471,7 @@ export const AnalyticsScreen = () => {
             </Typography>
           </View>
 
-          {expenseTrends.length > 0 ? (
+          {hasData ? (
             <View style={styles.barChartContainer}>
               <View style={styles.barChartHeader}>
                 <View style={styles.barAxisLabels}>
@@ -478,57 +481,89 @@ export const AnalyticsScreen = () => {
                 </View>
               </View>
               <View style={styles.barChart}>
-                {expenseTrends.map((trend, index) => (
-                  <Animated.View
-                    key={index}
-                    style={styles.barGroup}
-                  >
-                    <View style={styles.barPair}>
-                      <View style={styles.barContainer}>
-                        <LinearGradient
-                          colors={[theme.colors.success[300], theme.colors.success[600]]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 0, y: 1 }}
-                          style={[
-                            styles.bar,
-                            {
-                              height: (trend.income / maxValue) * 150 || 5,
-                            }
-                          ]}
-                        />
+                {expenseTrends.map((trend, index) => {
+                  // Hitung tinggi bar, jika 0 maka tidak tampil
+                  const incomeHeight = trend.income > 0 ? Math.max((trend.income / maxValue) * 150, 8) : 0;
+                  const expenseHeight = trend.expense > 0 ? Math.max((trend.expense / maxValue) * 150, 8) : 0;
+
+                  return (
+                    <Animated.View
+                      key={index}
+                      style={styles.barGroup}
+                    >
+                      <View style={styles.barPair}>
+                        <View style={styles.barContainer}>
+                          {incomeHeight > 0 && (
+                            <LinearGradient
+                              colors={[theme.colors.success[300], theme.colors.success[600]]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 0, y: 1 }}
+                              style={[
+                                styles.bar,
+                                {
+                                  height: incomeHeight,
+                                }
+                              ]}
+                            />
+                          )}
+                        </View>
+                        <View style={styles.barContainer}>
+                          {expenseHeight > 0 && (
+                            <LinearGradient
+                              colors={[theme.colors.danger[300], theme.colors.danger[600]]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 0, y: 1 }}
+                              style={[
+                                styles.bar,
+                                {
+                                  height: expenseHeight,
+                                }
+                              ]}
+                            />
+                          )}
+                        </View>
                       </View>
-                      <View style={styles.barContainer}>
-                        <LinearGradient
-                          colors={[theme.colors.danger[300], theme.colors.danger[600]]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 0, y: 1 }}
-                          style={[
-                            styles.bar,
-                            {
-                              height: (trend.expense / maxValue) * 150 || 5,
-                            }
-                          ]}
-                        />
+                      <View style={styles.barLabelContainer}>
+                        <Typography variant="caption" color={theme.colors.neutral[700]} weight="500">
+                          {trend.month}
+                        </Typography>
                       </View>
-                    </View>
-                    <View style={styles.barLabelContainer}>
-                      <Typography variant="caption" color={theme.colors.neutral[700]} weight="500">
-                        {trend.month}
-                      </Typography>
-                    </View>
-                  </Animated.View>
-                ))}
+                    </Animated.View>
+                  );
+                })}
               </View>
             </View>
           ) : (
             <View style={styles.emptyChartContainer}>
-              <Ionicons name="analytics-outline" size={48} color={theme.colors.neutral[400]} style={styles.emptyIcon} />
-              <Typography variant="body1" color={theme.colors.neutral[600]} weight="500" style={{ textAlign: 'center' }}>
-                Belum ada data transaksi
+              <View style={styles.emptyChartIconContainer}>
+                <LinearGradient
+                  colors={[theme.colors.neutral[100], theme.colors.neutral[50]]}
+                  style={styles.emptyChartIconBackground}
+                >
+                  <Ionicons name="analytics-outline" size={48} color={theme.colors.neutral[400]} />
+                </LinearGradient>
+              </View>
+              <Typography variant="h6" color={theme.colors.neutral[700]} weight="600" style={{ textAlign: 'center', marginBottom: theme.spacing.xs }}>
+                Belum Ada Data Transaksi
               </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[500]} style={{ textAlign: 'center', marginTop: theme.spacing.sm }}>
-                Tambahkan transaksi untuk melihat tren pemasukan dan pengeluaran
+              <Typography variant="body2" color={theme.colors.neutral[500]} style={{ textAlign: 'center', lineHeight: 20 }}>
+                Mulai tambahkan transaksi pemasukan dan pengeluaran untuk melihat tren keuangan Anda
               </Typography>
+              <View style={styles.emptyChartPlaceholder}>
+                <View style={styles.placeholderBars}>
+                  {['Des', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((month, index) => (
+                    <View key={month} style={styles.placeholderBarGroup}>
+                      <View style={styles.placeholderBarPair}>
+                        <View style={[styles.placeholderBar, styles.placeholderIncomeBar]} />
+                        <View style={[styles.placeholderBar, styles.placeholderExpenseBar]} />
+                      </View>
+                      <Typography variant="caption" color={theme.colors.neutral[400]} style={styles.placeholderLabel}>
+                        {month}
+                      </Typography>
+                    </View>
+                  ))}
+                </View>
+              </View>
             </View>
           )}
 
@@ -874,17 +909,76 @@ const styles = StyleSheet.create({
   emptyChartContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 220,
+    minHeight: 280,
     backgroundColor: theme.colors.neutral[50],
     borderRadius: theme.borderRadius.lg,
     marginVertical: theme.spacing.md,
-    padding: theme.spacing.layout.sm,
+    padding: theme.spacing.layout.md,
     borderWidth: 1,
     borderColor: theme.colors.neutral[200],
     borderStyle: 'dashed',
   },
   emptyIcon: {
     marginBottom: theme.spacing.md,
+  },
+  emptyChartIconContainer: {
+    marginBottom: theme.spacing.lg,
+  },
+  emptyChartIconBackground: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.elevation.xs,
+  },
+  emptyChartPlaceholder: {
+    marginTop: theme.spacing.lg,
+    width: '100%',
+    alignItems: 'center',
+  },
+  placeholderBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    height: 80,
+    width: '100%',
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    ...theme.elevation.xs,
+  },
+  placeholderBarGroup: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: '100%',
+    flex: 1,
+  },
+  placeholderBarPair: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    height: '80%',
+    width: '100%',
+  },
+  placeholderBar: {
+    width: 8,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    marginHorizontal: 2,
+    opacity: 0.3,
+  },
+  placeholderIncomeBar: {
+    height: 20,
+    backgroundColor: theme.colors.success[300],
+  },
+  placeholderExpenseBar: {
+    height: 15,
+    backgroundColor: theme.colors.danger[300],
+  },
+  placeholderLabel: {
+    marginTop: theme.spacing.xs,
+    textAlign: 'center',
   },
   legendContainer: {
     marginTop: theme.spacing.layout.xs,

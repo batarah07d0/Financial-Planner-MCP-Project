@@ -1,27 +1,27 @@
 import { useState, useEffect } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Kunci untuk penyimpanan pengaturan biometrik
 const BIOMETRIC_ENABLED_KEY = '@budgetwise:biometric_enabled';
 const BIOMETRIC_LAST_CHECK_KEY = '@budgetwise:biometric_last_check';
 
-export const useBiometrics = () => {
+export const useBiometrics = (showErrorDialog?: (title: string, message: string) => void) => {
   const [isAvailable, setIsAvailable] = useState<boolean>(false);
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Fungsi untuk memeriksa ketersediaan biometrik
   const checkBiometricAvailability = async (): Promise<boolean> => {
     try {
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
-      
+
       const available = compatible && enrolled;
       setIsAvailable(available);
-      
+
       return available;
     } catch (error: any) {
       console.error('Error checking biometric availability:', error);
@@ -29,7 +29,7 @@ export const useBiometrics = () => {
       return false;
     }
   };
-  
+
   // Fungsi untuk memeriksa apakah biometrik diaktifkan
   const checkBiometricEnabled = async (): Promise<boolean> => {
     try {
@@ -43,28 +43,30 @@ export const useBiometrics = () => {
       return false;
     }
   };
-  
+
   // Fungsi untuk mengaktifkan biometrik
   const enableBiometrics = async (): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       // Periksa ketersediaan biometrik
       const available = await checkBiometricAvailability();
       if (!available) {
-        Alert.alert(
-          'Biometrik Tidak Tersedia',
-          'Perangkat Anda tidak mendukung autentikasi biometrik atau belum ada data biometrik yang terdaftar.'
-        );
+        if (showErrorDialog) {
+          showErrorDialog(
+            'Biometrik Tidak Tersedia',
+            'Perangkat Anda tidak mendukung autentikasi biometrik atau belum ada data biometrik yang terdaftar.'
+          );
+        }
         return false;
       }
-      
+
       // Autentikasi untuk memastikan pengguna adalah pemilik perangkat
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Autentikasi untuk mengaktifkan biometrik',
         fallbackLabel: 'Gunakan PIN',
       });
-      
+
       if (result.success) {
         // Simpan pengaturan
         await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'true');
@@ -81,18 +83,18 @@ export const useBiometrics = () => {
       setIsLoading(false);
     }
   };
-  
+
   // Fungsi untuk menonaktifkan biometrik
   const disableBiometrics = async (): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       // Autentikasi untuk memastikan pengguna adalah pemilik perangkat
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Autentikasi untuk menonaktifkan biometrik',
         fallbackLabel: 'Gunakan PIN',
       });
-      
+
       if (result.success) {
         // Simpan pengaturan
         await AsyncStorage.setItem(BIOMETRIC_ENABLED_KEY, 'false');
@@ -109,7 +111,7 @@ export const useBiometrics = () => {
       setIsLoading(false);
     }
   };
-  
+
   // Fungsi untuk melakukan autentikasi biometrik
   const authenticate = async (
     options: {
@@ -120,35 +122,37 @@ export const useBiometrics = () => {
   ): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       // Periksa ketersediaan biometrik
       const available = await checkBiometricAvailability();
       if (!available) {
-        Alert.alert(
-          'Biometrik Tidak Tersedia',
-          'Perangkat Anda tidak mendukung autentikasi biometrik atau belum ada data biometrik yang terdaftar.'
-        );
+        if (showErrorDialog) {
+          showErrorDialog(
+            'Biometrik Tidak Tersedia',
+            'Perangkat Anda tidak mendukung autentikasi biometrik atau belum ada data biometrik yang terdaftar.'
+          );
+        }
         return false;
       }
-      
+
       // Periksa apakah biometrik diaktifkan
       const enabled = await checkBiometricEnabled();
       if (!enabled) {
         return true; // Jika biometrik tidak diaktifkan, anggap autentikasi berhasil
       }
-      
+
       // Lakukan autentikasi
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: options.promptMessage || 'Autentikasi untuk melanjutkan',
         fallbackLabel: options.fallbackLabel || 'Gunakan PIN',
         cancelLabel: options.cancelLabel || 'Batal',
       });
-      
+
       // Jika berhasil, perbarui waktu pemeriksaan terakhir
       if (result.success) {
         await AsyncStorage.setItem(BIOMETRIC_LAST_CHECK_KEY, Date.now().toString());
       }
-      
+
       return result.success;
     } catch (error: any) {
       console.error('Error authenticating:', error);
@@ -158,7 +162,7 @@ export const useBiometrics = () => {
       setIsLoading(false);
     }
   };
-  
+
   // Fungsi untuk memeriksa apakah perlu autentikasi ulang
   const shouldReauthenticate = async (timeoutMinutes: number = 5): Promise<boolean> => {
     try {
@@ -167,25 +171,25 @@ export const useBiometrics = () => {
       if (!enabled) {
         return false; // Jika biometrik tidak diaktifkan, tidak perlu autentikasi ulang
       }
-      
+
       // Dapatkan waktu pemeriksaan terakhir
       const lastCheckStr = await AsyncStorage.getItem(BIOMETRIC_LAST_CHECK_KEY);
       if (!lastCheckStr) {
         return true; // Jika belum pernah diperiksa, perlu autentikasi
       }
-      
+
       // Hitung selisih waktu
       const lastCheck = parseInt(lastCheckStr, 10);
       const now = Date.now();
       const diffMinutes = (now - lastCheck) / (1000 * 60);
-      
+
       return diffMinutes > timeoutMinutes;
     } catch (error: any) {
       console.error('Error checking reauthentication:', error);
       return true; // Jika terjadi kesalahan, lebih aman untuk melakukan autentikasi ulang
     }
   };
-  
+
   // Inisialisasi
   useEffect(() => {
     const initialize = async () => {
@@ -200,10 +204,10 @@ export const useBiometrics = () => {
         setIsLoading(false);
       }
     };
-    
+
     initialize();
   }, []);
-  
+
   return {
     isAvailable,
     isEnabled,

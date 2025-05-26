@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -14,10 +13,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, TextInput, Button, Card } from '../../../core/components';
+import { Typography, TextInput, Button, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
 import { createSavingGoal, CreateSavingGoalInput } from '../../../core/services/supabase/savingGoal.service';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 type AddSavingGoalScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddSavingGoal'>;
 
@@ -45,6 +45,7 @@ const GOAL_COLORS = [
 export const AddSavingGoalScreen = () => {
   const navigation = useNavigation<AddSavingGoalScreenNavigationProp>();
   const { user } = useAuthStore();
+  const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -93,17 +94,17 @@ export const AddSavingGoalScreen = () => {
 
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Nama tujuan tabungan harus diisi');
+      showError('Error', 'Nama tujuan tabungan harus diisi');
       return false;
     }
 
     if (!formData.targetAmount) {
-      Alert.alert('Error', 'Target jumlah harus diisi');
+      showError('Error', 'Target jumlah harus diisi');
       return false;
     }
 
     if (!formData.targetDate) {
-      Alert.alert('Error', 'Target tanggal harus diisi');
+      showError('Error', 'Target tanggal harus diisi');
       return false;
     }
 
@@ -112,7 +113,7 @@ export const AddSavingGoalScreen = () => {
     today.setHours(0, 0, 0, 0);
 
     if (targetDate <= today) {
-      Alert.alert('Error', 'Target tanggal harus di masa depan');
+      showError('Error', 'Target tanggal harus di masa depan');
       return false;
     }
 
@@ -138,18 +139,14 @@ export const AddSavingGoalScreen = () => {
       const result = await createSavingGoal(user.id, goalData);
 
       if (result) {
-        Alert.alert('Sukses', 'Tujuan tabungan berhasil dibuat', [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]);
+        showSuccess('Sukses', 'Tujuan tabungan berhasil dibuat');
+        setTimeout(() => navigation.goBack(), 2000);
       } else {
-        Alert.alert('Error', 'Gagal membuat tujuan tabungan');
+        showError('Error', 'Gagal membuat tujuan tabungan');
       }
     } catch (error) {
       console.error('Error creating saving goal:', error);
-      Alert.alert('Error', 'Gagal membuat tujuan tabungan');
+      showError('Error', 'Gagal membuat tujuan tabungan');
     } finally {
       setIsLoading(false);
     }
@@ -294,6 +291,18 @@ export const AddSavingGoalScreen = () => {
             style={styles.saveButton}
           />
         </ScrollView>
+
+        {/* Superior Dialog */}
+        <SuperiorDialog
+          visible={dialogState.visible}
+          type={dialogState.type}
+          title={dialogState.title}
+          message={dialogState.message}
+          actions={dialogState.actions}
+          onClose={hideDialog}
+          icon={dialogState.icon}
+          autoClose={dialogState.autoClose}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

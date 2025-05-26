@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
   Modal,
   Animated,
   Easing,
