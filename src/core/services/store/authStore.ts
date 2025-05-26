@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../../config/supabase';
 
 interface User {
@@ -25,6 +26,7 @@ interface AuthState {
   resetPassword: (email: string) => Promise<void>;
   setOnboardingComplete: (completed: boolean) => void;
   clearError: () => void;
+  initializeOnboardingStatus: () => Promise<void>;
 
   // State setters
   setUser: (user: User | null) => void;
@@ -295,8 +297,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  setOnboardingComplete: (completed) => {
-    set({ hasCompletedOnboarding: completed });
+  setOnboardingComplete: async (completed) => {
+    try {
+      // Simpan ke AsyncStorage
+      await AsyncStorage.setItem('@onboarding_completed', completed.toString());
+      set({ hasCompletedOnboarding: completed });
+    } catch (error) {
+      console.error('Error saving onboarding status:', error);
+      // Tetap set state meskipun gagal simpan ke storage
+      set({ hasCompletedOnboarding: completed });
+    }
+  },
+
+  initializeOnboardingStatus: async () => {
+    try {
+      const completed = await AsyncStorage.getItem('@onboarding_completed');
+      set({ hasCompletedOnboarding: completed === 'true' });
+    } catch (error) {
+      console.error('Error loading onboarding status:', error);
+      // Default ke false jika error
+      set({ hasCompletedOnboarding: false });
+    }
   },
 
   clearError: () => {

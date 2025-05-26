@@ -3,18 +3,16 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   StatusBar,
   Animated,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Typography, Card, TouchableCard } from '../../../core/components';
+import { Typography, TouchableCard } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { useAuthStore } from '../../../core/services/store/authStore';
@@ -203,40 +201,6 @@ export const MoreScreen = () => {
         <View style={styles.menuContainer}>
           {menuItems.map(renderMenuItem)}
         </View>
-
-        <Card style={styles.appInfoCard}>
-          <View style={styles.appInfoContent}>
-            <Image
-              source={require('../../../../assets/icon.png')}
-              style={styles.appLogo}
-              resizeMode="contain"
-            />
-            <View style={styles.appInfoText}>
-              <Typography variant="h5" color={theme.colors.primary[700]} weight="700">
-                BudgetWise
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Versi Aplikasi: 1.0.0
-              </Typography>
-            </View>
-          </View>
-
-          <View style={styles.appInfoFooter}>
-            <TouchableOpacity style={styles.footerButton}>
-              <Feather name="info" size={16} color={theme.colors.primary[500]} />
-              <Typography variant="body2" color={theme.colors.primary[500]} style={styles.footerButtonText}>
-                Tentang Kami
-              </Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.footerButton}>
-              <Feather name="help-circle" size={16} color={theme.colors.primary[500]} />
-              <Typography variant="body2" color={theme.colors.primary[500]} style={styles.footerButtonText}>
-                Bantuan
-              </Typography>
-            </TouchableOpacity>
-          </View>
-        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -323,38 +287,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.xs,
     ...theme.elevation.xs,
   },
-  appInfoCard: {
-    marginTop: theme.spacing.md,
-    padding: theme.spacing.md,
-  },
-  appInfoContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  appLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 15,
-    marginRight: theme.spacing.md,
-  },
-  appInfoText: {
-    flex: 1,
-  },
-  appInfoFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.neutral[200],
-    paddingTop: theme.spacing.md,
-    marginTop: theme.spacing.sm,
-  },
-  footerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing.sm,
-  },
-  footerButtonText: {
-    marginLeft: 6,
-  },
+
 });

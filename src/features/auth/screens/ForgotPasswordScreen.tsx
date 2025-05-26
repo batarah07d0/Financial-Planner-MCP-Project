@@ -7,9 +7,7 @@ import {
   Platform,
   ScrollView,
   StatusBar,
-  Dimensions,
   Animated,
-  Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,6 +15,7 @@ import { AuthStackParamList } from '../../../core/navigation/types';
 import { Button, Input, Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { useForm, Controller } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,24 +26,67 @@ type FormData = {
   email: string;
 };
 
-const { width } = Dimensions.get('window');
-const LOGO_SIZE = width * 0.25;
-
 export const ForgotPasswordScreen = () => {
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const { resetPassword, isLoading, error, clearError } = useAuthStore();
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
+
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   // Animasi untuk form
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
-  
+
+  // Responsive logo size berdasarkan device dan orientasi
+  const getLogoSize = () => {
+    if (isLandscape) {
+      return isSmallDevice ? width * 0.1 : width * 0.08;
+    }
+    if (isSmallDevice) return width * 0.2;
+    if (isLargeDevice) return width * 0.15;
+    return width * 0.22; // medium device
+  };
+
+  const LOGO_SIZE = getLogoSize();
+
+  // Responsive padding top berdasarkan device dan orientasi
+  const getResponsivePaddingTop = () => {
+    if (isLandscape) {
+      return responsiveSpacing(theme.spacing.layout.xs);
+    }
+    if (isSmallDevice) return width * 0.08;
+    if (isLargeDevice) return width * 0.06;
+    return width * 0.1; // medium device
+  };
+
+  // Responsive form max width untuk tablet
+  const getFormMaxWidth = () => {
+    if (isLargeDevice && !isLandscape) {
+      return width * 0.6; // Limit form width di tablet portrait
+    }
+    if (isLargeDevice && isLandscape) {
+      return width * 0.5; // Limit form width di tablet landscape
+    }
+    return '100%'; // Full width untuk phone
+  };
+
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       email: '',
     }
   });
-  
+
   // Animasi saat komponen mount
   useEffect(() => {
     Animated.parallel([
@@ -60,17 +102,17 @@ export const ForgotPasswordScreen = () => {
       }),
     ]).start();
   }, []);
-  
+
   const onSubmit = async (data: FormData) => {
     await resetPassword(data.email);
     setIsSubmitted(true);
   };
-  
+
   const navigateToLogin = () => {
     clearError();
     navigation.navigate('Login');
   };
-  
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -78,7 +120,7 @@ export const ForgotPasswordScreen = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.white} />
-      
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
@@ -87,34 +129,62 @@ export const ForgotPasswordScreen = () => {
       >
         <LinearGradient
           colors={[theme.colors.primary[50], theme.colors.white]}
-          style={styles.gradientBackground}
+          style={[
+            styles.gradientBackground,
+            {
+              paddingTop: getResponsivePaddingTop(),
+              paddingHorizontal: responsiveSpacing(theme.spacing.layout.md),
+            }
+          ]}
         >
           <Animated.View
             style={[
               styles.header,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
+                transform: [{ translateY: slideAnim }],
+                marginBottom: isLandscape
+                  ? responsiveSpacing(theme.spacing.layout.sm)
+                  : responsiveSpacing(theme.spacing.layout.md)
               }
             ]}
           >
-            <View style={styles.logoCircle}>
+            <View style={[
+              styles.logoCircle,
+              {
+                width: LOGO_SIZE,
+                height: LOGO_SIZE,
+                borderRadius: LOGO_SIZE / 2,
+              }
+            ]}>
               <Ionicons name="key-outline" size={LOGO_SIZE * 0.5} color={theme.colors.primary[500]} />
             </View>
-            <Typography variant="h3" color={theme.colors.primary[700]} weight="700" style={styles.title}>
+            <Typography
+              variant={isSmallDevice ? "h4" : "h3"}
+              color={theme.colors.primary[700]}
+              weight="700"
+              style={styles.title}
+            >
               Reset Password
             </Typography>
-            <Typography variant="body1" align="center" color={theme.colors.neutral[600]} style={styles.subtitle}>
+            <Typography
+              variant={isSmallDevice ? "body2" : "body1"}
+              align="center"
+              color={theme.colors.neutral[600]}
+              style={styles.subtitle}
+            >
               Masukkan email Anda untuk menerima instruksi reset password
             </Typography>
           </Animated.View>
-          
+
           <Animated.View
             style={[
               styles.formContainer,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
+                transform: [{ translateY: slideAnim }],
+                maxWidth: getFormMaxWidth(),
+                alignSelf: 'center',
               }
             ]}
           >
@@ -165,7 +235,7 @@ export const ForgotPasswordScreen = () => {
                     )}
                     name="email"
                   />
-                  
+
                   {error && (
                     <View style={styles.errorContainer}>
                       <Ionicons name="alert-circle-outline" size={20} color={theme.colors.danger[500]} />
@@ -174,7 +244,7 @@ export const ForgotPasswordScreen = () => {
                       </Typography>
                     </View>
                   )}
-                  
+
                   <Button
                     title="Kirim Instruksi Reset"
                     onPress={handleSubmit(onSubmit)}
@@ -186,7 +256,7 @@ export const ForgotPasswordScreen = () => {
                 </>
               )}
             </Card>
-            
+
             {!isSubmitted && (
               <TouchableOpacity onPress={navigateToLogin} style={styles.footer}>
                 <Ionicons name="arrow-back-outline" size={16} color={theme.colors.primary[500]} style={styles.backIcon} />
@@ -215,18 +285,12 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     flex: 1,
-    paddingHorizontal: theme.spacing.layout.md,
-    paddingTop: width * 0.1,
     paddingBottom: theme.spacing.layout.md,
   },
   header: {
     alignItems: 'center',
-    marginBottom: theme.spacing.layout.md,
   },
   logoCircle: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-    borderRadius: LOGO_SIZE / 2,
     backgroundColor: theme.colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',

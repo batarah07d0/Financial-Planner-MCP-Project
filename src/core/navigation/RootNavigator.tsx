@@ -41,19 +41,23 @@ import { ChallengesScreen, AddChallengeScreen } from '../../features/challenges/
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator = () => {
-  const { isAuthenticated, hasCompletedOnboarding } = useAuthStore();
+  const { isAuthenticated, hasCompletedOnboarding, initializeOnboardingStatus } = useAuthStore();
 
-  // Cek status autentikasi saat aplikasi dimulai
+  // Cek status autentikasi dan onboarding saat aplikasi dimulai
   useEffect(() => {
-    const checkSession = async () => {
+    const initializeApp = async () => {
+      // Inisialisasi status onboarding dari AsyncStorage
+      await initializeOnboardingStatus();
+
+      // Cek session autentikasi
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         // Implementasi lengkap akan ditambahkan nanti
       }
     };
 
-    checkSession();
-  }, []);
+    initializeApp();
+  }, [initializeOnboardingStatus]);
 
   return (
     <NavigationContainer>

@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Animated,
@@ -17,12 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, Input, Button, Card } from '../../../core/components';
+import { Typography, Input, Button, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../core/services/store';
 import { addChallenge, ChallengeInput, startChallenge } from '../services/challengeService';
+import { useSuperiorDialog } from '../../../core/hooks';
 import {
   getChallengeTypes,
   getDifficultyLevels,
@@ -148,6 +148,7 @@ export const AddChallengeScreen = () => {
   const navigation = useNavigation<AddChallengeScreenNavigationProp>();
   const { user } = useAuthStore();
   const { setupChallengeReminders } = useNotificationManager();
+  const { dialogState, showError, showWarning, showSuccess, hideDialog } = useSuperiorDialog();
 
   // State untuk form
   const [name, setName] = useState('');
@@ -239,12 +240,12 @@ export const AddChallengeScreen = () => {
   // Fungsi untuk menambahkan jenis tantangan kustom
   const handleAddCustomType = async () => {
     if (!user) {
-      Alert.alert('Error', 'Anda harus login untuk membuat jenis tantangan kustom');
+      showError('Error', 'Anda harus login untuk membuat jenis tantangan kustom');
       return;
     }
 
     if (!customTypeName || !customTypeDescription || !customTypeIcon) {
-      Alert.alert('Error', 'Semua field harus diisi');
+      showError('Error', 'Semua field harus diisi');
       return;
     }
 
@@ -265,13 +266,13 @@ export const AddChallengeScreen = () => {
         setCustomTypeName('');
         setCustomTypeDescription('');
         setCustomTypeIcon('');
-        Alert.alert('Sukses', 'Jenis tantangan kustom berhasil ditambahkan');
+        showSuccess('Sukses', 'Jenis tantangan kustom berhasil ditambahkan');
       } else {
-        Alert.alert('Error', 'Gagal menambahkan jenis tantangan kustom');
+        showError('Error', 'Gagal menambahkan jenis tantangan kustom');
       }
     } catch (error) {
       console.error('Error adding custom challenge type:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat menambahkan jenis tantangan kustom');
+      showError('Error', 'Terjadi kesalahan saat menambahkan jenis tantangan kustom');
     } finally {
       setIsLoading(false);
     }
@@ -328,7 +329,7 @@ export const AddChallengeScreen = () => {
     }
 
     if (!user) {
-      Alert.alert('Error', 'Anda harus login untuk membuat tantangan');
+      showError('Error', 'Anda harus login untuk membuat tantangan');
       return;
     }
 
@@ -338,7 +339,7 @@ export const AddChallengeScreen = () => {
       const selectedTypeObj = challengeTypes.find(type => type.id === selectedType);
 
       if (!selectedTypeObj) {
-        Alert.alert('Error', 'Jenis tantangan tidak valid');
+        showError('Error', 'Jenis tantangan tidak valid');
         setIsLoading(false);
         return;
       }
@@ -362,9 +363,7 @@ export const AddChallengeScreen = () => {
 
       if (error || !newChallenge) {
         console.error('Error adding challenge:', error);
-        Alert.alert('Error', 'Gagal menambahkan tantangan', [
-          { text: 'Coba Lagi', style: 'cancel' }
-        ]);
+        showError('Error', 'Gagal menambahkan tantangan');
         setIsLoading(false);
         return;
       }
@@ -374,26 +373,26 @@ export const AddChallengeScreen = () => {
 
       if (startError) {
         console.error('Error starting challenge:', startError);
-        Alert.alert(
+        showWarning(
           'Peringatan',
-          'Tantangan berhasil dibuat tetapi gagal dimulai. Anda dapat memulainya nanti dari halaman Tantangan.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          'Tantangan berhasil dibuat tetapi gagal dimulai. Anda dapat memulainya nanti dari halaman Tantangan.'
         );
+        setTimeout(() => navigation.goBack(), 2000);
       } else {
         // Setup reminder notifikasi untuk tantangan
         const endDate = new Date();
         endDate.setDate(endDate.getDate() + (selectedDuration || 30));
         await setupChallengeReminders(formattedName, endDate.toISOString());
 
-        Alert.alert(
+        showSuccess(
           'Sukses',
-          'Tantangan menabung berhasil dibuat dan dimulai! Semoga berhasil mencapai target tabungan Anda.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          'Tantangan menabung berhasil dibuat dan dimulai! Semoga berhasil mencapai target tabungan Anda.'
         );
+        setTimeout(() => navigation.goBack(), 2000);
       }
     } catch (error) {
       console.error('Error saving challenge:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat menyimpan tantangan');
+      showError('Error', 'Terjadi kesalahan saat menyimpan tantangan');
     } finally {
       setIsLoading(false);
     }
@@ -798,6 +797,18 @@ export const AddChallengeScreen = () => {
             </View>
           </View>
         </Modal>
+
+        {/* Superior Dialog */}
+        <SuperiorDialog
+          visible={dialogState.visible}
+          type={dialogState.type}
+          title={dialogState.title}
+          message={dialogState.message}
+          actions={dialogState.actions}
+          onClose={hideDialog}
+          icon={dialogState.icon}
+          autoClose={dialogState.autoClose}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

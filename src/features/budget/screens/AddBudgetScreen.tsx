@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Animated,
   Easing,
 } from 'react-native';
@@ -15,11 +14,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 // @ts-ignore
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Typography, Input, Button, Card } from '../../../core/components';
+import { Typography, Input, Button, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 // Tipe data untuk form anggaran
 interface BudgetFormData {
@@ -48,6 +48,7 @@ export const AddBudgetScreen = () => {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
 
   // Animasi untuk kategori picker
   const categoryPickerAnimation = useRef(new Animated.Value(0)).current;
@@ -93,13 +94,13 @@ export const AddBudgetScreen = () => {
 
       // Validasi amount
       if (isNaN(amount) || amount <= 0) {
-        Alert.alert('Error', 'Jumlah harus lebih dari 0');
+        showError('Error', 'Jumlah harus lebih dari 0');
         return;
       }
 
       // Validasi kategori
       if (!data.category) {
-        Alert.alert('Error', 'Kategori harus dipilih');
+        showError('Error', 'Kategori harus dipilih');
         return;
       }
 
@@ -112,11 +113,11 @@ export const AddBudgetScreen = () => {
       // Simulasi delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Kembali ke halaman sebelumnya
-      navigation.goBack();
+      showSuccess('Sukses', 'Anggaran berhasil disimpan');
+      setTimeout(() => navigation.goBack(), 2000);
     } catch (error) {
       console.error('Error submitting budget:', error);
-      Alert.alert('Error', 'Terjadi kesalahan saat menyimpan anggaran');
+      showError('Error', 'Terjadi kesalahan saat menyimpan anggaran');
     } finally {
       setIsSubmitting(false);
     }
@@ -489,6 +490,18 @@ export const AddBudgetScreen = () => {
             />
           </View>
         </View>
+
+        {/* Superior Dialog */}
+        <SuperiorDialog
+          visible={dialogState.visible}
+          type={dialogState.type}
+          title={dialogState.title}
+          message={dialogState.message}
+          actions={dialogState.actions}
+          onClose={hideDialog}
+          icon={dialogState.icon}
+          autoClose={dialogState.autoClose}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

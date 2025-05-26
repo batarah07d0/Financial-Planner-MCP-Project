@@ -10,4 +10,6 @@ export * from './useBudgetMonitor';
 export * from './useTransactionReminder';
 export * from './useSavingGoalTracker';
 export * from './useAudio';
+export * from './useSensors';
 export * from './useBiometrics';
+export * from './useSuperiorDialog';
