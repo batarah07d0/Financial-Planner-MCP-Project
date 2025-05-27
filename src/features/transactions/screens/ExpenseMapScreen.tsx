@@ -6,18 +6,18 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
   ScrollView,
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 // Import dari mock untuk Expo Go
 import MapView, { Marker, Callout, PROVIDER_GOOGLE, Circle } from 'react-native-maps';
 import { Typography, Card, Button, EmptyState } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate, formatPercentage } from '../../../core/utils';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { useLocation } from '../../../core/hooks';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -88,7 +88,6 @@ const DEFAULT_CATEGORIES = {
 
 // Konstanta untuk animasi
 const ANIMATION_DURATION = 300;
-const { width, height } = Dimensions.get('window');
 
 export const ExpenseMapScreen = () => {
   const navigation = useNavigation();
@@ -100,6 +99,19 @@ export const ExpenseMapScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   // Animasi
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const cardAnimation = useRef(new Animated.Value(0)).current;
@@ -107,6 +119,28 @@ export const ExpenseMapScreen = () => {
 
   const { getCurrentLocation } = useLocation();
   const { user } = useAuthStore();
+
+  // Responsive map control button size
+  const getMapControlButtonSize = () => {
+    if (isSmallDevice) return 40;
+    if (isLargeDevice) return 52;
+    return 44; // medium device
+  };
+
+  // Responsive marker size
+  const getMarkerSize = () => {
+    if (isSmallDevice) return 14;
+    if (isLargeDevice) return 18;
+    return 16; // medium device
+  };
+
+  // Responsive header height
+  const getHeaderHeight = () => {
+    if (isLandscape) return 60;
+    if (isSmallDevice) return 80;
+    if (isLargeDevice) return 100;
+    return 90; // medium device
+  };
 
   // Fungsi untuk memuat kategori dari Supabase (tidak digunakan lagi)
   // Kategori sekarang diambil langsung dari relasi transaksi
@@ -270,6 +304,15 @@ export const ExpenseMapScreen = () => {
     handleGetCurrentLocation();
   }, []);
 
+  // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        loadTransactionsWithLocation();
+      }
+    }, [user])
+  );
+
   // Render marker untuk setiap transaksi
   const renderMarkers = () => {
     return filteredTransactions.map(transaction => (
@@ -290,7 +333,7 @@ export const ExpenseMapScreen = () => {
           >
             <Ionicons
               name={(transaction.icon || 'pricetag-outline') as any}
-              size={16}
+              size={getMarkerSize()}
               color={theme.colors.white}
             />
           </View>
@@ -570,21 +613,45 @@ export const ExpenseMapScreen = () => {
           </MapView>
 
           {/* Map controls */}
-          <View style={styles.mapControls}>
+          <View style={[
+            styles.mapControls,
+            {
+              top: responsiveSpacing(theme.spacing.layout.sm),
+              right: responsiveSpacing(theme.spacing.layout.sm),
+            }
+          ]}>
             <TouchableOpacity
-              style={styles.mapControlButton}
+              style={[
+                styles.mapControlButton,
+                {
+                  width: getMapControlButtonSize(),
+                  height: getMapControlButtonSize(),
+                  borderRadius: getMapControlButtonSize() / 2,
+                }
+              ]}
               onPress={handleGetCurrentLocation}
             >
-              <Ionicons name="locate" size={22} color={theme.colors.primary[500]} />
+              <Ionicons
+                name="locate"
+                size={isSmallDevice ? 18 : isLargeDevice ? 26 : 22}
+                color={theme.colors.primary[500]}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.mapControlButton}
+              style={[
+                styles.mapControlButton,
+                {
+                  width: getMapControlButtonSize(),
+                  height: getMapControlButtonSize(),
+                  borderRadius: getMapControlButtonSize() / 2,
+                }
+              ]}
               onPress={toggleMapType}
             >
               <Ionicons
                 name={mapType === 'standard' ? "thermometer-outline" : "map-outline"}
-                size={22}
+                size={isSmallDevice ? 18 : isLargeDevice ? 26 : 22}
                 color={theme.colors.primary[500]}
               />
             </TouchableOpacity>
@@ -769,15 +836,10 @@ const styles = StyleSheet.create({
   },
   mapControls: {
     position: 'absolute',
-    top: 16,
-    right: 16,
     flexDirection: 'column',
     gap: 8,
   },
   mapControlButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     backgroundColor: theme.colors.white,
     justifyContent: 'center',
     alignItems: 'center',

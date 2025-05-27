@@ -20,6 +20,7 @@ import { formatCurrency, formatDate } from '../../../core/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotificationManager } from '../../../core/hooks';
 import { useSuperiorDialog } from '../../../core/hooks';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 // Tipe data untuk form transaksi
 interface TransactionFormData {
@@ -37,6 +38,8 @@ interface TransactionFormData {
 
 // Kategori akan diambil dari Supabase
 import { supabase } from '../../../config/supabase';
+import { createTransaction } from '../../../core/services/supabase/transaction.service';
+import { useAuthStore, useTransactionStore } from '../../../core/services/store';
 
 // Tipe untuk kategori
 interface Category {
@@ -49,6 +52,22 @@ interface Category {
 
 export const AddTransactionScreen = () => {
   const navigation = useNavigation();
+  const { user } = useAuthStore();
+  const { fetchTransactions } = useTransactionStore();
+
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense');
@@ -58,6 +77,28 @@ export const AddTransactionScreen = () => {
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const { checkSpecificBudget, updateGoalProgress } = useNotificationManager();
   const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
+
+  // Responsive header height
+  const getHeaderHeight = () => {
+    if (isLandscape) return 50;
+    if (isSmallDevice) return 56;
+    if (isLargeDevice) return 64;
+    return 60; // medium device
+  };
+
+  // Responsive button sizes
+  const getBackButtonSize = () => {
+    if (isSmallDevice) return 28;
+    if (isLargeDevice) return 36;
+    return 32; // medium device
+  };
+
+  // Responsive icon sizes
+  const getIconSize = () => {
+    if (isSmallDevice) return 18;
+    if (isLargeDevice) return 24;
+    return 20; // medium device
+  };
 
   // Tidak perlu animasi lagi
 
@@ -109,6 +150,12 @@ export const AddTransactionScreen = () => {
     try {
       setIsSubmitting(true);
 
+      // Validasi user authentication
+      if (!user) {
+        showError('Error', 'Anda harus login terlebih dahulu');
+        return;
+      }
+
       // Konversi amount dari string ke number
       const amount = parseFloat(data.amount.replace(/[^0-9]/g, ''));
 
@@ -124,26 +171,35 @@ export const AddTransactionScreen = () => {
         return;
       }
 
-      // Simulasi submit
-      console.log('Submitting transaction:', {
-        ...data,
-        amount,
-      });
+      // Siapkan data transaksi untuk Supabase
+      const transactionData = {
+        user_id: user.id,
+        category_id: data.category,
+        amount: amount,
+        description: data.description || '',
+        date: data.date.toISOString(),
+        type: data.type,
+        location_lat: data.location?.latitude || null,
+        location_lng: data.location?.longitude || null,
+        location_name: data.location?.address || null,
+      };
 
-      // Simulasi delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Submitting transaction to Supabase:', transactionData);
+
+      // Simpan ke Supabase menggunakan service
+      const savedTransaction = await createTransaction(transactionData);
+
+      console.log('Transaction saved successfully:', savedTransaction);
+
+      // Refresh transaction store untuk update data di halaman lain
+      if (user) {
+        await fetchTransactions(user.id);
+      }
 
       // Setelah transaksi berhasil disimpan, cek budget dan saving goals
       if (data.type === 'expense') {
         // Cek budget alert untuk kategori ini
-        await checkSpecificBudget(data.category, 1000000); // Contoh budget amount
-      }
-
-      // Jika ada saving goal terkait, update progress
-      // Contoh: jika ini transaksi income, bisa update saving goal
-      if (data.type === 'income') {
-        // Update saving goal progress (contoh goal ID)
-        // await updateGoalProgress('goal-id', newAmount);
+        await checkSpecificBudget(data.category, amount);
       }
 
       showSuccess('Sukses', 'Transaksi berhasil disimpan');
@@ -280,17 +336,38 @@ export const AddTransactionScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-        <View style={styles.headerGradient}>
-          <View style={styles.header}>
+        <View style={styles.headerContainer}>
+          <View style={[
+            styles.header,
+            {
+              height: getHeaderHeight(),
+              paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+            }
+          ]}>
             <TouchableOpacity
-              style={styles.backButton}
+              style={[
+                styles.backButton,
+                {
+                  width: getBackButtonSize(),
+                  height: getBackButtonSize(),
+                  borderRadius: getBackButtonSize() / 2,
+                }
+              ]}
               onPress={() => navigation.goBack()}
               activeOpacity={0.7}
             >
-              <Ionicons name="chevron-back" size={24} color={theme.colors.white} />
+              <Ionicons
+                name="chevron-back"
+                size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                color={theme.colors.primary[500]}
+              />
             </TouchableOpacity>
 
-            <Typography variant="h5" color={theme.colors.white} weight="600">
+            <Typography
+              variant={isSmallDevice ? "h6" : "h5"}
+              color={theme.colors.primary[700]}
+              weight="600"
+            >
               Tambah Transaksi
             </Typography>
 
@@ -298,7 +375,10 @@ export const AddTransactionScreen = () => {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <Card style={styles.card}>
             {renderTypeSelector()}
 
@@ -330,7 +410,7 @@ export const AddTransactionScreen = () => {
                     leftIcon={
                       <Ionicons
                         name="cash-outline"
-                        size={20}
+                        size={getIconSize()}
                         color="#2196F3"
                       />
                     }
@@ -350,11 +430,15 @@ export const AddTransactionScreen = () => {
                 <View style={styles.pickerLabelContainer}>
                   <Ionicons
                     name="pricetag-outline"
-                    size={20}
+                    size={getIconSize()}
                     color="#2196F3"
                     style={styles.pickerIcon}
                   />
-                  <Typography variant="body1" weight="500" color="#212121">
+                  <Typography
+                    variant={isSmallDevice ? "body2" : "body1"}
+                    weight="500"
+                    color="#212121"
+                  >
                     Kategori
                   </Typography>
                 </View>
@@ -492,6 +576,36 @@ export const AddTransactionScreen = () => {
                 </View>
               </TouchableOpacity>
             </View>
+
+            {/* Tips Section */}
+            <View style={styles.tipsContainer}>
+              <View style={styles.tipsHeader}>
+                <Ionicons name="bulb-outline" size={20} color={theme.colors.primary[500]} />
+                <Typography variant="body1" weight="600" color={theme.colors.primary[700]} style={styles.tipsTitle}>
+                  Tips Pencatatan
+                </Typography>
+              </View>
+              <View style={styles.tipsList}>
+                <View style={styles.tipItem}>
+                  <View style={styles.tipBullet} />
+                  <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.tipText}>
+                    Catat transaksi segera setelah terjadi agar tidak lupa
+                  </Typography>
+                </View>
+                <View style={styles.tipItem}>
+                  <View style={styles.tipBullet} />
+                  <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.tipText}>
+                    Pilih kategori yang tepat untuk analisis keuangan yang akurat
+                  </Typography>
+                </View>
+                <View style={styles.tipItem}>
+                  <View style={styles.tipBullet} />
+                  <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.tipText}>
+                    Tambahkan deskripsi untuk memudahkan pelacakan di masa depan
+                  </Typography>
+                </View>
+              </View>
+            </View>
           </Card>
         </ScrollView>
 
@@ -556,25 +670,20 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  headerGradient: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    ...theme.elevation.none, // Menghilangkan bayangan
-    backgroundColor: '#2196F3',
+  headerContainer: {
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.neutral[200],
+    ...theme.elevation.sm,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
     paddingVertical: 12,
-    height: 56,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'transparent', // Menghilangkan background
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -582,16 +691,19 @@ const styles = StyleSheet.create({
     width: 40,
   },
   scrollContent: {
-    paddingHorizontal: 16, // Menambahkan padding horizontal
-    paddingTop: 12, // Menambahkan padding top
-    paddingBottom: 0,
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 80, // Memberikan ruang untuk tombol simpan
   },
   card: {
-    padding: 20, // Meningkatkan padding dalam card
+    flex: 1,
+    padding: 24,
     borderRadius: 16,
     ...theme.elevation.md,
     marginTop: 0,
-    marginBottom: 0,
+    marginBottom: 16,
+    minHeight: '100%', // Memastikan card mengisi ruang yang tersedia
   },
   typeContainer: {
     flexDirection: 'row',
@@ -658,14 +770,17 @@ const styles = StyleSheet.create({
 
 
   footer: {
-    padding: 0, // Menghilangkan padding
-    paddingVertical: 10, // Hanya memberikan padding vertikal
-    backgroundColor: 'transparent', // Membuat background transparan
-    position: 'absolute', // Posisi absolut
-    bottom: 0, // Menempel di bagian bawah
+    position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    ...theme.elevation.none, // Menghilangkan bayangan
+    backgroundColor: theme.colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.neutral[200],
+    ...theme.elevation.lg,
   },
   loadingContainer: {
     padding: 20,
@@ -679,17 +794,51 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#2196F3',
-    height: 50,
-    borderRadius: 8,
+    height: 56,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    ...theme.elevation.sm,
+    width: '100%',
+    ...theme.elevation.md,
   },
   saveButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Tips Section Styles
+  tipsContainer: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.neutral[200],
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  tipsTitle: {
+    marginLeft: 8,
+  },
+  tipsList: {
+    gap: 12,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingLeft: 4,
+  },
+  tipBullet: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.primary[500],
+    marginTop: 8,
+    marginRight: 12,
+  },
+  tipText: {
+    flex: 1,
+    lineHeight: 20,
   },
 });

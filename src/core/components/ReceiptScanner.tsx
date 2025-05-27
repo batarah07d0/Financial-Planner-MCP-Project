@@ -18,6 +18,7 @@ import { useCamera, useOCR, ImageResult, ParsedReceipt } from '../hooks';
 import { formatCurrency } from '../utils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppDimensions } from '../hooks/useAppDimensions';
 
 interface ReceiptScannerProps {
   onScanComplete: (data: {
@@ -42,6 +43,19 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const [capturedImage, setCapturedImage] = useState<ImageResult | null>(null);
   const [parsedReceipt, setParsedReceipt] = useState<ParsedReceipt | null>(null);
 
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   const {
     takePicture,
     pickImage,
@@ -54,6 +68,35 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     parseReceipt,
     progress: ocrProgress,
   } = useOCR();
+
+  // Responsive header button size
+  const getHeaderButtonSize = () => {
+    if (isSmallDevice) return 36;
+    if (isLargeDevice) return 44;
+    return 40; // medium device
+  };
+
+  // Responsive option icon container size
+  const getOptionIconSize = () => {
+    if (isSmallDevice) return 70;
+    if (isLargeDevice) return 90;
+    return 80; // medium device
+  };
+
+  // Responsive icon sizes
+  const getIconSize = () => {
+    if (isSmallDevice) return 24;
+    if (isLargeDevice) return 32;
+    return 28; // medium device
+  };
+
+  // Responsive header padding
+  const getHeaderPadding = () => {
+    if (isLandscape) return { top: 30, bottom: 15 };
+    if (isSmallDevice) return { top: 40, bottom: 15 };
+    if (isLargeDevice) return { top: 60, bottom: 25 };
+    return { top: 50, bottom: 20 }; // medium device
+  };
 
   // Fungsi untuk mengambil gambar dari kamera
   const handleTakePicture = async () => {
@@ -197,11 +240,18 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                 onPress={handleTakePicture}
                 disabled={cameraLoading}
               >
-                <View style={styles.optionIconContainer}>
+                <View style={[
+                  styles.optionIconContainer,
+                  {
+                    width: getOptionIconSize(),
+                    height: getOptionIconSize(),
+                    borderRadius: getOptionIconSize() / 2,
+                  }
+                ]}>
                   {cameraLoading ? (
                     <ActivityIndicator size="small" color={theme.colors.white} />
                   ) : (
-                    <Ionicons name="camera" size={28} color={theme.colors.white} />
+                    <Ionicons name="camera" size={getIconSize()} color={theme.colors.white} />
                   )}
                 </View>
                 <Typography variant="body1" weight="600" style={styles.optionText}>
@@ -219,11 +269,19 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                 onPress={handlePickImage}
                 disabled={cameraLoading}
               >
-                <View style={[styles.optionIconContainer, styles.galleryIconContainer]}>
+                <View style={[
+                  styles.optionIconContainer,
+                  styles.galleryIconContainer,
+                  {
+                    width: getOptionIconSize(),
+                    height: getOptionIconSize(),
+                    borderRadius: getOptionIconSize() / 2,
+                  }
+                ]}>
                   {cameraLoading ? (
                     <ActivityIndicator size="small" color={theme.colors.white} />
                   ) : (
-                    <Ionicons name="images" size={28} color={theme.colors.white} />
+                    <Ionicons name="images" size={getIconSize()} color={theme.colors.white} />
                   )}
                 </View>
                 <Typography variant="body1" weight="600" style={styles.optionText}>
@@ -250,14 +308,31 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               colors={[theme.colors.primary[500], theme.colors.primary[700]]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.headerGradient}
+              style={[
+                styles.headerGradient,
+                {
+                  paddingTop: getHeaderPadding().top,
+                  paddingBottom: getHeaderPadding().bottom,
+                }
+              ]}
             >
               <View style={styles.headerContent}>
                 <TouchableOpacity
-                  style={styles.headerBackButton}
+                  style={[
+                    styles.headerBackButton,
+                    {
+                      width: getHeaderButtonSize(),
+                      height: getHeaderButtonSize(),
+                      borderRadius: getHeaderButtonSize() / 2,
+                    }
+                  ]}
                   onPress={handleRetake}
                 >
-                  <Ionicons name="arrow-back" size={24} color={theme.colors.white} />
+                  <Ionicons
+                    name="arrow-back"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.white}
+                  />
                 </TouchableOpacity>
                 <Typography variant="h4" color={theme.colors.white} weight="600" style={styles.headerTitle}>
                   Pratinjau Struk
@@ -662,8 +737,6 @@ const styles = StyleSheet.create({
   },
   // Header styles
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingBottom: 20,
     paddingHorizontal: 20,
     width: '100%',
   },
@@ -678,9 +751,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerBackButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -762,9 +832,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optionIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     backgroundColor: theme.colors.primary[500],
     alignItems: 'center',
     justifyContent: 'center',

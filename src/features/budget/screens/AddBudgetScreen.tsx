@@ -283,13 +283,6 @@ export const AddBudgetScreen = () => {
               activeOpacity={0.7}
             >
               <Ionicons name="arrow-back" size={22} color={theme.colors.primary[500]} />
-              <Typography
-                variant="body1"
-                color={theme.colors.primary[500]}
-                style={styles.backButtonText}
-              >
-                Batal
-              </Typography>
             </TouchableOpacity>
             <Typography
               variant="h4"
@@ -531,9 +524,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: theme.spacing.xs,
-  },
-  backButtonText: {
-    marginLeft: theme.spacing.xs,
   },
   headerTitle: {
     textAlign: 'center',

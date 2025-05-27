@@ -9,6 +9,7 @@ import { BarcodeScanResultView } from '../components/BarcodeScanResult';
 import { BarcodeScanStatus, BarcodeScanResult, BarcodeSearchResult } from '../models/Barcode';
 import { searchBarcode, addBarcodeHistory } from '../services/barcodeService';
 import { useAuthStore } from '../../../core/services/store';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 type BarcodeScannerScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'BarcodeScanner'>;
 type BarcodeScannerScreenRouteProp = RouteProp<RootStackParamList, 'BarcodeScanner'>;
@@ -18,12 +19,40 @@ export const BarcodeScannerScreen = () => {
   const route = useRoute<BarcodeScannerScreenRouteProp>();
   const { onScanComplete } = route.params || {};
 
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   // State untuk menyimpan hasil pemindaian (tidak digunakan langsung di UI)
   const setScanResult = useState<BarcodeScanResult | null>(null)[1];
   const [searchResult, setSearchResult] = useState<BarcodeSearchResult | null>(null);
   const [isResultModalVisible, setIsResultModalVisible] = useState(false);
 
   const { user } = useAuthStore();
+
+  // Responsive modal height
+  const getModalHeight = () => {
+    if (isLandscape) return '90%';
+    if (isSmallDevice) return '85%';
+    if (isLargeDevice) return '75%';
+    return '80%'; // medium device
+  };
+
+  // Responsive border radius
+  const getModalBorderRadius = () => {
+    if (isSmallDevice) return 16;
+    if (isLargeDevice) return 24;
+    return 20; // medium device
+  };
 
   // Fungsi untuk menangani hasil pemindaian barcode
   const handleBarcodeScanned = async (result: BarcodeScanResult) => {
@@ -169,7 +198,14 @@ export const BarcodeScannerScreen = () => {
         onRequestClose={handleCloseResultModal}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={[
+            styles.modalContent,
+            {
+              height: getModalHeight(),
+              borderTopLeftRadius: getModalBorderRadius(),
+              borderTopRightRadius: getModalBorderRadius(),
+            }
+          ]}>
             {searchResult && (
               <BarcodeScanResultView
                 result={searchResult}
@@ -196,10 +232,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    height: '80%',
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
     overflow: 'hidden',
   },
 });
