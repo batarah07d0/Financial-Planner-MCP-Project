@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography, TransactionCard, SuperiorDialog } from '../../../core/components';
@@ -21,6 +21,7 @@ import { RootStackParamList } from '../../../core/navigation/types';
 import { useTransactionStore, useAuthStore } from '../../../core/services/store';
 import { supabase } from '../../../config/supabase';
 import { useSuperiorDialog } from '../../../core/hooks';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 // Definisikan tipe untuk navigasi dengan keyof untuk memastikan nama screen valid
 type TransactionsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -39,6 +40,20 @@ const navigateTo = <T extends keyof RootStackParamList>(
 export const TransactionsScreen = () => {
   const navigation = useNavigation<TransactionsScreenNavigationProp>();
   const { user } = useAuthStore();
+
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   const {
     transactions,
     isLoading,
@@ -50,6 +65,34 @@ export const TransactionsScreen = () => {
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
   const { dialogState, showError, showDelete, showSuccess, hideDialog } = useSuperiorDialog();
+
+  // Responsive icon button size
+  const getIconButtonSize = () => {
+    if (isSmallDevice) return 40;
+    if (isLargeDevice) return 52;
+    return 44; // medium device
+  };
+
+  // Responsive FAB size
+  const getFABSize = () => {
+    if (isSmallDevice) return 56;
+    if (isLargeDevice) return 68;
+    return 60; // medium device
+  };
+
+  // Responsive icon sizes
+  const getIconSize = () => {
+    if (isSmallDevice) return 20;
+    if (isLargeDevice) return 26;
+    return 22; // medium device
+  };
+
+  // Responsive FAB position
+  const getFABPosition = () => {
+    if (isSmallDevice) return 20;
+    if (isLargeDevice) return 28;
+    return 24; // medium device
+  };
 
   // Fungsi untuk memuat transaksi dari Supabase
   const loadTransactions = async () => {
@@ -192,6 +235,15 @@ export const TransactionsScreen = () => {
     }
   }, [user]);
 
+  // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        loadTransactions();
+      }
+    }, [user])
+  );
+
   // Tampilkan error jika ada
   useEffect(() => {
     if (error) {
@@ -304,33 +356,66 @@ export const TransactionsScreen = () => {
         </View>
 
         {/* Action Icons Row */}
-        <View style={styles.headerActions}>
+        <View style={[
+          styles.headerActions,
+          {
+            paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+          }
+        ]}>
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              {
+                width: getIconButtonSize(),
+                height: getIconButtonSize(),
+                borderRadius: getIconButtonSize() / 2,
+              }
+            ]}
             onPress={handleOpenExpenseMap}
           >
-            <Ionicons name="map-outline" size={22} color={theme.colors.primary[500]} />
+            <Ionicons name="map-outline" size={getIconSize()} color={theme.colors.primary[500]} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              {
+                width: getIconButtonSize(),
+                height: getIconButtonSize(),
+                borderRadius: getIconButtonSize() / 2,
+              }
+            ]}
             onPress={handleScanReceipt}
           >
-            <Ionicons name="scan-outline" size={22} color={theme.colors.primary[500]} />
+            <Ionicons name="scan-outline" size={getIconSize()} color={theme.colors.primary[500]} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              {
+                width: getIconButtonSize(),
+                height: getIconButtonSize(),
+                borderRadius: getIconButtonSize() / 2,
+              }
+            ]}
             onPress={handleScanBarcode}
           >
-            <Ionicons name="barcode-outline" size={22} color={theme.colors.primary[500]} />
+            <Ionicons name="barcode-outline" size={getIconSize()} color={theme.colors.primary[500]} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              {
+                width: getIconButtonSize(),
+                height: getIconButtonSize(),
+                borderRadius: getIconButtonSize() / 2,
+              }
+            ]}
             onPress={handleBarcodeScanHistory}
           >
-            <Ionicons name="list-outline" size={22} color={theme.colors.primary[500]} />
+            <Ionicons name="list-outline" size={getIconSize()} color={theme.colors.primary[500]} />
           </TouchableOpacity>
         </View>
 
@@ -390,11 +475,24 @@ export const TransactionsScreen = () => {
 
       {/* Floating Action Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[
+          styles.fab,
+          {
+            width: getFABSize(),
+            height: getFABSize(),
+            borderRadius: getFABSize() / 2,
+            bottom: getFABPosition(),
+            right: getFABPosition(),
+          }
+        ]}
         onPress={handleAddTransaction}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={24} color={theme.colors.white} />
+        <Ionicons
+          name="add"
+          size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+          color={theme.colors.white}
+        />
       </TouchableOpacity>
 
       {/* Superior Dialog */}
@@ -440,13 +538,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    paddingHorizontal: theme.spacing.layout.sm,
     marginBottom: theme.spacing.md,
   },
   iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     backgroundColor: theme.colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
@@ -507,11 +601,6 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     backgroundColor: theme.colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',

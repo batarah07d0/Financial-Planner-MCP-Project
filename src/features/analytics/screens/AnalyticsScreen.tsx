@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   StyleSheet,
@@ -10,7 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { formatCurrency, formatPercentage } from '../../../core/utils';
+import { formatCurrency } from '../../../core/utils';
+
+// Helper function untuk format persentase
+const formatPercentage = (value: number): string => {
+  return `${(value * 100).toFixed(1)}%`;
+};
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../config/supabase';
@@ -23,6 +29,7 @@ interface ExpenseCategory {
   amount: number;
   color: string;
   percentage: number;
+  icon: string;
 }
 
 // Tipe data untuk tren pengeluaran
@@ -47,10 +54,11 @@ const categoryColors = [
 export const AnalyticsScreen = () => {
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [expenseTrends, setExpenseTrends] = useState<ExpenseTrend[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]); // Untuk summary
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const { user } = useAuthStore();
-  const [categoryMap, setCategoryMap] = useState<Record<string, { name: string, color: string }>>({});
+  const [categoryMap, setCategoryMap] = useState<Record<string, { name: string, color: string, icon: string }>>({});
   const [animatedValues] = useState({
     summary: new Animated.Value(0),
     categories: new Animated.Value(0),
@@ -64,17 +72,18 @@ export const AnalyticsScreen = () => {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('id, name, color')
+        .select('id, name, color, icon')
         .eq('type', 'expense');
 
       if (error) throw error;
 
       if (data) {
-        const newCategoryMap: Record<string, { name: string, color: string }> = {};
+        const newCategoryMap: Record<string, { name: string, color: string, icon: string }> = {};
         data.forEach((category, index) => {
           newCategoryMap[category.id] = {
             name: category.name,
-            color: category.color || categoryColors[index % categoryColors.length]
+            color: category.color || categoryColors[index % categoryColors.length],
+            icon: category.icon || 'pricetag-outline'
           };
         });
         setCategoryMap(newCategoryMap);
@@ -94,14 +103,43 @@ export const AnalyticsScreen = () => {
       // Memuat kategori terlebih dahulu
       await loadCategories();
 
-      // Mendapatkan transaksi dari Supabase
-      const { data: transactions, error } = await supabase
+      // Mendapatkan SEMUA transaksi untuk konsistensi dengan Dashboard
+      const { data: allTransactions, error: allError } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (allError) throw allError;
+
+      // Simpan semua transaksi untuk summary
+      setAllTransactions(allTransactions || []);
+
+      // Hitung tanggal mulai berdasarkan periode yang dipilih untuk tren dan kategori
+      const today = new Date();
+      let startDate = new Date();
+
+      switch (selectedPeriod) {
+        case 'weekly':
+          startDate.setDate(today.getDate() - 7);
+          break;
+        case 'monthly':
+          startDate.setMonth(today.getMonth() - 1);
+          break;
+        case 'yearly':
+          startDate.setFullYear(today.getFullYear() - 1);
+          break;
+        default:
+          startDate.setMonth(today.getMonth() - 6); // Default 6 bulan
+      }
+
+      // Filter transaksi berdasarkan periode untuk tren dan kategori
+      const filteredTransactions = allTransactions?.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate >= startDate;
+      }) || [];
+
+      const transactions = filteredTransactions;
 
       if (transactions) {
         // Mengelompokkan transaksi berdasarkan kategori untuk kategori pengeluaran
@@ -125,7 +163,8 @@ export const AnalyticsScreen = () => {
           const percentage = totalExpense > 0 ? amount / totalExpense : 0;
           const categoryInfo = categoryMap[categoryId] || {
             name: 'Lainnya',
-            color: categoryColors[index % categoryColors.length]
+            color: categoryColors[index % categoryColors.length],
+            icon: 'pricetag-outline'
           };
 
           return {
@@ -134,43 +173,82 @@ export const AnalyticsScreen = () => {
             amount,
             color: categoryInfo.color,
             percentage,
+            icon: categoryInfo.icon,
           };
-        });
+        }).sort((a, b) => b.amount - a.amount); // Urutkan berdasarkan jumlah terbesar
 
-        // Mengelompokkan transaksi berdasarkan bulan untuk tren pengeluaran
-        const trendsByMonth: Record<string, { income: number, expense: number }> = {};
+        // Mengelompokkan transaksi berdasarkan periode untuk tren pengeluaran
+        const trendsByPeriod: Record<string, { income: number, expense: number }> = {};
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-        // Inisialisasi 6 bulan terakhir
+        // Inisialisasi periode berdasarkan selectedPeriod
         const today = new Date();
-        for (let i = 5; i >= 0; i--) {
-          const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
-          const monthKey = months[month.getMonth()];
-          trendsByMonth[monthKey] = { income: 0, expense: 0 };
+        let periodCount = 6;
+        let periodUnit = 'month';
+
+        switch (selectedPeriod) {
+          case 'weekly':
+            periodCount = 7;
+            periodUnit = 'week';
+            break;
+          case 'monthly':
+            periodCount = 6;
+            periodUnit = 'month';
+            break;
+          case 'yearly':
+            periodCount = 5;
+            periodUnit = 'year';
+            break;
+        }
+
+        // Inisialisasi periode
+        for (let i = periodCount - 1; i >= 0; i--) {
+          let periodKey = '';
+          const date = new Date(today);
+
+          if (periodUnit === 'week') {
+            date.setDate(today.getDate() - (i * 7));
+            periodKey = `Minggu ${periodCount - i}`;
+          } else if (periodUnit === 'month') {
+            date.setMonth(today.getMonth() - i);
+            periodKey = months[date.getMonth()];
+          } else if (periodUnit === 'year') {
+            date.setFullYear(today.getFullYear() - i);
+            periodKey = date.getFullYear().toString();
+          }
+
+          trendsByPeriod[periodKey] = { income: 0, expense: 0 };
         }
 
         transactions.forEach(transaction => {
           const date = new Date(transaction.date);
-          const monthKey = months[date.getMonth()];
+          let periodKey = '';
 
-          // Hanya proses transaksi 6 bulan terakhir
-          const sixMonthsAgo = new Date();
-          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+          if (periodUnit === 'week') {
+            const weeksDiff = Math.floor((today.getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
+            if (weeksDiff < periodCount) {
+              periodKey = `Minggu ${periodCount - weeksDiff}`;
+            }
+          } else if (periodUnit === 'month') {
+            periodKey = months[date.getMonth()];
+          } else if (periodUnit === 'year') {
+            periodKey = date.getFullYear().toString();
+          }
 
-          if (date >= sixMonthsAgo && trendsByMonth[monthKey]) {
+          if (trendsByPeriod[periodKey]) {
             if (transaction.type === 'income') {
-              trendsByMonth[monthKey].income += transaction.amount;
+              trendsByPeriod[periodKey].income += transaction.amount;
             } else {
-              trendsByMonth[monthKey].expense += transaction.amount;
+              trendsByPeriod[periodKey].expense += transaction.amount;
             }
           }
         });
 
         // Membuat data tren pengeluaran
-        const trends: ExpenseTrend[] = Object.keys(trendsByMonth).map(month => ({
-          month,
-          income: trendsByMonth[month].income,
-          expense: trendsByMonth[month].expense,
+        const trends: ExpenseTrend[] = Object.keys(trendsByPeriod).map(period => ({
+          month: period,
+          income: trendsByPeriod[period].income,
+          expense: trendsByPeriod[period].expense,
         }));
 
         setExpenseCategories(categories);
@@ -218,6 +296,15 @@ export const AnalyticsScreen = () => {
       loadAnalyticsData();
     }
   }, [user, selectedPeriod]);
+
+  // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        loadAnalyticsData();
+      }
+    }, [user, selectedPeriod])
+  );
 
   // Render periode buttons
   const renderPeriodButtons = () => (
@@ -363,25 +450,26 @@ export const AnalyticsScreen = () => {
             <View style={styles.pieChartContainer}>
               <View style={styles.pieChart}>
                 {expenseCategories.map((category, index) => {
-                  const size = 160 + (index * 12);
-                  const offset = index * 12;
+                  // Hitung ukuran berdasarkan persentase
+                  const baseSize = 160;
+                  const sizeMultiplier = Math.sqrt(category.percentage); // Menggunakan akar kuadrat untuk proporsi yang lebih baik
+                  const segmentSize = Math.max(baseSize * sizeMultiplier, 40); // Minimum 40px
+                  const offset = (220 - segmentSize) / 2; // Center the segment
+
                   return (
-                    <Animated.View
+                    <View
                       key={category.id}
                       style={[
                         styles.pieChartSegment,
                         {
-                          width: size,
-                          height: size,
-                          borderRadius: size / 2,
+                          width: segmentSize,
+                          height: segmentSize,
+                          borderRadius: segmentSize / 2,
                           backgroundColor: category.color,
-                          opacity: 0.85,
-                          position: 'absolute',
-                          top: 50 - offset,
-                          left: 50 - offset,
-                          transform: [
-                            { scale: category.percentage * 2.2 + 0.3 }
-                          ]
+                          opacity: 0.9 - (index * 0.05), // Lebih subtle opacity difference
+                          top: offset,
+                          left: offset,
+                          zIndex: expenseCategories.length - index, // Largest on bottom
                         }
                       ]}
                     />
@@ -421,7 +509,13 @@ export const AnalyticsScreen = () => {
                       styles.legendColor,
                       { backgroundColor: category.color },
                     ]}
-                  />
+                  >
+                    <Ionicons
+                      name={category.icon as any}
+                      size={12}
+                      color={theme.colors.white}
+                    />
+                  </View>
                   <View style={styles.legendText}>
                     <Typography variant="body2" weight="600" color={theme.colors.neutral[800]}>
                       {category.name}
@@ -595,8 +689,15 @@ export const AnalyticsScreen = () => {
 
   // Render summary
   const renderSummary = () => {
-    const totalIncome = expenseTrends.reduce((sum, trend) => sum + trend.income, 0) / (expenseTrends.length || 1);
-    const totalExpense = expenseTrends.reduce((sum, trend) => sum + trend.expense, 0) / (expenseTrends.length || 1);
+    // Hitung total dari SEMUA transaksi (seperti Dashboard)
+    const totalIncome = allTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const totalExpense = allTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
     const savings = totalIncome - totalExpense;
     const savingsRate = totalIncome > 0 ? savings / totalIncome : 0;
 
@@ -884,9 +985,9 @@ const styles = StyleSheet.create({
   },
   pieChartSegment: {
     position: 'absolute',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: theme.colors.white,
-    ...theme.elevation.xs,
+    ...theme.elevation.sm,
   },
   pieChartCenter: {
     width: 90,
@@ -995,10 +1096,12 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.neutral[200],
   },
   legendColor: {
-    width: 18,
-    height: 18,
+    width: 24,
+    height: 24,
     borderRadius: theme.borderRadius.sm,
     marginRight: theme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...theme.elevation.xs,
   },
   legendText: {

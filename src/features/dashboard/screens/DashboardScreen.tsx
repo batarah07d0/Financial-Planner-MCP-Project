@@ -5,21 +5,31 @@ import {
   TouchableOpacity,
   StatusBar,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography, Card } from '../../../core/components';
+import { Typography, Card, TransactionCard } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../../../core/services/store';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../../../config/supabase';
+import { formatCurrency } from '../../../core/utils';
+import { Transaction } from '../../../core/services/supabase/types';
 
 export const DashboardScreen = () => {
   const [scrollY] = useState(new Animated.Value(0));
   const [greetingMessage, setGreetingMessage] = useState('');
   const [visitCount, setVisitCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentBalance, setCurrentBalance] = useState(0);
+  const [monthlyIncome, setMonthlyIncome] = useState(0);
+  const [monthlyExpense, setMonthlyExpense] = useState(0);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
   const navigation = useNavigation();
   const { user } = useAuthStore();
 
@@ -86,6 +96,98 @@ export const DashboardScreen = () => {
     }
   };
 
+  // Fungsi untuk memuat data dashboard dari Supabase
+  const loadDashboardData = async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Memuat kategori terlebih dahulu
+      await loadCategories();
+
+      // Mendapatkan tanggal awal dan akhir bulan ini
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      // Query untuk mendapatkan semua transaksi user
+      const { data: allTransactions, error: allError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (allError) throw allError;
+
+      // Query untuk mendapatkan transaksi bulan ini
+      const { data: monthlyTransactions, error: monthlyError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', startOfMonth.toISOString())
+        .lte('date', endOfMonth.toISOString());
+
+      if (monthlyError) throw monthlyError;
+
+      // Hitung saldo saat ini (total pemasukan - total pengeluaran)
+      const totalIncome = allTransactions
+        ?.filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      const totalExpense = allTransactions
+        ?.filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      setCurrentBalance(totalIncome - totalExpense);
+
+      // Hitung ringkasan bulan ini
+      const monthlyIncomeTotal = monthlyTransactions
+        ?.filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      const monthlyExpenseTotal = monthlyTransactions
+        ?.filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+      setMonthlyIncome(monthlyIncomeTotal);
+      setMonthlyExpense(monthlyExpenseTotal);
+
+      // Ambil 3 transaksi terbaru
+      const recent = allTransactions?.slice(0, 3) || [];
+      setRecentTransactions(recent);
+
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fungsi untuk memuat kategori
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name');
+
+      if (error) throw error;
+
+      if (data) {
+        const newCategoryMap: Record<string, string> = {};
+        data.forEach(category => {
+          newCategoryMap[category.id] = category.name;
+        });
+        setCategoryMap(newCategoryMap);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
+
   // Effect untuk load dan update visit count
   useEffect(() => {
     const loadVisitCount = async () => {
@@ -110,8 +212,18 @@ export const DashboardScreen = () => {
 
     if (user) {
       loadVisitCount();
+      loadDashboardData(); // Load dashboard data
     }
   }, [user]);
+
+  // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        loadDashboardData();
+      }
+    }, [user])
+  );
 
   // Fungsi navigasi
   const handleNavigateToAddTransaction = (type?: 'income' | 'expense') => {
@@ -238,9 +350,13 @@ export const DashboardScreen = () => {
               <Typography variant="body2" color={theme.colors.neutral[600]}>
                 Saldo Saat Ini
               </Typography>
-              <Typography variant="h3" color={theme.colors.primary[500]} weight="700">
-                Rp 0
-              </Typography>
+              {isLoading ? (
+                <ActivityIndicator size="small" color={theme.colors.primary[500]} />
+              ) : (
+                <Typography variant="h3" color={theme.colors.primary[500]} weight="700">
+                  {formatCurrency(currentBalance)}
+                </Typography>
+              )}
             </View>
             <TouchableOpacity style={[styles.addButton, {
               width: responsiveSpacing(48),
@@ -379,9 +495,13 @@ export const DashboardScreen = () => {
               <Typography variant="body2" color={theme.colors.neutral[600]}>
                 Pemasukan
               </Typography>
-              <Typography variant="h5" color={theme.colors.success[500]} weight="600">
-                Rp 0
-              </Typography>
+              {isLoading ? (
+                <ActivityIndicator size="small" color={theme.colors.success[500]} />
+              ) : (
+                <Typography variant="h5" color={theme.colors.success[500]} weight="600">
+                  {formatCurrency(monthlyIncome)}
+                </Typography>
+              )}
             </Card>
 
             <Card style={[
@@ -408,9 +528,13 @@ export const DashboardScreen = () => {
               <Typography variant="body2" color={theme.colors.neutral[600]}>
                 Pengeluaran
               </Typography>
-              <Typography variant="h5" color={theme.colors.danger[500]} weight="600">
-                Rp 0
-              </Typography>
+              {isLoading ? (
+                <ActivityIndicator size="small" color={theme.colors.danger[500]} />
+              ) : (
+                <Typography variant="h5" color={theme.colors.danger[500]} weight="600">
+                  {formatCurrency(monthlyExpense)}
+                </Typography>
+              )}
             </Card>
           </View>
         </View>
@@ -433,39 +557,78 @@ export const DashboardScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <Card style={[
-            styles.emptyTransactionCard,
-            {
-              marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
-              padding: responsiveSpacing(theme.spacing.layout.md),
-              borderRadius: responsiveSpacing(16)
-            }
-          ] as any} elevation="sm">
-            <View style={[styles.emptyStateContainer, {
-              padding: responsiveSpacing(theme.spacing.md)
-            }]}>
-              <Ionicons name="receipt-outline" size={responsiveFontSize(48)} color={theme.colors.neutral[300]} />
-              <Typography variant="body1" color={theme.colors.neutral[500]} align="center" style={[styles.emptyText, {
-                marginTop: responsiveSpacing(theme.spacing.md),
-                marginBottom: responsiveSpacing(theme.spacing.md)
+          {isLoading ? (
+            <Card style={[
+              styles.emptyTransactionCard,
+              {
+                marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+                padding: responsiveSpacing(theme.spacing.layout.md),
+                borderRadius: responsiveSpacing(16)
+              }
+            ] as any} elevation="sm">
+              <View style={[styles.emptyStateContainer, {
+                padding: responsiveSpacing(theme.spacing.md)
               }]}>
-                Belum ada transaksi
-              </Typography>
-              <TouchableOpacity
-                style={[styles.addTransactionButton, {
-                  paddingVertical: responsiveSpacing(theme.spacing.sm),
-                  paddingHorizontal: responsiveSpacing(theme.spacing.md),
-                  borderRadius: responsiveSpacing(theme.borderRadius.md),
-                  marginTop: responsiveSpacing(theme.spacing.sm)
-                }]}
-                onPress={handleAddTransaction}
-              >
-                <Typography variant="body2" color={theme.colors.primary[500]}>
-                  + Tambah Transaksi
+                <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+                <Typography variant="body1" color={theme.colors.neutral[500]} align="center" style={[styles.emptyText, {
+                  marginTop: responsiveSpacing(theme.spacing.md)
+                }]}>
+                  Memuat transaksi...
                 </Typography>
-              </TouchableOpacity>
+              </View>
+            </Card>
+          ) : recentTransactions.length > 0 ? (
+            <View style={{
+              marginHorizontal: responsiveSpacing(theme.spacing.layout.sm)
+            }}>
+              {recentTransactions.map((transaction) => (
+                <TransactionCard
+                  key={transaction.id}
+                  id={transaction.id}
+                  amount={Number(transaction.amount)}
+                  type={transaction.type}
+                  category={categoryMap[transaction.category_id] || 'Lainnya'}
+                  description={transaction.description}
+                  date={transaction.date}
+                  onPress={() => {}}
+                />
+              ))}
             </View>
-          </Card>
+          ) : (
+            <Card style={[
+              styles.emptyTransactionCard,
+              {
+                marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+                padding: responsiveSpacing(theme.spacing.layout.md),
+                borderRadius: responsiveSpacing(16)
+              }
+            ] as any} elevation="sm">
+              <View style={[styles.emptyStateContainer, {
+                padding: responsiveSpacing(theme.spacing.md)
+              }]}>
+                <Ionicons name="receipt-outline" size={responsiveFontSize(48)} color={theme.colors.neutral[300]} />
+                <Typography variant="body1" color={theme.colors.neutral[500]} align="center" style={[styles.emptyText, {
+                  marginTop: responsiveSpacing(theme.spacing.md),
+                  marginBottom: responsiveSpacing(theme.spacing.md)
+                }]}>
+                  Belum ada transaksi
+                </Typography>
+                <TouchableOpacity
+                  style={[styles.addTransactionButton, {
+                    paddingVertical: responsiveSpacing(theme.spacing.sm),
+                    paddingHorizontal: responsiveSpacing(theme.spacing.md),
+                    borderRadius: responsiveSpacing(theme.borderRadius.md),
+                    marginTop: responsiveSpacing(theme.spacing.sm)
+                  }]}
+                  onPress={handleAddTransaction}
+                >
+                  <Typography variant="body2" color={theme.colors.primary[500]}>
+                    + Tambah Transaksi
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          )}
         </View>
 
         {/* Tips Keuangan */}

@@ -19,6 +19,7 @@ import { getBudgetSpending } from '../../../core/services/supabase/budget.servic
 import { Category } from '../../../core/services/supabase/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useBudgetMonitor } from '../../../core/hooks/useBudgetMonitor';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 // Interface untuk data budget yang ditampilkan di UI
 interface BudgetDisplay {
@@ -46,6 +47,13 @@ export const BudgetScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+
+  // Responsive dimensions
+  const {
+    responsiveSpacing,
+    responsiveFontSize,
+    isSmallDevice
+  } = useAppDimensions();
 
   // Menggunakan store untuk state management
   const { budgets: supabaseBudgets, fetchBudgets } = useBudgetStore();
@@ -240,104 +248,182 @@ export const BudgetScreen = () => {
     />
   );
 
-  // Render periode buttons
-  const renderPeriodButtons = () => (
-    <View style={styles.periodContainer}>
-      <TouchableOpacity
-        style={[
-          styles.periodButton,
-          selectedPeriod === 'daily' && styles.activePeriodButton,
-        ]}
-        onPress={() => setSelectedPeriod('daily')}
-        activeOpacity={0.8}
-      >
-        <Typography
-          variant="body2"
-          weight={selectedPeriod === 'daily' ? '600' : '400'}
-          color={selectedPeriod === 'daily' ? theme.colors.white : theme.colors.neutral[700]}
-        >
-          Harian
-        </Typography>
-      </TouchableOpacity>
+  // Render periode buttons dengan responsivitas dan perfect center alignment
+  const renderPeriodButtons = () => {
+    // Responsive button styling dengan perfect center alignment
+    const getResponsivePeriodButtonStyle = (isActive: boolean) => ({
+      paddingVertical: responsiveSpacing(theme.spacing.xs + 2), // Sedikit lebih besar untuk center vertikal
+      paddingHorizontal: responsiveSpacing(isSmallDevice ? theme.spacing.md : theme.spacing.lg),
+      borderRadius: theme.borderRadius.round,
+      backgroundColor: isActive ? theme.colors.primary[500] : theme.colors.neutral[200],
+      marginHorizontal: responsiveSpacing(theme.spacing.xs), // Margin horizontal yang sama
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      minHeight: responsiveSpacing(isSmallDevice ? 36 : 40), // Tinggi yang lebih konsisten
+      minWidth: responsiveSpacing(isSmallDevice ? 70 : 80), // Lebar minimum untuk konsistensi
+      ...theme.elevation.xs,
+    });
 
-      <TouchableOpacity
-        style={[
-          styles.periodButton,
-          selectedPeriod === 'weekly' && styles.activePeriodButton,
-        ]}
-        onPress={() => setSelectedPeriod('weekly')}
-        activeOpacity={0.8}
-      >
-        <Typography
-          variant="body2"
-          weight={selectedPeriod === 'weekly' ? '600' : '400'}
-          color={selectedPeriod === 'weekly' ? theme.colors.white : theme.colors.neutral[700]}
+    return (
+      <View style={[styles.periodContainer, {
+        flexDirection: 'row',
+        justifyContent: 'center', // Center horizontal container
+        alignItems: 'center', // Center vertical container
+        flexWrap: 'wrap',
+        paddingVertical: responsiveSpacing(theme.spacing.md),
+        marginBottom: responsiveSpacing(theme.spacing.md),
+        paddingHorizontal: responsiveSpacing(theme.spacing.sm), // Padding untuk breathing room
+      }]}>
+        <TouchableOpacity
+          style={getResponsivePeriodButtonStyle(selectedPeriod === 'daily')}
+          onPress={() => setSelectedPeriod('daily')}
+          activeOpacity={0.8}
         >
-          Mingguan
-        </Typography>
-      </TouchableOpacity>
+          <Typography
+            variant="body2"
+            weight={selectedPeriod === 'daily' ? '600' : '400'}
+            color={selectedPeriod === 'daily' ? theme.colors.white : theme.colors.neutral[700]}
+            style={{
+              fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+              textAlign: 'center',
+              lineHeight: responsiveFontSize(isSmallDevice ? 16 : 18), // Line height untuk center vertikal
+            }}
+          >
+            Harian
+          </Typography>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.periodButton,
-          selectedPeriod === 'monthly' && styles.activePeriodButton,
-        ]}
-        onPress={() => setSelectedPeriod('monthly')}
-        activeOpacity={0.8}
-      >
-        <Typography
-          variant="body2"
-          weight={selectedPeriod === 'monthly' ? '600' : '400'}
-          color={selectedPeriod === 'monthly' ? theme.colors.white : theme.colors.neutral[700]}
+        <TouchableOpacity
+          style={getResponsivePeriodButtonStyle(selectedPeriod === 'weekly')}
+          onPress={() => setSelectedPeriod('weekly')}
+          activeOpacity={0.8}
         >
-          Bulanan
-        </Typography>
-      </TouchableOpacity>
+          <Typography
+            variant="body2"
+            weight={selectedPeriod === 'weekly' ? '600' : '400'}
+            color={selectedPeriod === 'weekly' ? theme.colors.white : theme.colors.neutral[700]}
+            style={{
+              fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+              textAlign: 'center',
+              lineHeight: responsiveFontSize(isSmallDevice ? 16 : 18),
+            }}
+          >
+            Mingguan
+          </Typography>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.periodButton,
-          selectedPeriod === 'yearly' && styles.activePeriodButton,
-        ]}
-        onPress={() => setSelectedPeriod('yearly')}
-        activeOpacity={0.8}
-      >
-        <Typography
-          variant="body2"
-          weight={selectedPeriod === 'yearly' ? '600' : '400'}
-          color={selectedPeriod === 'yearly' ? theme.colors.white : theme.colors.neutral[700]}
+        <TouchableOpacity
+          style={getResponsivePeriodButtonStyle(selectedPeriod === 'monthly')}
+          onPress={() => setSelectedPeriod('monthly')}
+          activeOpacity={0.8}
         >
-          Tahunan
-        </Typography>
-      </TouchableOpacity>
-    </View>
-  );
+          <Typography
+            variant="body2"
+            weight={selectedPeriod === 'monthly' ? '600' : '400'}
+            color={selectedPeriod === 'monthly' ? theme.colors.white : theme.colors.neutral[700]}
+            style={{
+              fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+              textAlign: 'center',
+              lineHeight: responsiveFontSize(isSmallDevice ? 16 : 18),
+            }}
+          >
+            Bulanan
+          </Typography>
+        </TouchableOpacity>
 
-  // Render summary
+        <TouchableOpacity
+          style={getResponsivePeriodButtonStyle(selectedPeriod === 'yearly')}
+          onPress={() => setSelectedPeriod('yearly')}
+          activeOpacity={0.8}
+        >
+          <Typography
+            variant="body2"
+            weight={selectedPeriod === 'yearly' ? '600' : '400'}
+            color={selectedPeriod === 'yearly' ? theme.colors.white : theme.colors.neutral[700]}
+            style={{
+              fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+              textAlign: 'center',
+              lineHeight: responsiveFontSize(isSmallDevice ? 16 : 18),
+            }}
+          >
+            Tahunan
+          </Typography>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Render summary dengan responsivitas
   const renderSummary = () => {
     const { totalBudget, totalSpent } = calculateTotals();
     const percentage = totalBudget > 0 ? totalSpent / totalBudget : 0;
 
+    // Responsive summary item styling
+    const getResponsiveSummaryItemStyle = () => ({
+      flex: 1,
+      backgroundColor: theme.colors.white,
+      padding: responsiveSpacing(isSmallDevice ? theme.spacing.sm : theme.spacing.md),
+      borderRadius: theme.borderRadius.md,
+      marginHorizontal: responsiveSpacing(theme.spacing.xs),
+      alignItems: 'center' as const,
+      minHeight: responsiveSpacing(isSmallDevice ? 70 : 80),
+      justifyContent: 'center' as const,
+      ...theme.elevation.sm,
+    });
+
     return (
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryItem}>
-          <Typography variant="body2" color={theme.colors.neutral[600]} weight="500">
+      <View style={[styles.summaryContainer, {
+        paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+        paddingBottom: responsiveSpacing(theme.spacing.md),
+      }]}>
+        <View style={getResponsiveSummaryItemStyle()}>
+          <Typography
+            variant="body2"
+            color={theme.colors.neutral[600]}
+            weight="500"
+            style={{
+              fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+              textAlign: 'center'
+            }}
+          >
             Total Anggaran
           </Typography>
-          <Typography variant="h5" color={theme.colors.primary[500]} weight="700" style={{ marginTop: 4 }}>
+          <Typography
+            variant="h5"
+            color={theme.colors.primary[500]}
+            weight="700"
+            style={{
+              marginTop: responsiveSpacing(4),
+              fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
+              textAlign: 'center'
+            }}
+          >
             {formatCurrency(totalBudget)}
           </Typography>
         </View>
 
-        <View style={styles.summaryItem}>
-          <Typography variant="body2" color={theme.colors.neutral[600]} weight="500">
+        <View style={getResponsiveSummaryItemStyle()}>
+          <Typography
+            variant="body2"
+            color={theme.colors.neutral[600]}
+            weight="500"
+            style={{
+              fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+              textAlign: 'center'
+            }}
+          >
             Total Pengeluaran
           </Typography>
           <Typography
             variant="h5"
             color={percentage >= 1 ? theme.colors.danger[500] : theme.colors.success[500]}
             weight="700"
-            style={{ marginTop: 4 }}
+            style={{
+              marginTop: responsiveSpacing(4),
+              fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
+              textAlign: 'center'
+            }}
           >
             {formatCurrency(totalSpent)}
           </Typography>
@@ -351,15 +437,33 @@ export const BudgetScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header Section */}
-      <View style={styles.headerContainer}>
+      <View style={[styles.headerContainer, {
+        paddingTop: responsiveSpacing(theme.spacing.md),
+        paddingBottom: responsiveSpacing(theme.spacing.md),
+      }]}>
         {/* Title Row */}
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Typography variant="h4" style={styles.headerTitle}>Anggaran</Typography>
+        <View style={[styles.header, {
+          paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+          marginBottom: responsiveSpacing(theme.spacing.md),
+          height: responsiveSpacing(isSmallDevice ? 45 : 50),
+        }]}>
+          <View style={[styles.titleContainer, {
+            paddingBottom: responsiveSpacing(6),
+          }]}>
+            <Typography
+              variant="h4"
+              style={{
+                fontSize: responsiveFontSize(isSmallDevice ? 22 : 26),
+                color: theme.colors.primary[500],
+                fontWeight: '700',
+                letterSpacing: -0.5,
+                lineHeight: responsiveSpacing(isSmallDevice ? 28 : 32),
+              }}
+            >
+              Anggaran
+            </Typography>
           </View>
         </View>
-
-
       </View>
 
       {/* Period Selection */}
@@ -377,7 +481,9 @@ export const BudgetScreen = () => {
           data={budgets}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, {
+            padding: responsiveSpacing(theme.spacing.layout.sm),
+          }]}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -418,11 +524,22 @@ export const BudgetScreen = () => {
       {/* Floating Action Button */}
       {user && (
         <TouchableOpacity
-          style={styles.fab}
+          style={{
+            ...styles.fab,
+            bottom: responsiveSpacing(isSmallDevice ? 20 : 24),
+            right: responsiveSpacing(isSmallDevice ? 20 : 24),
+            width: responsiveSpacing(isSmallDevice ? 52 : 60),
+            height: responsiveSpacing(isSmallDevice ? 52 : 60),
+            borderRadius: responsiveSpacing(isSmallDevice ? 26 : 30),
+          }}
           onPress={handleAddBudget}
           activeOpacity={0.8}
         >
-          <Ionicons name="add" size={24} color={theme.colors.white} />
+          <Ionicons
+            name="add"
+            size={responsiveSpacing(isSmallDevice ? 20 : 24)}
+            color={theme.colors.white}
+          />
         </TouchableOpacity>
       )}
     </SafeAreaView>
@@ -436,31 +553,21 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: theme.colors.white,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
     ...theme.elevation.xs,
+    // Responsive values will be applied inline
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.layout.sm,
-    marginBottom: theme.spacing.md,
-    height: 50, // Menetapkan tinggi tetap untuk header
+    // Responsive values will be applied inline
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 6, // Menambahkan padding bawah untuk mengatasi masalah huruf 'g' terpotong
-  },
-  headerTitle: {
-    fontSize: 26,
-    color: theme.colors.primary[500],
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    lineHeight: 32, // Menambahkan line-height untuk memastikan huruf 'g' tidak terpotong
+    // Responsive values will be applied inline
   },
   featureButtonsContainer: {
     flexDirection: 'row',
@@ -478,17 +585,12 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary[500],
     backgroundColor: theme.colors.white,
     ...theme.elevation.xs,
-    height: 36, // Menetapkan tinggi tetap untuk semua tombol
-    justifyContent: 'center', // Memastikan teks berada di tengah vertikal
-    alignItems: 'center', // Memastikan teks berada di tengah horizontal
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     backgroundColor: theme.colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
@@ -497,42 +599,28 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    zIndex: 999, // Memastikan FAB selalu di atas elemen lain
+    zIndex: 999,
+    // Responsive values will be applied inline
   },
   periodContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
     backgroundColor: theme.colors.white,
-    marginBottom: theme.spacing.md,
+    // All styling moved inline for perfect center alignment
   },
   periodButton: {
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.round,
-    backgroundColor: theme.colors.neutral[200],
-    marginHorizontal: theme.spacing.xs,
-    ...theme.elevation.xs,
+    // Responsive values moved to renderPeriodButtons
   },
   activePeriodButton: {
-    backgroundColor: theme.colors.primary[500],
+    // Responsive values moved to renderPeriodButtons
   },
   summaryContainer: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing.layout.sm,
-    paddingBottom: theme.spacing.md,
+    // Responsive values will be applied inline
   },
   summaryItem: {
-    flex: 1,
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginHorizontal: theme.spacing.xs,
-    alignItems: 'center',
-    ...theme.elevation.sm,
+    // Responsive values moved to renderSummary
   },
   listContent: {
-    padding: theme.spacing.layout.sm,
+    // Responsive values will be applied inline
   },
   loadingContainer: {
     flex: 1,

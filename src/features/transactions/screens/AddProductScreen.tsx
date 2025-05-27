@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../core/navigation/types';
 import { Typography, TextInput, Button } from '../../../core/components';
 import { theme } from '../../../core/theme';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { Ionicons } from '@expo/vector-icons';
 import { BarcodeDataInput } from '../models/Barcode';
 import { addCommunityBarcodeData } from '../services/barcodeService';
@@ -30,6 +31,19 @@ export const AddProductScreen = () => {
   const route = useRoute<AddProductScreenRouteProp>();
   const { barcode } = route.params || {};
 
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   const [productName, setProductName] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
@@ -39,6 +53,19 @@ export const AddProductScreen = () => {
   const [isCategoryPickerVisible, setIsCategoryPickerVisible] = useState(false);
 
   const { user } = useAuthStore();
+
+  // Responsive image sizes
+  const getImageButtonSize = () => {
+    if (isSmallDevice) return { width: 100, height: 80 };
+    if (isLargeDevice) return { width: 140, height: 120 };
+    return { width: 120, height: 100 }; // medium device
+  };
+
+  const getSelectedImageSize = () => {
+    if (isSmallDevice) return { width: 160, height: 160 };
+    if (isLargeDevice) return { width: 240, height: 240 };
+    return { width: 200, height: 200 }; // medium device
+  };
 
   // Fungsi untuk menangani perubahan harga
   const handlePriceChange = (text: string) => {
@@ -261,7 +288,13 @@ export const AddProductScreen = () => {
           <View style={styles.imageContainer}>
             {imageUri ? (
               <View style={styles.selectedImageContainer}>
-                <Image source={{ uri: imageUri }} style={styles.selectedImage} />
+                <Image
+                  source={{ uri: imageUri }}
+                  style={[
+                    styles.selectedImage,
+                    getSelectedImageSize()
+                  ]}
+                />
                 <TouchableOpacity
                   style={styles.removeImageButton}
                   onPress={() => setImageUri(null)}
@@ -271,16 +304,42 @@ export const AddProductScreen = () => {
               </View>
             ) : (
               <View style={styles.imageButtons}>
-                <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-                  <Ionicons name="images-outline" size={24} color={theme.colors.primary[500]} />
-                  <Typography variant="body2" color={theme.colors.primary[500]}>
+                <TouchableOpacity
+                  style={[
+                    styles.imageButton,
+                    getImageButtonSize()
+                  ]}
+                  onPress={pickImage}
+                >
+                  <Ionicons
+                    name="images-outline"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.primary[500]}
+                  />
+                  <Typography
+                    variant={isSmallDevice ? "caption" : "body2"}
+                    color={theme.colors.primary[500]}
+                  >
                     Galeri
                   </Typography>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.imageButton} onPress={takePhoto}>
-                  <Ionicons name="camera-outline" size={24} color={theme.colors.primary[500]} />
-                  <Typography variant="body2" color={theme.colors.primary[500]}>
+                <TouchableOpacity
+                  style={[
+                    styles.imageButton,
+                    getImageButtonSize()
+                  ]}
+                  onPress={takePhoto}
+                >
+                  <Ionicons
+                    name="camera-outline"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.primary[500]}
+                  />
+                  <Typography
+                    variant={isSmallDevice ? "caption" : "body2"}
+                    color={theme.colors.primary[500]}
+                  >
                     Kamera
                   </Typography>
                 </TouchableOpacity>
@@ -380,8 +439,6 @@ const styles = StyleSheet.create({
   imageButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 120,
-    height: 100,
     borderWidth: 1,
     borderColor: theme.colors.primary[300],
     borderRadius: theme.borderRadius.md,
@@ -393,8 +450,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   selectedImage: {
-    width: 200,
-    height: 200,
     borderRadius: theme.borderRadius.md,
   },
   removeImageButton: {

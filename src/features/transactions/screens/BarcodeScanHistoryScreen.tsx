@@ -21,19 +21,60 @@ import { BarcodeHistoryItem } from '../models/Barcode';
 import { getBarcodeHistory, searchBarcode } from '../services/barcodeService';
 import { formatDate } from '../../../core/utils';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 type BarcodeScanHistoryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'BarcodeScanHistory'>;
 
-// Mendapatkan dimensi layar untuk responsivitas
-// const { width, height } = Dimensions.get('window');
-
 export const BarcodeScanHistoryScreen = () => {
   const navigation = useNavigation<BarcodeScanHistoryScreenNavigationProp>();
+
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    height,
+    breakpoint,
+    isLandscape,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+    isLargeDevice
+  } = useAppDimensions();
+
   const [history, setHistory] = useState<BarcodeHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'added' | 'notAdded'>('all');
+
+  // Responsive header heights
+  const getResponsiveHeaderHeights = () => {
+    if (isLandscape) return { expanded: 80, collapsed: 60 };
+    if (isSmallDevice) return { expanded: 100, collapsed: 70 };
+    if (isLargeDevice) return { expanded: 140, collapsed: 90 };
+    return { expanded: 120, collapsed: 80 }; // medium device
+  };
+
+  // Responsive icon circle size
+  const getIconCircleSize = () => {
+    if (isSmallDevice) return 44;
+    if (isLargeDevice) return 56;
+    return 50; // medium device
+  };
+
+  // Responsive empty state icon size
+  const getEmptyStateIconSize = () => {
+    if (isSmallDevice) return 100;
+    if (isLargeDevice) return 140;
+    return 120; // medium device
+  };
+
+  // Responsive icon sizes
+  const getIconSize = () => {
+    if (isSmallDevice) return 20;
+    if (isLargeDevice) return 28;
+    return 24; // medium device
+  };
 
   // Animated values
   const scrollY = new Animated.Value(0);
@@ -43,9 +84,10 @@ export const BarcodeScanHistoryScreen = () => {
     extrapolate: 'clamp',
   });
 
+  const headerHeights = getResponsiveHeaderHeights();
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 100],
-    outputRange: [120, 80],
+    outputRange: [headerHeights.expanded, headerHeights.collapsed],
     extrapolate: 'clamp',
   });
 
@@ -193,10 +235,17 @@ export const BarcodeScanHistoryScreen = () => {
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.historyItemIconContainer}>
-              <View style={styles.iconCircle}>
+              <View style={[
+                styles.iconCircle,
+                {
+                  width: getIconCircleSize(),
+                  height: getIconCircleSize(),
+                  borderRadius: getIconCircleSize() / 2,
+                }
+              ]}>
                 <MaterialCommunityIcons
                   name="barcode-scan"
-                  size={24}
+                  size={getIconSize()}
                   color={theme.colors.primary[500]}
                 />
               </View>
@@ -326,8 +375,19 @@ export const BarcodeScanHistoryScreen = () => {
     if (isFiltered && filteredData.length === 0) {
       return (
         <View style={styles.emptyStateContainer}>
-          <View style={styles.emptyStateIconContainer}>
-            <Ionicons name="search" size={80} color={theme.colors.primary[300]} />
+          <View style={[
+            styles.emptyStateIconContainer,
+            {
+              width: getEmptyStateIconSize(),
+              height: getEmptyStateIconSize(),
+              borderRadius: getEmptyStateIconSize() / 2,
+            }
+          ]}>
+            <Ionicons
+              name="search"
+              size={isSmallDevice ? 60 : isLargeDevice ? 90 : 80}
+              color={theme.colors.primary[300]}
+            />
           </View>
           <Typography variant="h5" align="center" style={styles.emptyStateTitle}>
             Tidak Ada Hasil
@@ -380,7 +440,11 @@ export const BarcodeScanHistoryScreen = () => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.white} />
+              <Ionicons
+                name="arrow-back"
+                size={getIconSize()}
+                color={theme.colors.white}
+              />
             </TouchableOpacity>
 
             <View style={styles.titleContainer}>
@@ -449,7 +513,11 @@ export const BarcodeScanHistoryScreen = () => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Ionicons name="barcode-outline" size={24} color={theme.colors.white} />
+          <Ionicons
+            name="barcode-outline"
+            size={getIconSize()}
+            color={theme.colors.white}
+          />
           <Typography variant="body1" color={theme.colors.white} weight="600" style={styles.scanButtonText}>
             Pindai Barcode
           </Typography>
@@ -588,9 +656,6 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.md,
   },
   iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
     backgroundColor: 'rgba(33, 150, 243, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -656,9 +721,6 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   emptyStateIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     backgroundColor: 'rgba(33, 150, 243, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
