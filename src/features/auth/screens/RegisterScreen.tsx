@@ -9,6 +9,7 @@ import {
   StatusBar,
   Animated
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../../core/navigation/types';
@@ -65,14 +66,14 @@ export const RegisterScreen = () => {
 
   const LOGO_SIZE = getLogoSize();
 
-  // Responsive padding top berdasarkan device dan orientasi
+  // Responsive padding top berdasarkan device dan orientasi dengan SafeAreaView
   const getResponsivePaddingTop = () => {
     if (isLandscape) {
-      return responsiveSpacing(theme.spacing.layout.xs);
+      return responsiveSpacing(theme.spacing.layout.md);
     }
-    if (isSmallDevice) return width * 0.08;
-    if (isLargeDevice) return width * 0.06;
-    return width * 0.1; // medium device
+    if (isSmallDevice) return responsiveSpacing(theme.spacing.layout.lg);
+    if (isLargeDevice) return responsiveSpacing(theme.spacing.layout.xl);
+    return responsiveSpacing(theme.spacing.layout.lg); // medium device
   };
 
   // Responsive form max width untuk tablet
@@ -162,19 +163,20 @@ export const RegisterScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-    >
+    <SafeAreaView style={styles.container} edges={['right', 'left', 'top']}>
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.white} />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         <LinearGradient
           colors={[theme.colors.primary[50], theme.colors.white]}
           style={[
@@ -361,7 +363,8 @@ export const RegisterScreen = () => {
             </View>
           </Animated.View>
         </LinearGradient>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Superior Dialog */}
       <SuperiorDialog
@@ -374,7 +377,7 @@ export const RegisterScreen = () => {
         icon={dialogState.icon}
         autoClose={dialogState.autoClose}
       />
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -382,6 +385,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.white,
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
