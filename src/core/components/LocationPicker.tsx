@@ -10,7 +10,6 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-// Import dari mock untuk Expo Go
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Typography } from './Typography';
 import { Button } from './Button';
@@ -746,7 +745,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.neutral[300],
   },
   confirmButton: {
-    flex: 1.5, // Slightly larger than other buttons
+    flex: 1.5,
   },
   confirmGradient: {
     flex: 1,

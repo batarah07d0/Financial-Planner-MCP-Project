@@ -163,11 +163,11 @@ const styles = StyleSheet.create({
   },
   leftIcon: {
     paddingLeft: theme.spacing.md,
-    paddingRight: theme.spacing.md, // Added padding to create more space
+    paddingRight: theme.spacing.md,
   },
   rightIcon: {
     paddingRight: theme.spacing.md,
-    paddingLeft: theme.spacing.md, // Added padding to create more space
+    paddingLeft: theme.spacing.md,
   },
   focused: {
     borderColor: theme.colors.primary[500],

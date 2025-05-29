@@ -18,21 +18,18 @@ export const AudioFeedback: React.FC<AudioFeedbackProps> = ({
 }) => {
   const { speak, stopSpeaking } = useAudio();
   const { triggerHapticFeedback } = useSensors();
-  
-  // Efek untuk memutar umpan balik audio dan haptic
+
   useEffect(() => {
     if (autoPlay) {
       playFeedback();
     }
-    
+
     return () => {
       stopSpeaking();
     };
   }, [type, message]);
-  
-  // Fungsi untuk memutar umpan balik
+
   const playFeedback = () => {
-    // Umpan balik haptic
     if (haptic) {
       switch (type) {
         case 'success':
@@ -49,12 +46,11 @@ export const AudioFeedback: React.FC<AudioFeedbackProps> = ({
           break;
       }
     }
-    
-    // Umpan balik suara
+
     if (message) {
       speak(message);
     } else {
-      // Pesan default berdasarkan tipe
+
       switch (type) {
         case 'success':
           speak('Berhasil');
@@ -71,6 +67,6 @@ export const AudioFeedback: React.FC<AudioFeedbackProps> = ({
       }
     }
   };
-  
+
   return <>{children}</>;
 };
