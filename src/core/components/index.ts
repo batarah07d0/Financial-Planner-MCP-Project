@@ -11,7 +11,6 @@ export * from './DatePicker';
 export * from './CategoryPicker';
 export * from './ReceiptScanner';
 export * from './BudgetAlert';
-export * from './AudioFeedback';
 export * from './ChallengeCard';
 export * from './BiometricAuth';
 export * from './SuperiorDialog';

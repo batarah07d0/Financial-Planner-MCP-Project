@@ -41,6 +41,7 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<TabParamList>;
   Onboarding: undefined;
   AddTransaction: {
+    type?: 'income' | 'expense';
     scannedData?: {
       amount?: number;
       date?: Date;

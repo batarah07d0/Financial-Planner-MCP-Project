@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  View, 
+import {  
   StyleSheet, 
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';

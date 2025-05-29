@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Typography, BudgetCard } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
@@ -16,7 +17,7 @@ import { useBudgetStore } from '../../../core/services/store/budgetStore';
 import { useAuthStore } from '../../../core/services/store/authStore';
 import { getCategories } from '../../../core/services/supabase/category.service';
 import { getBudgetSpending } from '../../../core/services/supabase/budget.service';
-import { Category } from '../../../core/services/supabase/types';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useBudgetMonitor } from '../../../core/hooks/useBudgetMonitor';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
@@ -190,9 +191,9 @@ export const BudgetScreen = () => {
           checkBudgetThresholds();
         }
       } catch (error: any) {
-        // Jika error terkait kolom period, tampilkan pesan yang lebih informatif
+        // Jika error terkait kolom period, log ke console untuk developer
         if (error.message && error.message.includes('period does not exist')) {
-          console.error('Kolom period belum ada di tabel budgets. Silakan jalankan SQL untuk menambahkan kolom period.');
+          console.warn('Database schema update needed: period column missing in budgets table');
           setBudgets([]);
         } else {
           throw error;
@@ -493,29 +494,95 @@ export const BudgetScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Typography
-                variant="body1"
-                color={theme.colors.neutral[600]}
-                align="center"
-                style={styles.emptyText}
+              <LinearGradient
+                colors={[theme.colors.primary[50], theme.colors.primary[100]]}
+                style={styles.emptyGradient}
               >
-                {user ?
-                  (isLoading ? 'Memuat anggaran...' :
-                    'Tidak ada anggaran untuk periode ini. Silakan tambahkan anggaran baru.') :
-                  'Silakan login untuk melihat anggaran Anda.'
-                }
-              </Typography>
-              {user && !isLoading && budgets.length === 0 && (
+                <View style={styles.emptyIconContainer}>
+                  <LinearGradient
+                    colors={[theme.colors.primary[400], theme.colors.primary[600]]}
+                    style={styles.emptyIconGradient}
+                  >
+                    <Ionicons
+                      name="wallet-outline"
+                      size={responsiveSpacing(48)}
+                      color={theme.colors.white}
+                    />
+                  </LinearGradient>
+                </View>
+
                 <Typography
-                  variant="caption"
-                  color={theme.colors.neutral[500]}
+                  variant="h4"
+                  color={theme.colors.neutral[800]}
                   align="center"
-                  style={styles.noteText}
+                  weight="700"
+                  style={styles.emptyTitle}
                 >
-                  Catatan: Jika Anda melihat error "column budgets.period does not exist",
-                  silakan hubungi administrator untuk menjalankan SQL yang diperlukan.
+                  {user ?
+                    (isLoading ? 'Memuat Anggaran...' :
+                      'Mulai Kelola Anggaran') :
+                    'Silakan Login Terlebih Dahulu'
+                  }
                 </Typography>
-              )}
+
+                <Typography
+                  variant="body1"
+                  color={theme.colors.neutral[600]}
+                  align="center"
+                  style={styles.emptyText}
+                >
+                  {user ?
+                    (isLoading ? 'Sedang mengambil data anggaran Anda...' :
+                      `Buat anggaran ${selectedPeriod === 'daily' ? 'harian' :
+                       selectedPeriod === 'weekly' ? 'mingguan' :
+                       selectedPeriod === 'monthly' ? 'bulanan' : 'tahunan'} untuk mengontrol pengeluaran dan mencapai tujuan finansial Anda.`) :
+                    'Masuk ke akun Anda untuk melihat dan mengelola anggaran keuangan.'
+                  }
+                </Typography>
+
+                {user && !isLoading && budgets.length === 0 && (
+                  <View style={styles.emptyFeatures}>
+                    <View style={styles.featureItem}>
+                      <View style={styles.featureIcon}>
+                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.success[500]} />
+                      </View>
+                      <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.featureText}>
+                        Kontrol pengeluaran harian
+                      </Typography>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <View style={styles.featureIcon}>
+                        <Ionicons name="trending-up" size={18} color={theme.colors.info[500]} />
+                      </View>
+                      <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.featureText}>
+                        Pantau progress real-time
+                      </Typography>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <View style={styles.featureIcon}>
+                        <Ionicons name="notifications" size={18} color={theme.colors.warning[500]} />
+                      </View>
+                      <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.featureText}>
+                        Notifikasi batas anggaran
+                      </Typography>
+                    </View>
+                  </View>
+                )}
+
+                {user && !isLoading && budgets.length === 0 && (
+                  <TouchableOpacity style={styles.emptyActionButton} onPress={handleAddBudget}>
+                    <LinearGradient
+                      colors={[theme.colors.primary[500], theme.colors.primary[700]]}
+                      style={styles.emptyActionGradient}
+                    >
+                      <Ionicons name="add-circle" size={24} color={theme.colors.white} />
+                      <Typography variant="h6" weight="600" color={theme.colors.white}>
+                        Buat Anggaran Pertama
+                      </Typography>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </LinearGradient>
             </View>
           }
         />
@@ -633,13 +700,98 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flex: 1,
   },
-  emptyText: {
+  emptyGradient: {
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  emptyIconContainer: {
+    marginBottom: theme.spacing.lg,
+    borderRadius: 40,
+    overflow: 'hidden',
+    shadowColor: theme.colors.primary[600],
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  emptyIconGradient: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyTitle: {
     marginBottom: theme.spacing.md,
     textAlign: 'center',
   },
-  noteText: {
-    marginBottom: theme.spacing.md,
+  emptyText: {
+    marginBottom: theme.spacing.xl,
     textAlign: 'center',
-    paddingHorizontal: theme.spacing.lg,
+    lineHeight: 24,
+    paddingHorizontal: theme.spacing.md,
+  },
+  emptyFeatures: {
+    width: '100%',
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
+  },
+  featureIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.sm,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  featureText: {
+    flex: 1,
+  },
+  emptyActionButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: theme.colors.primary[600],
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  emptyActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    gap: 12,
   },
 });

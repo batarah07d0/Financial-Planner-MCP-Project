@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 // Helper function untuk format persentase
 const formatPercentage = (value: number): string => {
@@ -66,6 +67,32 @@ export const AnalyticsScreen = () => {
     header: new Animated.Value(0),
     periodButtons: new Animated.Value(0),
   });
+
+  // Hook responsif untuk mendapatkan dimensi dan breakpoint
+  const {
+    width,
+    responsiveFontSize,
+    responsiveSpacing,
+    isSmallDevice,
+    isMediumDevice,
+  } = useAppDimensions();
+
+  // Fungsi untuk menghitung ukuran chart yang responsif
+  const getResponsiveChartSizes = () => {
+    const baseChartSize = Math.min(width * 0.55, 240); // Maksimal 240px, minimal 55% dari lebar layar
+    const centerSize = baseChartSize * 0.41; // 41% dari ukuran chart
+    const fontSize = responsiveFontSize(isSmallDevice ? 14 : isMediumDevice ? 16 : 18);
+    const lineHeight = fontSize * 1.3;
+
+    return {
+      chartSize: baseChartSize,
+      centerSize: centerSize,
+      centerRadius: centerSize / 2,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      padding: responsiveSpacing(isSmallDevice ? 8 : 12),
+    };
+  };
 
   // Fungsi untuk memuat kategori
   const loadCategories = async () => {
@@ -428,6 +455,8 @@ export const AnalyticsScreen = () => {
 
   // Render pie chart untuk kategori pengeluaran
   const renderExpenseCategoriesChart = () => {
+    const chartSizes = getResponsiveChartSizes();
+
     return (
       <Animated.View style={{
         opacity: animatedValues.categories,
@@ -448,13 +477,16 @@ export const AnalyticsScreen = () => {
 
           {expenseCategories.length > 0 ? (
             <View style={styles.pieChartContainer}>
-              <View style={styles.pieChart}>
+              <View style={[styles.pieChart, {
+                width: chartSizes.chartSize,
+                height: chartSizes.chartSize
+              }]}>
                 {expenseCategories.map((category, index) => {
-                  // Hitung ukuran berdasarkan persentase
-                  const baseSize = 160;
-                  const sizeMultiplier = Math.sqrt(category.percentage); // Menggunakan akar kuadrat untuk proporsi yang lebih baik
-                  const segmentSize = Math.max(baseSize * sizeMultiplier, 40); // Minimum 40px
-                  const offset = (220 - segmentSize) / 2; // Center the segment
+                  // Hitung ukuran berdasarkan persentase dengan ukuran responsif
+                  const baseSize = chartSizes.chartSize * 0.73; // 73% dari ukuran chart
+                  const sizeMultiplier = Math.sqrt(category.percentage);
+                  const segmentSize = Math.max(baseSize * sizeMultiplier, chartSizes.chartSize * 0.18); // Minimum 18% dari chart
+                  const offset = (chartSizes.chartSize - segmentSize) / 2;
 
                   return (
                     <View
@@ -466,10 +498,10 @@ export const AnalyticsScreen = () => {
                           height: segmentSize,
                           borderRadius: segmentSize / 2,
                           backgroundColor: category.color,
-                          opacity: 0.9 - (index * 0.05), // Lebih subtle opacity difference
+                          opacity: 0.9 - (index * 0.05),
                           top: offset,
                           left: offset,
-                          zIndex: expenseCategories.length - index, // Largest on bottom
+                          zIndex: expenseCategories.length - index,
                         }
                       ]}
                     />
@@ -477,12 +509,35 @@ export const AnalyticsScreen = () => {
                 })}
                 <LinearGradient
                   colors={[theme.colors.white, theme.colors.neutral[50]]}
-                  style={styles.pieChartCenter}
+                  style={[styles.pieChartCenter, {
+                    width: chartSizes.centerSize,
+                    height: chartSizes.centerSize,
+                    borderRadius: chartSizes.centerRadius,
+                    padding: chartSizes.padding,
+                  }]}
                 >
-                  <Typography variant="body2" color={theme.colors.neutral[700]} weight="500">
+                  <Typography
+                    variant="body2"
+                    color={theme.colors.neutral[700]}
+                    weight="500"
+                    style={{ fontSize: chartSizes.fontSize * 0.75 }}
+                  >
                     Total
                   </Typography>
-                  <Typography variant="h5" weight="700" color={theme.colors.primary[600]} style={styles.totalAmount}>
+                  <Typography
+                    variant="h5"
+                    weight="700"
+                    color={theme.colors.primary[600]}
+                    style={[styles.totalAmount, {
+                      fontSize: chartSizes.fontSize,
+                      lineHeight: chartSizes.lineHeight,
+                      marginTop: responsiveSpacing(2),
+                      textAlign: 'center',
+                    }]}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.8}
+                  >
                     {formatCurrency(expenseCategories.reduce((sum, cat) => sum + cat.amount, 0))}
                   </Typography>
                 </LinearGradient>
@@ -645,7 +700,7 @@ export const AnalyticsScreen = () => {
               </Typography>
               <View style={styles.emptyChartPlaceholder}>
                 <View style={styles.placeholderBars}>
-                  {['Des', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((month, index) => (
+                  {['Des', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((month) => (
                     <View key={month} style={styles.placeholderBarGroup}>
                       <View style={styles.placeholderBarPair}>
                         <View style={[styles.placeholderBar, styles.placeholderIncomeBar]} />
@@ -977,8 +1032,7 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.layout.sm,
   },
   pieChart: {
-    width: 220,
-    height: 220,
+    // Ukuran akan diatur secara dinamis melalui inline styles
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -990,9 +1044,7 @@ const styles = StyleSheet.create({
     ...theme.elevation.sm,
   },
   pieChartCenter: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    // Ukuran akan diatur secara dinamis melalui inline styles
     alignItems: 'center',
     justifyContent: 'center',
     ...theme.elevation.md,
@@ -1003,9 +1055,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   totalAmount: {
-    marginTop: theme.spacing.xs,
-    fontSize: 18,
-    lineHeight: 22,
+    // Font size dan line height akan diatur secara dinamis melalui inline styles
+    fontWeight: '700',
   },
   emptyChartContainer: {
     alignItems: 'center',
