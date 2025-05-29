@@ -11,7 +11,8 @@ import {
   Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from '../../../core/navigation/types';
 import { useForm, Controller } from 'react-hook-form';
 import { Button as PaperButton } from 'react-native-paper';
 import { Typography, Input, Card, LocationPicker, DatePicker, CategoryPicker, SuperiorDialog } from '../../../core/components';
@@ -50,8 +51,11 @@ interface Category {
   color?: string;
 }
 
+type AddTransactionScreenRouteProp = RouteProp<RootStackParamList, 'AddTransaction'>;
+
 export const AddTransactionScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute<AddTransactionScreenRouteProp>();
   const { user } = useAuthStore();
   const { fetchTransactions } = useTransactionStore();
 
@@ -68,9 +72,12 @@ export const AddTransactionScreen = () => {
     isLargeDevice
   } = useAppDimensions();
 
+  // Ambil parameter dari route
+  const { type: routeType } = route.params || {};
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense');
+  const [transactionType, setTransactionType] = useState<'income' | 'expense'>(routeType || 'expense');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -133,7 +140,7 @@ export const AddTransactionScreen = () => {
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<TransactionFormData>({
     defaultValues: {
       amount: '',
-      type: 'expense',
+      type: routeType || 'expense',
       category: '',
       description: '',
       date: new Date(),
@@ -694,16 +701,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 80, // Memberikan ruang untuk tombol simpan
+    paddingBottom: 120, // Memberikan ruang yang cukup untuk tombol simpan
   },
   card: {
-    flex: 1,
     padding: 24,
     borderRadius: 16,
     ...theme.elevation.md,
     marginTop: 0,
     marginBottom: 16,
-    minHeight: '100%', // Memastikan card mengisi ruang yang tersedia
   },
   typeContainer: {
     flexDirection: 'row',

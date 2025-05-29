@@ -1,5 +1,4 @@
 export * from './useAppDimensions';
-export * from './useAppTheme';
 export * from './useSupabaseAuth';
 export * from './useLocation';
 export * from './useCamera';
@@ -9,7 +8,6 @@ export * from './useNotificationManager';
 export * from './useBudgetMonitor';
 export * from './useTransactionReminder';
 export * from './useSavingGoalTracker';
-export * from './useAudio';
 export * from './useSensors';
 export * from './useBiometrics';
 export * from './useSuperiorDialog';

@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { RootStackParamList } from '../../../core/navigation/types';
-
 export const PrivacyPolicyScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -80,9 +79,11 @@ export const PrivacyPolicyScreen = () => {
         <View style={styles.sectionIcon}>
           <Ionicons name={icon as any} size={20} color={theme.colors.primary[500]} />
         </View>
-        <Typography variant="h6" weight="600" color={theme.colors.neutral[800]}>
-          {title}
-        </Typography>
+        <View style={styles.sectionTitleContainer}>
+          <Typography variant="h6" weight="600" color={theme.colors.neutral[800]} style={styles.sectionTitle}>
+            {title}
+          </Typography>
+        </View>
       </View>
       <View style={styles.sectionContent}>
         {children}
@@ -118,27 +119,35 @@ export const PrivacyPolicyScreen = () => {
           <View style={styles.bulletList}>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Informasi akun (nama, email, kata sandi)
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Informasi akun (nama, email, kata sandi)
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Data transaksi keuangan yang Anda input
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Data transaksi keuangan yang Anda input
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Preferensi dan pengaturan aplikasi
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Preferensi dan pengaturan aplikasi
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Data biometrik (jika diaktifkan)
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Data biometrik (jika diaktifkan)
+                </Typography>
+              </View>
             </View>
           </View>
         </PolicySection>
@@ -150,27 +159,35 @@ export const PrivacyPolicyScreen = () => {
           <View style={styles.bulletList}>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Menyediakan dan memelihara layanan aplikasi
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Menyediakan dan memelihara layanan aplikasi
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Menganalisis pola keuangan dan memberikan wawasan
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Menganalisis pola keuangan dan memberikan wawasan
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Mengirim notifikasi dan pembaruan penting
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Mengirim notifikasi dan pembaruan penting
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Meningkatkan keamanan dan mencegah penipuan
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Meningkatkan keamanan dan mencegah penipuan
+                </Typography>
+              </View>
             </View>
           </View>
         </PolicySection>
@@ -184,25 +201,31 @@ export const PrivacyPolicyScreen = () => {
               <View style={styles.securityIcon}>
                 <Ionicons name="shield-checkmark" size={16} color={theme.colors.success[500]} />
               </View>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Enkripsi end-to-end untuk semua data sensitif
-              </Typography>
+              <View style={styles.securityTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.securityText}>
+                  Enkripsi end-to-end untuk semua data sensitif
+                </Typography>
+              </View>
             </View>
             <View style={styles.securityItem}>
               <View style={styles.securityIcon}>
                 <Ionicons name="key" size={16} color={theme.colors.success[500]} />
               </View>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Autentikasi dua faktor dan biometrik
-              </Typography>
+              <View style={styles.securityTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.securityText}>
+                  Autentikasi dua faktor dan biometrik
+                </Typography>
+              </View>
             </View>
             <View style={styles.securityItem}>
               <View style={styles.securityIcon}>
                 <Ionicons name="server" size={16} color={theme.colors.success[500]} />
               </View>
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Server aman dengan sertifikasi ISO 27001
-              </Typography>
+              <View style={styles.securityTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.securityText}>
+                  Server aman dengan sertifikasi ISO 27001
+                </Typography>
+              </View>
             </View>
           </View>
         </PolicySection>
@@ -214,21 +237,27 @@ export const PrivacyPolicyScreen = () => {
           <View style={styles.bulletList}>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Ketika diwajibkan oleh hukum atau proses hukum
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Ketika diwajibkan oleh hukum atau proses hukum
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Untuk melindungi hak, properti, atau keselamatan
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Untuk melindungi hak, properti, atau keselamatan
+                </Typography>
+              </View>
             </View>
             <View style={styles.bulletItem}>
               <View style={styles.bullet} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                Dengan penyedia layanan tepercaya (dengan perjanjian kerahasiaan)
-              </Typography>
+              <View style={styles.bulletTextContainer}>
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.bulletText}>
+                  Dengan penyedia layanan tepercaya (dengan perjanjian kerahasiaan)
+                </Typography>
+              </View>
             </View>
           </View>
         </PolicySection>
@@ -374,6 +403,7 @@ const styles = StyleSheet.create({
   sectionCard: {
     marginBottom: theme.spacing.md,
     padding: theme.spacing.lg,
+    overflow: 'hidden',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -388,11 +418,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
+    flexShrink: 0,
   },
-  sectionContent: {},
+  sectionTitleContainer: {
+    flex: 1,
+  },
+  sectionTitle: {
+    flexWrap: 'wrap',
+  },
+  sectionContent: {
+    flex: 1,
+  },
   paragraph: {
     lineHeight: 24,
     marginBottom: theme.spacing.md,
+    flexWrap: 'wrap',
   },
   bulletList: {
     gap: theme.spacing.sm,
@@ -400,6 +440,7 @@ const styles = StyleSheet.create({
   bulletItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    flex: 1,
   },
   bullet: {
     width: 6,
@@ -408,19 +449,35 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary[400],
     marginTop: 8,
     marginRight: theme.spacing.sm,
+    flexShrink: 0,
+  },
+  bulletTextContainer: {
+    flex: 1,
+  },
+  bulletText: {
+    flexWrap: 'wrap',
   },
   securityFeatures: {
     gap: theme.spacing.sm,
   },
   securityItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: theme.colors.success[50],
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
+    flex: 1,
   },
   securityIcon: {
     marginRight: theme.spacing.sm,
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  securityTextContainer: {
+    flex: 1,
+  },
+  securityText: {
+    flexWrap: 'wrap',
   },
   rightsList: {
     gap: theme.spacing.md,
@@ -440,6 +497,7 @@ const styles = StyleSheet.create({
   },
   rightContent: {
     flex: 1,
+    paddingRight: theme.spacing.xs,
   },
   contactInfo: {
     gap: theme.spacing.sm,

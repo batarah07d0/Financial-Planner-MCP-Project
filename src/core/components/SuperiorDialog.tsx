@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography } from './Typography';
 import { theme } from '../theme';
-import { useSensors } from '../hooks';
+import { useSensors } from '../hooks/useSensors';
 
 export type DialogType =
   | 'success'

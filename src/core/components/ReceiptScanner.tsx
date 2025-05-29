@@ -90,14 +90,6 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     return 28; // medium device
   };
 
-  // Responsive header padding
-  const getHeaderPadding = () => {
-    if (isLandscape) return { top: 30, bottom: 15 };
-    if (isSmallDevice) return { top: 40, bottom: 15 };
-    if (isLargeDevice) return { top: 60, bottom: 25 };
-    return { top: 50, bottom: 20 }; // medium device
-  };
-
   // Fungsi untuk mengambil gambar dari kamera
   const handleTakePicture = async () => {
     const result = await takePicture();
@@ -193,10 +185,19 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                   onPress={handleCancel}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={24} color={theme.colors.white} />
+                  <Ionicons
+                    name="close"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.white}
+                  />
                 </TouchableOpacity>
 
-                <Typography variant="h4" color={theme.colors.white} weight="600" style={styles.headerTitle}>
+                <Typography
+                  variant={isSmallDevice ? "h5" : "h4"}
+                  color={theme.colors.white}
+                  weight="600"
+                  style={styles.headerTitle}
+                >
                   Pindai Struk
                 </Typography>
 
@@ -308,25 +309,13 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               colors={[theme.colors.primary[500], theme.colors.primary[700]]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[
-                styles.headerGradient,
-                {
-                  paddingTop: getHeaderPadding().top,
-                  paddingBottom: getHeaderPadding().bottom,
-                }
-              ]}
+              style={styles.headerGradient}
             >
               <View style={styles.headerContent}>
                 <TouchableOpacity
-                  style={[
-                    styles.headerBackButton,
-                    {
-                      width: getHeaderButtonSize(),
-                      height: getHeaderButtonSize(),
-                      borderRadius: getHeaderButtonSize() / 2,
-                    }
-                  ]}
+                  style={styles.headerBackButton}
                   onPress={handleRetake}
+                  activeOpacity={0.7}
                 >
                   <Ionicons
                     name="arrow-back"
@@ -334,14 +323,24 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                     color={theme.colors.white}
                   />
                 </TouchableOpacity>
-                <Typography variant="h4" color={theme.colors.white} weight="600" style={styles.headerTitle}>
+                <Typography
+                  variant={isSmallDevice ? "h5" : "h4"}
+                  color={theme.colors.white}
+                  weight="600"
+                  style={styles.headerTitle}
+                >
                   Pratinjau Struk
                 </Typography>
                 <TouchableOpacity
                   style={styles.headerBackButton}
                   onPress={handleCancel}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={24} color={theme.colors.white} />
+                  <Ionicons
+                    name="close"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.white}
+                  />
                 </TouchableOpacity>
               </View>
             </LinearGradient>
@@ -402,14 +401,24 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
             >
               <View style={styles.headerContent}>
                 <View style={styles.headerButtonPlaceholder} />
-                <Typography variant="h4" color={theme.colors.white} weight="600" style={styles.headerTitle}>
+                <Typography
+                  variant={isSmallDevice ? "h5" : "h4"}
+                  color={theme.colors.white}
+                  weight="600"
+                  style={styles.headerTitle}
+                >
                   Memproses Struk
                 </Typography>
                 <TouchableOpacity
                   style={styles.headerBackButton}
                   onPress={handleCancel}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={24} color={theme.colors.white} />
+                  <Ionicons
+                    name="close"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.white}
+                  />
                 </TouchableOpacity>
               </View>
             </LinearGradient>
@@ -542,17 +551,32 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                 <TouchableOpacity
                   style={styles.headerBackButton}
                   onPress={handleRetake}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="arrow-back" size={24} color={theme.colors.white} />
+                  <Ionicons
+                    name="arrow-back"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.white}
+                  />
                 </TouchableOpacity>
-                <Typography variant="h4" color={theme.colors.white} weight="600" style={styles.headerTitle}>
+                <Typography
+                  variant={isSmallDevice ? "h5" : "h4"}
+                  color={theme.colors.white}
+                  weight="600"
+                  style={styles.headerTitle}
+                >
                   Hasil Pemindaian
                 </Typography>
                 <TouchableOpacity
                   style={styles.headerBackButton}
                   onPress={handleCancel}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={24} color={theme.colors.white} />
+                  <Ionicons
+                    name="close"
+                    size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+                    color={theme.colors.white}
+                  />
                 </TouchableOpacity>
               </View>
             </LinearGradient>
@@ -738,38 +762,41 @@ const styles = StyleSheet.create({
   // Header styles
   headerGradient: {
     paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
     width: '100%',
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
+    minHeight: 44,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
+    marginHorizontal: 16,
   },
   headerBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   headerButtonPlaceholder: {
-    width: 40,
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonPlaceholder: {
-    width: 40,
+    width: 44,
+    height: 44,
   },
 
   // Capture screen styles
