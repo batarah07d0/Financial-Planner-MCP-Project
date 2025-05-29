@@ -46,8 +46,8 @@ export const RootNavigator = () => {
   // Cek status autentikasi dan onboarding saat aplikasi dimulai
   useEffect(() => {
     const initializeApp = async () => {
-      // Inisialisasi status onboarding dari AsyncStorage
-      await initializeOnboardingStatus();
+     
+      // await initializeOnboardingStatus();
 
       // Cek session autentikasi
       const { data } = await supabase.auth.getSession();

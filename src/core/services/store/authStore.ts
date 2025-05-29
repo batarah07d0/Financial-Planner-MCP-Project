@@ -311,8 +311,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initializeOnboardingStatus: async () => {
     try {
-      const completed = await AsyncStorage.getItem('@onboarding_completed');
-      set({ hasCompletedOnboarding: completed === 'true' });
+      // COMMENTED FOR PRESENTATION: Always show onboarding for demo
+      // const completed = await AsyncStorage.getItem('@onboarding_completed');
+      // set({ hasCompletedOnboarding: completed === 'true' });
+
+      // FOR PRESENTATION: Always set to false to show onboarding
+      set({ hasCompletedOnboarding: false });
     } catch (error) {
       console.error('Error loading onboarding status:', error);
       // Default ke false jika error

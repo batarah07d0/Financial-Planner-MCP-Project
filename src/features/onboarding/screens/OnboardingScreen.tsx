@@ -68,7 +68,7 @@ const onboardingData = [
     image: require('../../../../assets/onboarding-4.png'),
     gradient: [theme.colors.info[500], theme.colors.info[600]],
     icon: 'analytics-outline',
-    features: ['Dashboard Interaktif', 'Prediksi AI', 'Rekomendasi Personal'],
+    features: ['Dashboard Interaktif', 'Laporan Bulanan', 'Rekomendasi Personal'],
   },
 ];
 
@@ -159,10 +159,10 @@ export const OnboardingScreen = () => {
     ]).start();
   }, []);
 
-  // Cek apakah onboarding sudah pernah diselesaikan
-  useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
+  // COMMENTED FOR PRESENTATION: Cek apakah onboarding sudah pernah diselesaikan
+  // useEffect(() => {
+  //   checkOnboardingStatus();
+  // }, []);
 
   const checkOnboardingStatus = async () => {
     try {
@@ -240,10 +240,8 @@ export const OnboardingScreen = () => {
         {/* Header dengan ikon */}
         <View style={[styles.headerContainer, { marginBottom: responsiveSpacing(theme.spacing.lg) }]}>
           <View style={[styles.iconContainer, {
-            backgroundColor: `${item.gradient[0]}20`,
             width: responsiveSpacing(isSmallDevice ? 70 : isLargeDevice ? 90 : 80),
             height: responsiveSpacing(isSmallDevice ? 70 : isLargeDevice ? 90 : 80),
-            borderRadius: responsiveSpacing(isSmallDevice ? 35 : isLargeDevice ? 45 : 40),
           }]}>
             <Ionicons
               name={item.icon as any}
@@ -454,7 +452,6 @@ export const OnboardingScreen = () => {
               style={[styles.skipButton, {
                 paddingHorizontal: responsiveSpacing(theme.spacing.md),
                 paddingVertical: responsiveSpacing(theme.spacing.sm),
-                borderRadius: responsiveSpacing(theme.borderRadius.round)
               }]}
               activeOpacity={0.7}
             >
@@ -600,9 +597,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: theme.borderRadius.round,
-    ...theme.elevation.xs,
   },
   skipIcon: {
     marginLeft: theme.spacing.xs,
@@ -625,10 +619,8 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.elevation.sm,
   },
   imageContainer: {
     alignItems: 'center',
