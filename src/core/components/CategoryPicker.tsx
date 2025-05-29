@@ -172,7 +172,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
 
             <TouchableOpacity
               style={styles.searchButton}
-              onPress={() => {/* Toggle search focus */}}
+              onPress={() => {/* Toggle search focus */ }}
               activeOpacity={0.7}
             >
               <Ionicons name="search" size={24} color={theme.colors.white} />
@@ -425,8 +425,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.neutral[50],
   },
-
-  // Header Styles
   header: {
     zIndex: 1000,
   },

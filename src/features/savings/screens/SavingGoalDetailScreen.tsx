@@ -572,13 +572,24 @@ export const SavingGoalDetailScreen = () => {
         {/* Action Buttons */}
         {!isCompleted && (
           <View style={styles.actionContainer}>
-            <Button
-              title="Tambah Tabungan"
-              variant="gradient"
+            <TouchableOpacity
+              style={styles.superiorAddButton}
               onPress={() => setShowAddModal(true)}
-              style={styles.addButton}
-              leftIcon={<Ionicons name="add" size={20} color={theme.colors.white} />}
-            />
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[theme.colors.primary[500], theme.colors.primary[600]]}
+                style={styles.addButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <View style={styles.addButtonContent}>
+                  <Typography variant="h6" weight="700" color={theme.colors.white} style={styles.addButtonText}>
+                    TAMBAH TABUNGAN
+                  </Typography>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -597,13 +608,24 @@ export const SavingGoalDetailScreen = () => {
             Tindakan di bawah ini tidak dapat dibatalkan. Pastikan Anda yakin sebelum melanjutkan.
           </Typography>
 
-          <Button
-            title="Hapus Tujuan Tabungan"
-            variant="outline"
+          <TouchableOpacity
+            style={styles.superiorDeleteButton}
             onPress={handleDelete}
-            style={styles.deleteButton}
-            leftIcon={<Ionicons name="trash-outline" size={18} color={theme.colors.danger[500]} />}
-          />
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={[theme.colors.danger[500], theme.colors.danger[600]]}
+              style={styles.deleteButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <View style={styles.deleteButtonContent}>
+                <Typography variant="body1" weight="700" color={theme.colors.white} style={styles.deleteButtonText}>
+                  HAPUS TUJUAN TABUNGAN
+                </Typography>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </Card>
       </ScrollView>
 
@@ -937,6 +959,26 @@ const styles = StyleSheet.create({
     borderRadius: responsiveSpacing(theme.borderRadius.lg),
     paddingVertical: responsiveSpacing(theme.spacing.md),
   },
+  // Superior Add Button Styles
+  superiorAddButton: {
+    borderRadius: responsiveSpacing(theme.borderRadius.xl),
+    overflow: 'hidden',
+    ...theme.elevation.lg,
+  },
+  addButtonGradient: {
+    paddingVertical: responsiveSpacing(theme.spacing.lg),
+    paddingHorizontal: responsiveSpacing(theme.spacing.xl),
+  },
+  addButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   dangerCard: {
     margin: responsiveSpacing(theme.spacing.layout.md),
     marginTop: responsiveSpacing(theme.spacing.xl),
@@ -967,5 +1009,26 @@ const styles = StyleSheet.create({
   deleteButton: {
     borderColor: theme.colors.danger[500],
     borderRadius: responsiveSpacing(theme.borderRadius.lg),
+  },
+  // Superior Delete Button Styles
+  superiorDeleteButton: {
+    borderRadius: responsiveSpacing(theme.borderRadius.xl),
+    overflow: 'hidden',
+    marginTop: responsiveSpacing(theme.spacing.sm),
+    ...theme.elevation.md,
+  },
+  deleteButtonGradient: {
+    paddingVertical: responsiveSpacing(theme.spacing.lg),
+    paddingHorizontal: responsiveSpacing(theme.spacing.xl),
+  },
+  deleteButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

@@ -32,13 +32,13 @@ export const BiometricAuth: React.FC<BiometricAuthProps> = ({
   const [animatedValue] = useState(new Animated.Value(0));
   const { authenticate, isAvailable, isLoading, error } = useBiometrics();
 
-  // Animasi untuk modal
+
   useEffect(() => {
     if (visible) {
-      // Reset animasi
+
       animatedValue.setValue(0);
 
-      // Mulai animasi
+
       Animated.timing(animatedValue, {
         toValue: 1,
         duration: 500,
@@ -46,12 +46,12 @@ export const BiometricAuth: React.FC<BiometricAuthProps> = ({
         useNativeDriver: true,
       }).start();
 
-      // Lakukan autentikasi otomatis
+
       handleAuthenticate();
     }
   }, [visible]);
 
-  // Animasi untuk scale dan opacity
+
   const scale = animatedValue.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0.8, 1.1, 1],
@@ -62,7 +62,7 @@ export const BiometricAuth: React.FC<BiometricAuthProps> = ({
     outputRange: [0, 1],
   });
 
-  // Fungsi untuk melakukan autentikasi
+
   const handleAuthenticate = async () => {
     if (!isAvailable) {
       onCancel();

@@ -15,12 +15,12 @@ import { Typography } from './Typography';
 import { theme } from '../theme';
 import { useSensors } from '../hooks';
 
-export type DialogType = 
-  | 'success' 
-  | 'error' 
-  | 'warning' 
-  | 'info' 
-  | 'confirm' 
+export type DialogType =
+  | 'success'
+  | 'error'
+  | 'warning'
+  | 'info'
+  | 'confirm'
   | 'delete'
   | 'loading';
 
@@ -47,57 +47,57 @@ const getDialogConfig = (type: DialogType) => {
     case 'success':
       return {
         icon: 'checkmark-circle',
-        colors: [theme.colors.success[500], theme.colors.success[600]],
-        bgColors: [theme.colors.success[50], theme.colors.success[100]],
+        colors: [theme.colors.success[500], theme.colors.success[600]] as const,
+        bgColors: [theme.colors.success[50], theme.colors.success[100]] as const,
         haptic: 'success' as const,
       };
     case 'error':
       return {
         icon: 'close-circle',
-        colors: [theme.colors.danger[500], theme.colors.danger[600]],
-        bgColors: [theme.colors.danger[50], theme.colors.danger[100]],
+        colors: [theme.colors.danger[500], theme.colors.danger[600]] as const,
+        bgColors: [theme.colors.danger[50], theme.colors.danger[100]] as const,
         haptic: 'error' as const,
       };
     case 'warning':
       return {
         icon: 'warning',
-        colors: [theme.colors.warning[500], theme.colors.warning[600]],
-        bgColors: [theme.colors.warning[50], theme.colors.warning[100]],
+        colors: [theme.colors.warning[500], theme.colors.warning[600]] as const,
+        bgColors: [theme.colors.warning[50], theme.colors.warning[100]] as const,
         haptic: 'warning' as const,
       };
     case 'info':
       return {
         icon: 'information-circle',
-        colors: [theme.colors.primary[500], theme.colors.primary[600]],
-        bgColors: [theme.colors.primary[50], theme.colors.primary[100]],
+        colors: [theme.colors.primary[500], theme.colors.primary[600]] as const,
+        bgColors: [theme.colors.primary[50], theme.colors.primary[100]] as const,
         haptic: 'medium' as const,
       };
     case 'confirm':
       return {
         icon: 'help-circle',
-        colors: [theme.colors.secondary[500], theme.colors.secondary[600]],
-        bgColors: [theme.colors.secondary[50], theme.colors.secondary[100]],
+        colors: [theme.colors.secondary[500], theme.colors.secondary[600]] as const,
+        bgColors: [theme.colors.secondary[50], theme.colors.secondary[100]] as const,
         haptic: 'medium' as const,
       };
     case 'delete':
       return {
         icon: 'trash',
-        colors: [theme.colors.danger[600], theme.colors.danger[700]],
-        bgColors: [theme.colors.danger[50], theme.colors.danger[100]],
+        colors: [theme.colors.danger[600], theme.colors.danger[700]] as const,
+        bgColors: [theme.colors.danger[50], theme.colors.danger[100]] as const,
         haptic: 'error' as const,
       };
     case 'loading':
       return {
         icon: 'hourglass',
-        colors: [theme.colors.neutral[500], theme.colors.neutral[600]],
-        bgColors: [theme.colors.neutral[50], theme.colors.neutral[100]],
+        colors: [theme.colors.neutral[500], theme.colors.neutral[600]] as const,
+        bgColors: [theme.colors.neutral[50], theme.colors.neutral[100]] as const,
         haptic: 'light' as const,
       };
     default:
       return {
         icon: 'information-circle',
-        colors: [theme.colors.primary[500], theme.colors.primary[600]],
-        bgColors: [theme.colors.primary[50], theme.colors.primary[100]],
+        colors: [theme.colors.primary[500], theme.colors.primary[600]] as const,
+        bgColors: [theme.colors.primary[50], theme.colors.primary[100]] as const,
         haptic: 'medium' as const,
       };
   }
@@ -167,17 +167,17 @@ export const SuperiorDialog: React.FC<SuperiorDialogProps> = ({
     const isPrimary = action.style === 'primary';
     const isCancel = action.style === 'cancel';
 
-    let buttonColors = [theme.colors.neutral[100], theme.colors.neutral[200]];
+    let buttonColors: readonly [string, string] = [theme.colors.neutral[100], theme.colors.neutral[200]];
     let textColor = theme.colors.neutral[700];
 
     if (isDestructive) {
-      buttonColors = [theme.colors.danger[500], theme.colors.danger[600]];
+      buttonColors = [theme.colors.danger[500], theme.colors.danger[600]] as const;
       textColor = theme.colors.white;
     } else if (isPrimary) {
-      buttonColors = [theme.colors.primary[500], theme.colors.primary[600]];
+      buttonColors = [theme.colors.primary[500], theme.colors.primary[600]] as const;
       textColor = theme.colors.white;
     } else if (isCancel) {
-      buttonColors = [theme.colors.neutral[200], theme.colors.neutral[300]];
+      buttonColors = [theme.colors.neutral[200], theme.colors.neutral[300]] as const;
       textColor = theme.colors.neutral[600];
     }
 
@@ -194,7 +194,7 @@ export const SuperiorDialog: React.FC<SuperiorDialogProps> = ({
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={action.loading ? [theme.colors.neutral[300], theme.colors.neutral[400]] : buttonColors}
+          colors={action.loading ? [theme.colors.neutral[300], theme.colors.neutral[400]] as const : buttonColors}
           style={styles.actionButtonGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -252,10 +252,10 @@ export const SuperiorDialog: React.FC<SuperiorDialogProps> = ({
                   {type === 'loading' ? (
                     <ActivityIndicator size={28} color="white" />
                   ) : (
-                    <Ionicons 
-                      name={customIcon as any || config.icon as any} 
-                      size={28} 
-                      color="white" 
+                    <Ionicons
+                      name={customIcon as any || config.icon as any}
+                      size={28}
+                      color="white"
                     />
                   )}
                 </LinearGradient>
@@ -266,9 +266,9 @@ export const SuperiorDialog: React.FC<SuperiorDialogProps> = ({
             </View>
 
             <View style={styles.dialogContent}>
-              <Typography 
-                variant="body1" 
-                color={theme.colors.neutral[600]} 
+              <Typography
+                variant="body1"
+                color={theme.colors.neutral[600]}
                 align="center"
                 style={styles.message}
               >
