@@ -35,14 +35,9 @@ export const DashboardScreen = () => {
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
-    isLandscape,
     responsiveFontSize,
     responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -391,7 +386,17 @@ export const DashboardScreen = () => {
               }]}>
                 <Ionicons name="arrow-down" size={responsiveFontSize(20)} color={theme.colors.success[500]} />
               </View>
-              <Typography variant="caption" align="center">Pemasukan</Typography>
+              <Typography
+                variant="caption"
+                align="center"
+                style={{
+                  fontSize: responsiveFontSize(12),
+                  marginTop: responsiveSpacing(theme.spacing.xs),
+                  lineHeight: responsiveFontSize(16)
+                }}
+              >
+                Pemasukan
+              </Typography>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -409,7 +414,17 @@ export const DashboardScreen = () => {
               }]}>
                 <Ionicons name="arrow-up" size={responsiveFontSize(20)} color={theme.colors.danger[500]} />
               </View>
-              <Typography variant="caption" align="center">Pengeluaran</Typography>
+              <Typography
+                variant="caption"
+                align="center"
+                style={{
+                  fontSize: responsiveFontSize(12),
+                  marginTop: responsiveSpacing(theme.spacing.xs),
+                  lineHeight: responsiveFontSize(16)
+                }}
+              >
+                Pengeluaran
+              </Typography>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -427,7 +442,17 @@ export const DashboardScreen = () => {
               }]}>
                 <MaterialCommunityIcons name="chart-line" size={responsiveFontSize(20)} color={theme.colors.info[500]} />
               </View>
-              <Typography variant="caption" align="center">Analisis</Typography>
+              <Typography
+                variant="caption"
+                align="center"
+                style={{
+                  fontSize: responsiveFontSize(12),
+                  marginTop: responsiveSpacing(theme.spacing.xs),
+                  lineHeight: responsiveFontSize(16)
+                }}
+              >
+                Analisis
+              </Typography>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -445,7 +470,17 @@ export const DashboardScreen = () => {
               }]}>
                 <FontAwesome5 name="piggy-bank" size={responsiveFontSize(18)} color={theme.colors.warning[500]} />
               </View>
-              <Typography variant="caption" align="center">Tabungan</Typography>
+              <Typography
+                variant="caption"
+                align="center"
+                style={{
+                  fontSize: responsiveFontSize(12),
+                  marginTop: responsiveSpacing(theme.spacing.xs),
+                  lineHeight: responsiveFontSize(16)
+                }}
+              >
+                Tabungan
+              </Typography>
             </TouchableOpacity>
           </View>
         </Card>
@@ -783,7 +818,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '23%',
     paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xs,
     borderRadius: 12,
+    minHeight: 80, // Memberikan tinggi minimum yang konsisten
   },
   actionIcon: {
     width: 44,

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -24,6 +23,7 @@ import {
   SavingGoal
 } from '../../../core/services/supabase/savingGoal.service';
 import { useSuperiorDialog } from '../../../core/hooks';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 type SavingGoalsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SavingGoals'>;
 
@@ -35,6 +35,7 @@ interface SavingGoalItemProps {
 }
 
 const SavingGoalItem: React.FC<SavingGoalItemProps> = ({ goal, onPress, onEdit, onDelete }) => {
+  const { responsiveSpacing } = useAppDimensions();
   const progressPercentage = (goal.current_amount / goal.target_amount) * 100;
   const isCompleted = goal.is_completed || progressPercentage >= 100;
   const remainingAmount = goal.target_amount - goal.current_amount;
@@ -92,8 +93,14 @@ const SavingGoalItem: React.FC<SavingGoalItemProps> = ({ goal, onPress, onEdit, 
                   color={theme.colors.white}
                 />
               </View>
-              <View style={styles.goalDetails}>
-                <Typography variant="h5" weight="700" color={theme.colors.neutral[800]}>
+              <View style={[styles.goalDetails, { paddingRight: responsiveSpacing(12) }]}>
+                <Typography
+                  variant="h5"
+                  weight="700"
+                  color={theme.colors.neutral[800]}
+                  style={styles.goalTitle}
+                  numberOfLines={2}
+                >
                   {goal.name}
                 </Typography>
                 <View style={styles.dateContainer}>
@@ -106,6 +113,7 @@ const SavingGoalItem: React.FC<SavingGoalItemProps> = ({ goal, onPress, onEdit, 
                     variant="body2"
                     color={isOverdue ? theme.colors.danger[500] : theme.colors.neutral[600]}
                     style={styles.dateText}
+                    numberOfLines={1}
                   >
                     Target: {formatDate(goal.target_date)}
                   </Typography>
@@ -115,6 +123,7 @@ const SavingGoalItem: React.FC<SavingGoalItemProps> = ({ goal, onPress, onEdit, 
                     variant="caption"
                     color={isOverdue ? theme.colors.danger[600] : theme.colors.info[600]}
                     weight="600"
+                    numberOfLines={1}
                   >
                     {isOverdue
                       ? `Terlambat ${Math.abs(daysRemaining)} hari`
@@ -125,7 +134,7 @@ const SavingGoalItem: React.FC<SavingGoalItemProps> = ({ goal, onPress, onEdit, 
               </View>
             </View>
             <View style={styles.goalActions}>
-              <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
+              <TouchableOpacity onPress={onEdit} style={[styles.actionButton, { marginLeft: responsiveSpacing(8) }]}>
                 <Ionicons name="pencil" size={18} color={theme.colors.neutral[600]} />
               </TouchableOpacity>
               <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
@@ -485,11 +494,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   listContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 100,
   },
   goalItem: {
-    marginBottom: 16,
+    marginBottom: 18,
+    marginHorizontal: 2, // Memberikan sedikit ruang di samping
   },
   goalCard: {
     padding: 0,
@@ -507,16 +517,20 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     padding: 20,
+    paddingHorizontal: 18, // Sedikit lebih kecil untuk memberikan ruang lebih
   },
   goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
+    minHeight: 60, // Minimum height untuk konsistensi
   },
   goalInfo: {
     flexDirection: 'row',
     flex: 1,
+    minWidth: 0, // Memungkinkan flex shrink
+    paddingRight: 8,
   },
   iconContainer: {
     width: 52,
@@ -525,6 +539,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    flexShrink: 0, // Mencegah ikon mengecil
     shadowColor: theme.colors.neutral[900],
     shadowOffset: {
       width: 0,
@@ -536,24 +551,46 @@ const styles = StyleSheet.create({
   },
   goalDetails: {
     flex: 1,
+    minWidth: 0, // Memungkinkan flex shrink
+  },
+  goalTitle: {
+    flexWrap: 'wrap',
+    lineHeight: 22,
   },
   dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 2,
+    marginTop: 6,
+    marginBottom: 4,
+    flexWrap: 'wrap',
   },
   dateText: {
     marginLeft: 6,
+    flexShrink: 1,
   },
   goalActions: {
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'flex-start',
+    flexShrink: 0,
+    marginLeft: 8,
   },
   actionButton: {
-    padding: 8,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 10,
     backgroundColor: theme.colors.neutral[100],
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   progressSection: {
     marginBottom: 16,

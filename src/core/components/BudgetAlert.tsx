@@ -9,7 +9,7 @@ import {
 import { Typography } from './Typography';
 import { Button } from './Button';
 import { theme } from '../theme';
-import { useSensors } from '../hooks';
+import { useSensors } from '../hooks/useSensors';
 import { useNotificationManager } from '../hooks/useNotificationManager';
 import { formatCurrency } from '../utils';
 
