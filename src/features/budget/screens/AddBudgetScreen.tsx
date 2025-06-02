@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
-// @ts-ignore
+// @ts-expect
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Typography, Input, Button, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
@@ -20,6 +20,10 @@ import { formatCurrency, formatDate } from '../../../core/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSuperiorDialog } from '../../../core/hooks';
+import { useBudgetStore } from '../../../core/services/store/budgetStore';
+import { useAuthStore } from '../../../core/services/store/authStore';
+import { getCategories } from '../../../core/services/supabase/category.service';
+import { Category } from '../../../core/services/supabase/types';
 
 // Tipe data untuk form anggaran
 interface BudgetFormData {
@@ -30,25 +34,19 @@ interface BudgetFormData {
   endDate?: Date;
 }
 
-// Data dummy untuk kategori dengan ikon
-const dummyCategories = [
-  { id: 'cat2', name: 'Belanja', type: 'expense', icon: 'cart-outline', color: '#F44336' },
-  { id: 'cat3', name: 'Makanan', type: 'expense', icon: 'restaurant-outline', color: '#FF9800' },
-  { id: 'cat4', name: 'Transportasi', type: 'expense', icon: 'car-outline', color: '#2196F3' },
-  { id: 'cat5', name: 'Utilitas', type: 'expense', icon: 'flash-outline', color: '#FFC107' },
-  { id: 'cat6', name: 'Hiburan', type: 'expense', icon: 'film-outline', color: '#9C27B0' },
-  { id: 'cat7', name: 'Kesehatan', type: 'expense', icon: 'medical-outline', color: '#4CAF50' },
-  { id: 'cat8', name: 'Pendidikan', type: 'expense', icon: 'school-outline', color: '#3F51B5' },
-  { id: 'cat10', name: 'Lainnya', type: 'expense', icon: 'ellipsis-horizontal-outline', color: '#607D8B' },
-];
-
 export const AddBudgetScreen = () => {
   const navigation = useNavigation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
+
+  // Store hooks
+  const { addBudget } = useBudgetStore();
+  const { user } = useAuthStore();
 
   // Animasi untuk kategori picker
   const categoryPickerAnimation = useRef(new Animated.Value(0)).current;
@@ -57,8 +55,23 @@ export const AddBudgetScreen = () => {
     outputRange: [0, 250]
   });
 
-  // Animasi untuk tombol simpan
-  const saveButtonAnimation = useRef(new Animated.Value(1)).current;
+  // Efek untuk memuat kategori saat komponen dimount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoadingCategories(true);
+        const expenseCategories = await getCategories({ type: 'expense' });
+        setCategories(expenseCategories);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        showError('Error', 'Gagal memuat kategori. Silakan coba lagi.');
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   // Efek untuk animasi kategori picker
   useEffect(() => {
@@ -89,6 +102,12 @@ export const AddBudgetScreen = () => {
     try {
       setIsSubmitting(true);
 
+      // Validasi user
+      if (!user?.id) {
+        showError('Error', 'Anda harus login terlebih dahulu');
+        return;
+      }
+
       // Konversi amount dari string ke number
       const amount = parseFloat(data.amount.replace(/[^0-9]/g, ''));
 
@@ -104,17 +123,35 @@ export const AddBudgetScreen = () => {
         return;
       }
 
-      // Simulasi submit
-      console.log('Submitting budget:', {
-        ...data,
-        amount,
-      });
+      // Cari kategori yang dipilih untuk mendapatkan nama
+      const selectedCategoryData = categories.find(cat => cat.id === data.category);
+      if (!selectedCategoryData) {
+        showError('Error', 'Kategori tidak valid');
+        return;
+      }
 
-      // Simulasi delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Persiapkan data budget untuk Supabase
+      const budgetData = {
+        user_id: user.id,
+        name: `Anggaran ${selectedCategoryData.name}`,
+        amount,
+        category_id: data.category,
+        period: data.period,
+        start_date: data.startDate.toISOString(),
+        end_date: data.endDate?.toISOString(),
+      };
+
+      console.log('Submitting budget to Supabase:', budgetData);
+
+      // Simpan ke Supabase menggunakan store
+      await addBudget(budgetData);
 
       showSuccess('Sukses', 'Anggaran berhasil disimpan');
-      setTimeout(() => navigation.goBack(), 2000);
+
+      // Kembali ke halaman sebelumnya setelah delay singkat
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
     } catch (error) {
       console.error('Error submitting budget:', error);
       showError('Error', 'Terjadi kesalahan saat menyimpan anggaran');
@@ -152,7 +189,7 @@ export const AddBudgetScreen = () => {
 
   // Mendapatkan nama kategori berdasarkan ID
   const getCategoryName = (categoryId: string) => {
-    const category = dummyCategories.find(cat => cat.id === categoryId);
+    const category = categories.find(cat => cat.id === categoryId);
     return category ? category.name : '';
   };
 
@@ -234,34 +271,42 @@ export const AddBudgetScreen = () => {
           Pilih Kategori
         </Typography>
 
-        <View style={styles.categoryGrid}>
-          {dummyCategories.map(category => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryItem,
-                selectedCategory === category.id && styles.selectedCategoryItem,
-              ]}
-              onPress={() => handleCategorySelect(category.id)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.categoryIconContainer}>
-                <Ionicons
-                  name={category.icon as any}
-                  size={20}
-                  color={selectedCategory === category.id ? theme.colors.white : category.color}
-                />
-              </View>
-              <Typography
-                variant="body2"
-                weight={selectedCategory === category.id ? "600" : "400"}
-                color={selectedCategory === category.id ? theme.colors.white : theme.colors.neutral[700]}
+        {isLoadingCategories ? (
+          <View style={styles.categoryLoadingContainer}>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Memuat kategori...
+            </Typography>
+          </View>
+        ) : (
+          <View style={styles.categoryGrid}>
+            {categories.map(category => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryItem,
+                  selectedCategory === category.id && styles.selectedCategoryItem,
+                ]}
+                onPress={() => handleCategorySelect(category.id)}
+                activeOpacity={0.7}
               >
-                {category.name}
-              </Typography>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <View style={styles.categoryIconContainer}>
+                  <Ionicons
+                    name={category.icon as any}
+                    size={20}
+                    color={selectedCategory === category.id ? theme.colors.white : category.color}
+                  />
+                </View>
+                <Typography
+                  variant="body2"
+                  weight={selectedCategory === category.id ? "600" : "400"}
+                  color={selectedCategory === category.id ? theme.colors.white : theme.colors.neutral[700]}
+                >
+                  {category.name}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </Animated.View>
     );
   };
@@ -352,9 +397,9 @@ export const AddBudgetScreen = () => {
                       {selectedCategory ? (
                         <View style={styles.selectedCategoryContainer}>
                           <Ionicons
-                            name={(dummyCategories.find(cat => cat.id === selectedCategory)?.icon || 'help-circle-outline') as any}
+                            name={(categories.find(cat => cat.id === selectedCategory)?.icon || 'help-circle-outline') as any}
                             size={18}
-                            color={dummyCategories.find(cat => cat.id === selectedCategory)?.color || theme.colors.primary[500]}
+                            color={categories.find(cat => cat.id === selectedCategory)?.color || theme.colors.primary[500]}
                             style={styles.selectedCategoryIcon}
                           />
                           <Typography
@@ -639,6 +684,12 @@ const styles = StyleSheet.create({
   },
   categoryIconContainer: {
     marginRight: theme.spacing.xs,
+  },
+  categoryLoadingContainer: {
+    padding: theme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 60,
   },
   footer: {
     padding: theme.spacing.layout.md, // Meningkatkan padding dari layout.sm ke layout.md

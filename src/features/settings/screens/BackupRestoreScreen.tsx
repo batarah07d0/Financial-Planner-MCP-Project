@@ -568,7 +568,7 @@ export const BackupRestoreScreen = () => {
               Enkripsi
             </Typography>
             <Typography variant="body1" weight="500" color={
-              settings.encryption_enabled ? theme.colors.success[600] : theme.colors.error[600]
+              settings.encryption_enabled ? theme.colors.success[600] : theme.colors.danger[600]
             }>
               {settings.encryption_enabled ? 'Aktif' : 'Tidak Aktif'}
             </Typography>
