@@ -8,7 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography, BudgetCard } from '../../../core/components';
 import { theme } from '../../../core/theme';
@@ -47,7 +47,7 @@ export const BudgetScreen = () => {
   const [categoryMap, setCategoryMap] = useState<CategoryMap>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('weekly');
 
   // Responsive dimensions
   const {
@@ -57,7 +57,7 @@ export const BudgetScreen = () => {
   } = useAppDimensions();
 
   // Menggunakan store untuk state management
-  const { budgets: supabaseBudgets, fetchBudgets } = useBudgetStore();
+  const { budgets: supabaseBudgets, fetchBudgets, isLoading: storeLoading } = useBudgetStore();
   const { user } = useAuthStore();
   const { checkBudgetThresholds } = useBudgetMonitor();
 
@@ -173,23 +173,13 @@ export const BudgetScreen = () => {
 
       try {
         // Memuat anggaran dari Supabase
-        // Coba tanpa filter period dulu untuk mengatasi jika kolom period belum ada
         await fetchBudgets(user.id);
 
-        // Menghitung pengeluaran untuk setiap anggaran
-        let displayBudgets = await calculateSpending(supabaseBudgets);
-
-        // Filter secara manual berdasarkan period jika kolom period ada
-        if (displayBudgets.length > 0 && 'period' in displayBudgets[0]) {
-          displayBudgets = displayBudgets.filter(budget => budget.period === selectedPeriod);
-        }
-
-        setBudgets(displayBudgets);
+        // Tunggu sebentar untuk memastikan store ter-update
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Setelah memuat budget, cek threshold untuk notifikasi
-        if (displayBudgets.length > 0) {
-          checkBudgetThresholds();
-        }
+        checkBudgetThresholds();
       } catch (error: any) {
         // Jika error terkait kolom period, log ke console untuk developer
         if (error.message && error.message.includes('period does not exist')) {
@@ -217,7 +207,7 @@ export const BudgetScreen = () => {
   // Fungsi untuk menangani klik pada anggaran
   const handleBudgetPress = (id: string) => {
     // Navigasi ke halaman detail anggaran
-    console.log('Budget pressed:', id);
+    (navigation as any).navigate('BudgetDetail', { id });
   };
 
   // Fungsi untuk menangani klik pada tombol tambah anggaran
@@ -238,16 +228,65 @@ export const BudgetScreen = () => {
     loadBudgets();
   }, [selectedPeriod, user]);
 
-  // Render item untuk FlatList
-  const renderItem = ({ item }: { item: BudgetDisplay }) => (
-    <BudgetCard
-      id={item.id}
-      category={item.category}
-      amount={item.amount}
-      spent={item.spent}
-      onPress={handleBudgetPress}
-    />
+  // Refresh data saat screen focus (user kembali dari AddBudgetScreen)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        loadBudgets();
+      }
+    }, [user?.id, selectedPeriod])
   );
+
+  // Listen untuk perubahan data budget dari store
+  useEffect(() => {
+    const processStoreBudgets = async () => {
+      if (supabaseBudgets.length > 0 && categoryMap && Object.keys(categoryMap).length > 0) {
+        console.log('Processing budgets from store...');
+
+        // Menghitung pengeluaran untuk setiap anggaran
+        let displayBudgets = await calculateSpending(supabaseBudgets);
+
+        // Filter berdasarkan period yang dipilih
+        const filteredBudgets = displayBudgets.filter(budget => {
+          const budgetPeriod = budget.period || selectedPeriod;
+          return budgetPeriod === selectedPeriod;
+        });
+
+        // Tampilkan hanya budget yang sesuai dengan periode yang dipilih
+        if (filteredBudgets.length > 0) {
+          console.log(`Found ${filteredBudgets.length} budget(s) for ${selectedPeriod} period`);
+          setBudgets(filteredBudgets);
+        } else {
+          console.log(`No budgets found for ${selectedPeriod} period`);
+          setBudgets([]);
+        }
+      }
+    };
+
+    processStoreBudgets();
+  }, [supabaseBudgets, categoryMap, selectedPeriod]);
+
+  // Render item untuk FlatList
+  const renderItem = ({ item }: { item: BudgetDisplay }) => {
+    const categoryData = categoryMap[item.categoryId];
+    return (
+      <BudgetCard
+        id={item.id}
+        category={item.category}
+        amount={item.amount}
+        spent={item.spent}
+        categoryIcon={categoryData?.icon}
+        categoryColor={categoryData?.color}
+        period={item.period}
+        onPress={handleBudgetPress}
+      />
+    );
+  };
+
+  // Fungsi untuk menghitung jumlah budget per periode
+  const getBudgetCountByPeriod = (period: string) => {
+    return supabaseBudgets.filter(budget => budget.period === period).length;
+  };
 
   // Render periode buttons dengan responsivitas dan perfect center alignment
   const renderPeriodButtons = () => {
@@ -265,6 +304,38 @@ export const BudgetScreen = () => {
       minWidth: responsiveSpacing(isSmallDevice ? 70 : 80), // Lebar minimum untuk konsistensi
       ...theme.elevation.xs,
     });
+
+    // Render badge untuk menunjukkan jumlah budget
+    const renderBadge = (count: number, isActive: boolean) => {
+      if (count === 0) return null;
+
+      return (
+        <View style={{
+          position: 'absolute',
+          top: -6,
+          right: -6,
+          backgroundColor: isActive ? theme.colors.white : theme.colors.primary[500],
+          borderRadius: 10,
+          minWidth: 20,
+          height: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 6,
+        }}>
+          <Typography
+            variant="caption"
+            weight="600"
+            color={isActive ? theme.colors.primary[500] : theme.colors.white}
+            style={{
+              fontSize: 10,
+              lineHeight: 12,
+            }}
+          >
+            {count}
+          </Typography>
+        </View>
+      );
+    };
 
     return (
       <View style={[styles.periodContainer, {
@@ -293,6 +364,7 @@ export const BudgetScreen = () => {
           >
             Harian
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('daily'), selectedPeriod === 'daily')}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -312,6 +384,7 @@ export const BudgetScreen = () => {
           >
             Mingguan
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('weekly'), selectedPeriod === 'weekly')}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -331,6 +404,7 @@ export const BudgetScreen = () => {
           >
             Bulanan
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('monthly'), selectedPeriod === 'monthly')}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -350,6 +424,7 @@ export const BudgetScreen = () => {
           >
             Tahunan
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('yearly'), selectedPeriod === 'yearly')}
         </TouchableOpacity>
       </View>
     );
@@ -534,8 +609,8 @@ export const BudgetScreen = () => {
                   {user ?
                     (isLoading ? 'Sedang mengambil data anggaran Anda...' :
                       `Buat anggaran ${selectedPeriod === 'daily' ? 'harian' :
-                       selectedPeriod === 'weekly' ? 'mingguan' :
-                       selectedPeriod === 'monthly' ? 'bulanan' : 'tahunan'} untuk mengontrol pengeluaran dan mencapai tujuan finansial Anda.`) :
+                        selectedPeriod === 'weekly' ? 'mingguan' :
+                          selectedPeriod === 'monthly' ? 'bulanan' : 'tahunan'} untuk mengontrol pengeluaran dan mencapai tujuan finansial Anda.`) :
                     'Masuk ke akun Anda untuk melihat dan mengelola anggaran keuangan.'
                   }
                 </Typography>
