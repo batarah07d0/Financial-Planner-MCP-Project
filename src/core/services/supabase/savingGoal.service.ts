@@ -47,13 +47,11 @@ export const getSavingGoals = async (userId: string): Promise<SavingGoal[] | nul
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching saving goals:', error);
       return null;
     }
 
     return data as SavingGoal[];
   } catch (error) {
-    console.error('Error in getSavingGoals:', error);
     return null;
   }
 };
@@ -68,13 +66,11 @@ export const getSavingGoal = async (goalId: string): Promise<SavingGoal | null> 
       .single();
 
     if (error) {
-      console.error('Error fetching saving goal:', error);
       return null;
     }
 
     return data as SavingGoal;
   } catch (error) {
-    console.error('Error in getSavingGoal:', error);
     return null;
   }
 };
@@ -97,13 +93,11 @@ export const createSavingGoal = async (
       .single();
 
     if (error) {
-      console.error('Error creating saving goal:', error);
       return null;
     }
 
     return data as SavingGoal;
   } catch (error) {
-    console.error('Error in createSavingGoal:', error);
     return null;
   }
 };
@@ -125,13 +119,11 @@ export const updateSavingGoal = async (
       .single();
 
     if (error) {
-      console.error('Error updating saving goal:', error);
       return null;
     }
 
     return data as SavingGoal;
   } catch (error) {
-    console.error('Error in updateSavingGoal:', error);
     return null;
   }
 };
@@ -145,13 +137,11 @@ export const deleteSavingGoal = async (goalId: string): Promise<boolean> => {
       .eq('id', goalId);
 
     if (error) {
-      console.error('Error deleting saving goal:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in deleteSavingGoal:', error);
     return false;
   }
 };
@@ -176,7 +166,6 @@ export const addToSavingGoal = async (
       is_completed: isCompleted,
     });
   } catch (error) {
-    console.error('Error in addToSavingGoal:', error);
     return null;
   }
 };
@@ -209,7 +198,6 @@ export const getSavingGoalsSummary = async (userId: string): Promise<{
       overallProgress,
     };
   } catch (error) {
-    console.error('Error in getSavingGoalsSummary:', error);
     return null;
   }
 };
@@ -225,13 +213,11 @@ export const getActiveSavingGoals = async (userId: string): Promise<SavingGoal[]
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching active saving goals:', error);
       return null;
     }
 
     return data as SavingGoal[];
   } catch (error) {
-    console.error('Error in getActiveSavingGoals:', error);
     return null;
   }
 };
@@ -247,13 +233,11 @@ export const getCompletedSavingGoals = async (userId: string): Promise<SavingGoa
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching completed saving goals:', error);
       return null;
     }
 
     return data as SavingGoal[];
   } catch (error) {
-    console.error('Error in getCompletedSavingGoals:', error);
     return null;
   }
 };

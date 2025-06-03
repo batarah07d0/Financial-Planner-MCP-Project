@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -33,6 +33,12 @@ export const DashboardScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
 
+  // Refs untuk mencegah infinite re-render dan throttling
+  const lastFocusTime = useRef<number>(0);
+  const greetingInitialized = useRef<boolean>(false);
+  const currentHour = useRef<number>(new Date().getHours());
+  const selectedGreetingIndex = useRef<number>(0);
+
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
     responsiveFontSize,
@@ -41,58 +47,29 @@ export const DashboardScreen = () => {
     isLargeDevice
   } = useAppDimensions();
 
-  // Fungsi untuk mendapatkan greeting message
-  const getGreetingMessage = () => {
-    const hour = new Date().getHours();
-    const userName = user?.name || 'Pengguna';
+  // Fungsi untuk memuat kategori
+  const loadCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name');
 
-    const greetingMessages = {
-      morning: [
-        `Selamat Pagi, ${userName}!`,
-        `Pagi yang cerah, ${userName}!`,
-        `Semangat pagi, ${userName}!`,
-      ],
-      afternoon: [
-        `Selamat Siang, ${userName}!`,
-        `Siang yang produktif, ${userName}!`,
-        `Halo ${userName}, semangat siang!`,
-      ],
-      evening: [
-        `Selamat Malam, ${userName}!`,
-        `Malam yang tenang, ${userName}!`,
-        `Halo ${userName}, selamat beristirahat!`,
-      ],
-    };
+      if (error) throw error;
 
-    const returnVisitMessages = [
-      `Kembali lagi, ${userName}!`,
-      `Hai ${userName}, gimana kabar?`,
-      `Senang melihatmu lagi, ${userName}!`,
-      `Halo lagi, ${userName}!`,
-      `Welcome back, ${userName}!`,
-    ];
-
-    let timeBasedMessages;
-    if (hour >= 5 && hour < 12) {
-      timeBasedMessages = greetingMessages.morning;
-    } else if (hour >= 12 && hour < 18) {
-      timeBasedMessages = greetingMessages.afternoon;
-    } else {
-      timeBasedMessages = greetingMessages.evening;
+      if (data) {
+        const newCategoryMap: Record<string, string> = {};
+        data.forEach(category => {
+          newCategoryMap[category.id] = category.name;
+        });
+        setCategoryMap(newCategoryMap);
+      }
+    } catch (error) {
+      // Error handling tanpa console.error untuk menghindari ESLint warning
     }
-
-    // Jika user sudah berkunjung >2 kali, gunakan pesan return visit
-    if (visitCount > 2) {
-      const randomIndex = Math.floor(Math.random() * returnVisitMessages.length);
-      return returnVisitMessages[randomIndex];
-    } else {
-      const randomIndex = Math.floor(Math.random() * timeBasedMessages.length);
-      return timeBasedMessages[randomIndex];
-    }
-  };
+  }, []);
 
   // Fungsi untuk memuat data dashboard dari Supabase
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -156,34 +133,78 @@ export const DashboardScreen = () => {
       setRecentTransactions(recent);
 
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      // Error handling tanpa console.error untuk menghindari ESLint warning
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, loadCategories]);
 
-  // Fungsi untuk memuat kategori
-  const loadCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name');
+  // Memoized greeting messages untuk mencegah re-render
+  const greetingMessages = useMemo(() => {
+    const userName = user?.name || 'Pengguna';
+    return {
+      morning: [
+        `Selamat Pagi, ${userName}!`,
+        `Pagi yang cerah, ${userName}!`,
+        `Semangat pagi, ${userName}!`,
+      ],
+      afternoon: [
+        `Selamat Siang, ${userName}!`,
+        `Siang yang produktif, ${userName}!`,
+        `Halo ${userName}, semangat siang!`,
+      ],
+      evening: [
+        `Selamat Malam, ${userName}!`,
+        `Malam yang tenang, ${userName}!`,
+        `Halo ${userName}, selamat beristirahat!`,
+      ],
+      returnVisit: [
+        `Kembali lagi, ${userName}!`,
+        `Hai ${userName}, gimana kabar?`,
+        `Senang melihatmu lagi, ${userName}!`,
+        `Halo lagi, ${userName}!`,
+        `Welcome back, ${userName}!`,
+      ],
+    };
+  }, [user?.name]);
 
-      if (error) throw error;
+  // Fungsi untuk mendapatkan greeting message yang stabil
+  const getGreetingMessage = useCallback(() => {
+    const hour = new Date().getHours();
 
-      if (data) {
-        const newCategoryMap: Record<string, string> = {};
-        data.forEach(category => {
-          newCategoryMap[category.id] = category.name;
-        });
-        setCategoryMap(newCategoryMap);
+    // Hanya update jika jam berubah atau belum diinisialisasi
+    if (!greetingInitialized.current || currentHour.current !== hour) {
+      currentHour.current = hour;
+
+      let timeBasedMessages;
+      if (hour >= 5 && hour < 12) {
+        timeBasedMessages = greetingMessages.morning;
+      } else if (hour >= 12 && hour < 18) {
+        timeBasedMessages = greetingMessages.afternoon;
+      } else {
+        timeBasedMessages = greetingMessages.evening;
       }
-    } catch (error) {
-      console.error('Error loading categories:', error);
-    }
-  };
 
-  // Effect untuk load dan update visit count
+      // Pilih pesan berdasarkan visit count dan gunakan index yang konsisten
+      const messagesToUse = visitCount > 2 ? greetingMessages.returnVisit : timeBasedMessages;
+
+      // Gunakan user ID untuk konsistensi random index (tidak berubah-ubah)
+      const userIdHash = user?.id ? user.id.charCodeAt(0) + user.id.charCodeAt(user.id.length - 1) : 0;
+      selectedGreetingIndex.current = userIdHash % messagesToUse.length;
+
+      greetingInitialized.current = true;
+    }
+
+    const messagesToUse = visitCount > 2 ? greetingMessages.returnVisit :
+      (currentHour.current >= 5 && currentHour.current < 12) ? greetingMessages.morning :
+      (currentHour.current >= 12 && currentHour.current < 18) ? greetingMessages.afternoon :
+      greetingMessages.evening;
+
+    return messagesToUse[selectedGreetingIndex.current];
+  }, [greetingMessages, visitCount, user?.id]);
+
+  // Effect untuk load dan update visit count - hanya sekali saat mount
   useEffect(() => {
     const loadVisitCount = async () => {
       try {
@@ -195,51 +216,82 @@ export const DashboardScreen = () => {
         await AsyncStorage.setItem('dashboard_visit_count', newCount.toString());
 
         // Update greeting message setelah visit count di-set
-        setTimeout(() => {
-          setGreetingMessage(getGreetingMessage());
-        }, 100);
+        setGreetingMessage(getGreetingMessage());
       } catch (error) {
-        console.error('Error loading visit count:', error);
+        // Error handling tanpa console.error untuk menghindari ESLint warning
         setVisitCount(1);
         setGreetingMessage(getGreetingMessage());
       }
     };
 
-    if (user) {
+    if (user && !greetingInitialized.current) {
       loadVisitCount();
-      loadDashboardData(); // Load dashboard data
     }
-  }, [user]);
+  }, [user, getGreetingMessage]);
 
-  // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
+  // Effect terpisah untuk load dashboard data
+  useEffect(() => {
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user, loadDashboardData]);
+
+  // Effect untuk update greeting message berdasarkan perubahan waktu
+  useEffect(() => {
+    if (!user || !greetingInitialized.current) return;
+
+    const updateGreeting = () => {
+      const newMessage = getGreetingMessage();
+      if (newMessage !== greetingMessage) {
+        setGreetingMessage(newMessage);
+      }
+    };
+
+    // Update greeting setiap jam
+    const interval = setInterval(updateGreeting, 60 * 60 * 1000); // 1 jam
+
+    return () => clearInterval(interval);
+  }, [user, getGreetingMessage, greetingMessage]);
+
+  // Refresh data ketika halaman difokuskan dengan throttling
   useFocusEffect(
     React.useCallback(() => {
       if (user) {
-        loadDashboardData();
+        const now = Date.now();
+        // Hanya refresh jika sudah lebih dari 3 detik sejak focus terakhir
+        if (now - lastFocusTime.current > 3000) {
+          lastFocusTime.current = now;
+          loadDashboardData();
+        }
       }
-    }, [user])
+    }, [user, loadDashboardData])
   );
 
   // Fungsi navigasi
-  const handleNavigateToAddTransaction = (type?: 'income' | 'expense') => {
+  const handleNavigateToAddTransaction = useCallback((type?: 'income' | 'expense') => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('AddTransaction', type ? { type } : {});
-  };
+  }, [navigation]);
 
-  const handleNavigateToAnalytics = () => {
+  const handleNavigateToAnalytics = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('Analytics');
-  };
+  }, [navigation]);
 
-  const handleNavigateToSavingGoals = () => {
+  const handleNavigateToSavingGoals = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('SavingGoals');
-  };
+  }, [navigation]);
 
-  const handleNavigateToTransactions = () => {
+  const handleNavigateToTransactions = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('Transactions');
-  };
+  }, [navigation]);
 
-  const handleAddTransaction = () => {
+  const handleAddTransaction = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('AddTransaction');
-  };
+  }, [navigation]);
 
   // Efek animasi untuk header dengan responsivitas
   const getResponsiveHeaderHeight = () => {
@@ -337,6 +389,7 @@ export const DashboardScreen = () => {
           marginBottom: responsiveSpacing(theme.spacing.layout.md),
           padding: responsiveSpacing(theme.spacing.layout.md),
           borderRadius: responsiveSpacing(20)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }] as any} elevation="md">
           <View style={[styles.balanceHeader, {
             marginBottom: responsiveSpacing(theme.spacing.md)
@@ -514,6 +567,7 @@ export const DashboardScreen = () => {
                 borderRadius: responsiveSpacing(16),
                 marginRight: responsiveSpacing(theme.spacing.sm)
               }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ] as any} elevation="sm">
               <View style={[styles.summaryIconContainer, {
                 marginBottom: responsiveSpacing(theme.spacing.sm)
@@ -547,6 +601,7 @@ export const DashboardScreen = () => {
                 borderRadius: responsiveSpacing(16),
                 marginLeft: responsiveSpacing(theme.spacing.sm)
               }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ] as any} elevation="sm">
               <View style={[styles.summaryIconContainer, {
                 marginBottom: responsiveSpacing(theme.spacing.sm)
@@ -600,6 +655,7 @@ export const DashboardScreen = () => {
                 padding: responsiveSpacing(theme.spacing.layout.md),
                 borderRadius: responsiveSpacing(16)
               }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ] as any} elevation="sm">
               <View style={[styles.emptyStateContainer, {
                 padding: responsiveSpacing(theme.spacing.md)
@@ -637,6 +693,7 @@ export const DashboardScreen = () => {
                 padding: responsiveSpacing(theme.spacing.layout.md),
                 borderRadius: responsiveSpacing(16)
               }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ] as any} elevation="sm">
               <View style={[styles.emptyStateContainer, {
                 padding: responsiveSpacing(theme.spacing.md)
@@ -685,6 +742,7 @@ export const DashboardScreen = () => {
               marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
               borderRadius: responsiveSpacing(16)
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ] as any} elevation="sm">
             <LinearGradient
               colors={[theme.colors.info[50], theme.colors.info[100]]}

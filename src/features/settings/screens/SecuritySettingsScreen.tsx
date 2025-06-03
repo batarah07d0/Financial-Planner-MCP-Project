@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
   Switch,
   TouchableOpacity,
   Alert,
@@ -29,7 +28,6 @@ import {
 } from '../services/userSettingsService';
 
 type SecurityLevel = 'low' | 'medium' | 'high';
-type PrivacyMode = 'standard' | 'enhanced' | 'maximum';
 
 export const SecuritySettingsScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -53,8 +51,28 @@ export const SecuritySettingsScreen = () => {
     budget_alert_threshold: 80,
   });
 
-  const [isLoading, setIsLoading] = useState(true);
+
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  const loadSettings = React.useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const [securitySettings, userSettingsData] = await Promise.all([
+        getSecuritySettings(user.id),
+        getUserSettings(user.id),
+      ]);
+
+      if (securitySettings) {
+        setSettings(securitySettings);
+      }
+      if (userSettingsData) {
+        setUserSettings(userSettingsData);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Gagal memuat pengaturan keamanan');
+    }
+  }, [user]);
 
   useEffect(() => {
     loadSettings();
@@ -72,33 +90,9 @@ export const SecuritySettingsScreen = () => {
       StatusBar.setBackgroundColor('transparent');
       StatusBar.setTranslucent(true);
     }
-  }, []);
+  }, [loadSettings, fadeAnim]);
 
-  const loadSettings = async () => {
-    if (!user) return;
-
-    try {
-      setIsLoading(true);
-      const [securitySettings, userSettingsData] = await Promise.all([
-        getSecuritySettings(user.id),
-        getUserSettings(user.id),
-      ]);
-
-      if (securitySettings) {
-        setSettings(securitySettings);
-      }
-      if (userSettingsData) {
-        setUserSettings(userSettingsData);
-      }
-    } catch (error) {
-      console.error('Error loading security settings:', error);
-      Alert.alert('Error', 'Gagal memuat pengaturan keamanan');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateSetting = async (key: keyof SecuritySettings, value: any) => {
+  const updateSetting = async (key: keyof SecuritySettings, value: string | boolean | number) => {
     if (!user) return;
 
     try {
@@ -107,14 +101,13 @@ export const SecuritySettingsScreen = () => {
 
       await updateSecuritySettings(user.id, { [key]: value });
     } catch (error) {
-      console.error('Error updating security setting:', error);
       Alert.alert('Error', 'Gagal memperbarui pengaturan');
       // Revert state on error
       setSettings(settings);
     }
   };
 
-  const updateUserSetting = async (key: keyof UserSettings, value: any) => {
+  const updateUserSetting = async (key: keyof UserSettings, value: boolean | number) => {
     if (!user) return;
 
     try {
@@ -123,7 +116,6 @@ export const SecuritySettingsScreen = () => {
 
       await updateUserSettings(user.id, { [key]: value });
     } catch (error) {
-      console.error('Error updating user setting:', error);
       Alert.alert('Error', 'Gagal memperbarui pengaturan');
       // Revert state on error
       setUserSettings(userSettings);

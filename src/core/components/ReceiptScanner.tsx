@@ -8,7 +8,6 @@ import {
   ScrollView,
   Alert,
   Animated,
-  Platform,
 } from 'react-native';
 import { Typography } from './Typography';
 import { Button } from './Button';
@@ -45,14 +44,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
-    isLandscape,
-    responsiveFontSize,
-    responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -69,12 +61,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     progress: ocrProgress,
   } = useOCR();
 
-  // Responsive header button size
-  const getHeaderButtonSize = () => {
-    if (isSmallDevice) return 36;
-    if (isLargeDevice) return 44;
-    return 40; // medium device
-  };
+
 
   // Responsive option icon container size
   const getOptionIconSize = () => {
@@ -134,7 +121,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         setStep('preview');
       }
     } catch (error) {
-      console.error('Error processing receipt:', error);
+      // Error processing receipt - silently handled
       Alert.alert(
         'Terjadi Kesalahan',
         'Terjadi kesalahan saat memproses struk. Silakan coba lagi.'
@@ -743,7 +730,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     return () => {
       scanLineAnim.stopAnimation();
     };
-  }, [step]);
+  }, [step, scanLineAnim]);
 
   return (
     <View style={styles.container}>

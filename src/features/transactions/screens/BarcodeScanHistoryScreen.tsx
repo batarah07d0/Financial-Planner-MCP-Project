@@ -31,14 +31,8 @@ export const BarcodeScanHistoryScreen = () => {
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
     isLandscape,
-    responsiveFontSize,
-    responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -99,7 +93,10 @@ export const BarcodeScanHistoryScreen = () => {
       const data = await getBarcodeHistory();
       setHistory(data);
     } catch (error) {
-      console.error('Error loading barcode history:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error loading barcode history:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +130,10 @@ export const BarcodeScanHistoryScreen = () => {
         navigation.navigate('AddProduct', { barcode: item.barcode });
       }
     } catch (error) {
-      console.error('Error searching barcode:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error searching barcode:', error);
+      }
     }
   };
 

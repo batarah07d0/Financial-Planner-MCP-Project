@@ -34,13 +34,11 @@ export class TransactionReminderService {
 
       if (scheduleId) {
         this.reminderScheduleId = scheduleId;
-        console.log('Daily transaction reminder scheduled');
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Error setting up daily reminder:', error);
       return false;
     }
   }
@@ -51,12 +49,10 @@ export class TransactionReminderService {
       if (this.reminderScheduleId && notificationService.getNotificationHook()) {
         await notificationService.getNotificationHook()!.cancelNotification(this.reminderScheduleId);
         this.reminderScheduleId = null;
-        console.log('Transaction reminder cancelled');
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Error cancelling reminder:', error);
       return false;
     }
   }
@@ -76,7 +72,6 @@ export class TransactionReminderService {
 
       return transactions && transactions.length > 0;
     } catch (error) {
-      console.error('Error checking today transactions:', error);
       return false;
     }
   }
@@ -105,7 +100,10 @@ export class TransactionReminderService {
 
         if (success) {
           this.lastReminderDate = today;
-          console.log('Smart transaction reminder sent');
+          if (__DEV__) {
+            // eslint-disable-next-line no-console
+            console.log('Smart transaction reminder sent');
+          }
         }
 
         return success;
@@ -113,7 +111,10 @@ export class TransactionReminderService {
 
       return false; // No reminder needed, user already recorded transactions
     } catch (error) {
-      console.error('Error sending smart reminder:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error sending smart reminder:', error);
+      }
       return false;
     }
   }
@@ -168,7 +169,6 @@ export class TransactionReminderService {
         },
       });
     } catch (error) {
-      console.error('Error sending weekly summary:', error);
       return false;
     }
   }
@@ -198,7 +198,6 @@ export class TransactionReminderService {
 
       return scheduleId !== null;
     } catch (error) {
-      console.error('Error setting up weekly summary:', error);
       return false;
     }
   }

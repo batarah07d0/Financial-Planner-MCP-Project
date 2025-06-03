@@ -40,13 +40,9 @@ export const RegisterScreen = () => {
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
     width,
-    height,
-    breakpoint,
     isLandscape,
-    responsiveFontSize,
     responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -112,7 +108,7 @@ export const RegisterScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -132,12 +128,12 @@ export const RegisterScreen = () => {
             navigation.navigate('Login', {
               email: data.email,
               password: data.password
-            } as any);
+            });
           }, 2000);
         }
       } else if (result.error) {
         // Error sudah ditangani di authStore dan ditampilkan melalui error state
-        console.error('Registration failed:', result.error);
+        // Registration failed - error handled by authStore
 
         // Jika error menunjukkan email sudah terdaftar, tawarkan untuk login
         if (result.error.includes('sudah terdaftar')) {
@@ -147,13 +143,13 @@ export const RegisterScreen = () => {
             () => {
               navigation.navigate('Login', {
                 email: data.email
-              } as any);
+              });
             }
           );
         }
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      // Registration error - silently handled
     }
   };
 

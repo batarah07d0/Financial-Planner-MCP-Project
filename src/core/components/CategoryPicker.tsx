@@ -67,7 +67,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   // Fungsi untuk memilih kategori
   const selectCategory = (categoryId: string) => {
@@ -317,7 +317,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                       { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : `${categoryColor}20` }
                     ]}>
                       <Ionicons
-                        name={categoryIcon as any}
+                        name={categoryIcon as keyof typeof Ionicons.glyphMap}
                         size={24}
                         color={isSelected ? theme.colors.white : categoryColor}
                       />

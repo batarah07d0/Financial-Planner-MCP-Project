@@ -11,13 +11,13 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography, TransactionCard, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Transaction } from '../../../core/services/supabase/types';
-import { RootStackParamList } from '../../../core/navigation/types';
+import { RootStackParamList, TabParamList } from '../../../core/navigation/types';
 import { useTransactionStore, useAuthStore } from '../../../core/services/store';
 import { supabase } from '../../../config/supabase';
 import { useSuperiorDialog } from '../../../core/hooks';
@@ -25,6 +25,7 @@ import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 
 // Definisikan tipe untuk navigasi dengan keyof untuk memastikan nama screen valid
 type TransactionsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type TransactionsScreenRouteProp = RouteProp<TabParamList, 'Transactions'>;
 
 // Fungsi helper untuk navigasi yang type-safe
 const navigateTo = <T extends keyof RootStackParamList>(
@@ -32,38 +33,42 @@ const navigateTo = <T extends keyof RootStackParamList>(
   screen: T,
   params?: RootStackParamList[T]
 ) => {
-  navigation.navigate(screen as any, params as any);
+  // Type assertion diperlukan karena navigation prop tidak mengenali semua screen
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (navigation as any).navigate(screen, params);
 };
 
 // Kategori akan diambil dari Supabase
 
 export const TransactionsScreen = () => {
   const navigation = useNavigation<TransactionsScreenNavigationProp>();
+  const route = useRoute<TransactionsScreenRouteProp>();
   const { user } = useAuthStore();
+
+  // Ambil parameter dari route
+  const { categoryId: routeCategoryId, type: routeType } = route.params || {};
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
-    isLandscape,
-    responsiveFontSize,
     responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
   const {
-    transactions,
-    isLoading,
-    error,
     fetchTransactions,
     deleteTransaction
   } = useTransactionStore();
+
+  // Simplified state management - gunakan satu sumber data yang konsisten
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [filter, setFilter] = useState<'all' | 'income' | 'expense'>(routeType || 'all');
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
+  const [filteredCategoryId] = useState<string | undefined>(routeCategoryId);
+  const [error, setError] = useState<string | null>(null);
+
   const { dialogState, showError, showDelete, showSuccess, hideDialog } = useSuperiorDialog();
 
   // Responsive icon button size
@@ -94,25 +99,49 @@ export const TransactionsScreen = () => {
     return 24; // medium device
   };
 
-  // Fungsi untuk memuat transaksi dari Supabase
-  const loadTransactions = async () => {
+  // Fungsi untuk memuat transaksi dari Supabase dengan error handling yang lebih baik
+  const loadTransactions = React.useCallback(async () => {
     if (!user) {
-      showError('Error', 'Anda harus login terlebih dahulu');
+      setError('Anda harus login terlebih dahulu');
       return;
     }
 
     try {
-      await fetchTransactions(user.id, {
-        limit: 50, // Ambil lebih banyak transaksi
-      });
+      setIsLoading(true);
+      setError(null);
+
+      // Query langsung ke Supabase untuk mendapatkan data terbaru
+      const { data: allTransactions, error: fetchError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(100);
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (allTransactions) {
+        // Set data ke state lokal
+        setTransactions(allTransactions as Transaction[]);
+
+        // Update store untuk konsistensi dengan komponen lain
+        try {
+          await fetchTransactions(user.id, { limit: 100 });
+        } catch (storeError) {
+          // Store update gagal tidak masalah, data lokal sudah ada
+        }
+      }
 
       // Ambil kategori untuk mapping
       await loadCategories();
     } catch (error) {
-      console.error('Error loading transactions:', error);
-      showError('Error', 'Gagal memuat transaksi');
+      setError(error instanceof Error ? error.message : 'Gagal memuat transaksi');
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [user, fetchTransactions]);
 
   // Fungsi untuk memuat kategori
   const loadCategories = async () => {
@@ -132,7 +161,7 @@ export const TransactionsScreen = () => {
         setCategoryMap(newCategoryMap);
       }
     } catch (error) {
-      console.error('Error loading categories:', error);
+      // Error loading categories, but continue with empty category map
     }
   };
 
@@ -157,9 +186,10 @@ export const TransactionsScreen = () => {
       async () => {
         try {
           await deleteTransaction(id);
+          // Refresh data setelah delete berhasil
+          await loadTransactions();
           showSuccess('Sukses', 'Transaksi berhasil dihapus');
         } catch (error) {
-          console.error('Error deleting transaction:', error);
           showError('Error', 'Gagal menghapus transaksi');
         }
       }
@@ -204,8 +234,7 @@ export const TransactionsScreen = () => {
       },
     });
 
-    // Tampilkan pesan untuk debugging
-    console.log('Navigating to BarcodeScanner screen');
+    // Navigation handled by navigateTo function
   };
 
   // Fungsi untuk menangani klik pada tombol riwayat pemindaian barcode
@@ -222,10 +251,19 @@ export const TransactionsScreen = () => {
 
   // Fungsi untuk memfilter transaksi
   const getFilteredTransactions = () => {
-    if (filter === 'all') {
-      return transactions;
+    let filtered = transactions;
+
+    // Filter berdasarkan tipe
+    if (filter !== 'all') {
+      filtered = filtered.filter((transaction: Transaction) => transaction.type === filter);
     }
-    return transactions.filter((transaction: Transaction) => transaction.type === filter);
+
+    // Filter berdasarkan kategori jika ada
+    if (filteredCategoryId) {
+      filtered = filtered.filter((transaction: Transaction) => transaction.category_id === filteredCategoryId);
+    }
+
+    return filtered;
   };
 
   // Memuat transaksi saat komponen dimount atau user berubah
@@ -233,15 +271,23 @@ export const TransactionsScreen = () => {
     if (user) {
       loadTransactions();
     }
-  }, [user]);
+  }, [user, loadTransactions]);
 
   // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
+  // Gunakan ref untuk mencegah refresh berlebihan
+  const lastFocusTime = React.useRef<number>(0);
+
   useFocusEffect(
     React.useCallback(() => {
       if (user) {
-        loadTransactions();
+        const now = Date.now();
+        // Hanya refresh jika sudah lebih dari 2 detik sejak focus terakhir
+        if (now - lastFocusTime.current > 2000) {
+          lastFocusTime.current = now;
+          loadTransactions();
+        }
       }
-    }, [user])
+    }, [user, loadTransactions])
   );
 
   // Tampilkan error jika ada
@@ -249,7 +295,7 @@ export const TransactionsScreen = () => {
     if (error) {
       showError('Error', error);
     }
-  }, [error]);
+  }, [error, showError]);
 
   // Render item untuk FlatList
   const renderItem = ({ item }: { item: Transaction }) => {

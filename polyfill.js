@@ -37,10 +37,10 @@ global.os = require('os-browserify/browser');
 
 // Polyfill untuk net dan tls
 try {
-  global.net = require('react-native-tcp');
-  global.tls = require('react-native-tcp');
+  global.net = require('react-native-tcp-socket');
+  global.tls = require('react-native-tcp-socket');
 } catch (e) {
-  console.warn('Tidak dapat memuat react-native-tcp:', e);
+  console.warn('Tidak dapat memuat react-native-tcp-socket:', e);
 }
 
 // Polyfill untuk dns dan dgram

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import {  
-  StyleSheet, 
+import React from 'react';
+import {
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, ReceiptScanner } from '../../../core/components';
+import { ReceiptScanner } from '../../../core/components';
 import { theme } from '../../../core/theme';
 
 type ReceiptScannerScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ReceiptScanner'>;

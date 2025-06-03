@@ -86,7 +86,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Ionicons name={icon as any} size={22} color={defaultIconColor} />
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={22} color={defaultIconColor} />
         </LinearGradient>
       </View>
 

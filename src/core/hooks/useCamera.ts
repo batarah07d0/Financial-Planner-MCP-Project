@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Alert, Platform } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as Camera from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
@@ -34,7 +33,7 @@ export const useCamera = (options: CameraOptions = {}) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Fungsi untuk meminta izin kamera
-  const requestCameraPermission = async (): Promise<boolean> => {
+  const requestCameraPermission = useCallback(async (): Promise<boolean> => {
     setIsLoading(true);
     setErrorMsg(null);
 
@@ -52,16 +51,17 @@ export const useCamera = (options: CameraOptions = {}) => {
       }
 
       return permissionGranted;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat meminta izin kamera');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat meminta izin kamera';
+      setErrorMsg(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Fungsi untuk meminta izin media library
-  const requestMediaLibraryPermission = async (): Promise<boolean> => {
+  const requestMediaLibraryPermission = useCallback(async (): Promise<boolean> => {
     setIsLoading(true);
     setErrorMsg(null);
 
@@ -79,13 +79,14 @@ export const useCamera = (options: CameraOptions = {}) => {
       }
 
       return permissionGranted;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat meminta izin media library');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat meminta izin media library';
+      setErrorMsg(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Fungsi untuk mengambil gambar dari kamera
   const takePicture = async (): Promise<ImageResult | null> => {
@@ -101,7 +102,7 @@ export const useCamera = (options: CameraOptions = {}) => {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing,
         aspect,
         quality,
@@ -121,8 +122,9 @@ export const useCamera = (options: CameraOptions = {}) => {
         type: 'image',
         base64: asset.base64,
       };
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat mengambil gambar');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat mengambil gambar';
+      setErrorMsg(errorMessage);
       return null;
     } finally {
       setIsLoading(false);
@@ -143,7 +145,7 @@ export const useCamera = (options: CameraOptions = {}) => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing,
         aspect,
         quality,
@@ -163,8 +165,9 @@ export const useCamera = (options: CameraOptions = {}) => {
         type: 'image',
         base64: asset.base64,
       };
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat memilih gambar');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat memilih gambar';
+      setErrorMsg(errorMessage);
       return null;
     } finally {
       setIsLoading(false);
@@ -188,8 +191,9 @@ export const useCamera = (options: CameraOptions = {}) => {
       await MediaLibrary.createAlbumAsync('BudgetWise', asset, false);
 
       return true;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat menyimpan gambar');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan gambar';
+      setErrorMsg(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
@@ -201,8 +205,9 @@ export const useCamera = (options: CameraOptions = {}) => {
     try {
       await FileSystem.deleteAsync(uri);
       return true;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat menghapus gambar');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat menghapus gambar';
+      setErrorMsg(errorMessage);
       return false;
     }
   };
@@ -213,7 +218,7 @@ export const useCamera = (options: CameraOptions = {}) => {
       requestCameraPermission();
       requestMediaLibraryPermission();
     }
-  }, []);
+  }, [requestPermissionOnMount, requestCameraPermission, requestMediaLibraryPermission]);
 
   return {
     hasCameraPermission,

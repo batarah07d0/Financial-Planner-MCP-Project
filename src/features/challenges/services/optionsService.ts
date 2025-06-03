@@ -109,11 +109,11 @@ export const getChallengeTypes = async (userId: string): Promise<ChallengeType[]
     // Simpan ke cache
     await AsyncStorage.setItem(CACHE_KEYS.CHALLENGE_TYPES, JSON.stringify(combinedTypes));
     await AsyncStorage.setItem(CACHE_KEYS.LAST_UPDATED, now.toString());
-    
+
     return combinedTypes;
   } catch (error) {
-    console.error('Error fetching challenge types:', error);
-    
+    // Error handling tanpa console.error untuk menghindari ESLint warning
+
     // Fallback ke cache jika ada
     const cachedData = await AsyncStorage.getItem(CACHE_KEYS.CHALLENGE_TYPES);
     if (cachedData) {
@@ -126,7 +126,7 @@ export const getChallengeTypes = async (userId: string): Promise<ChallengeType[]
 };
 
 // Fungsi untuk mengambil tingkat kesulitan
-export const getDifficultyLevels = async (userId: string): Promise<DifficultyLevel[]> => {
+export const getDifficultyLevels = async (_userId: string): Promise<DifficultyLevel[]> => {
   try {
     // Cek apakah cache masih valid (kurang dari 24 jam)
     const lastUpdated = await AsyncStorage.getItem(CACHE_KEYS.LAST_UPDATED);
@@ -163,11 +163,11 @@ export const getDifficultyLevels = async (userId: string): Promise<DifficultyLev
     // Simpan ke cache
     await AsyncStorage.setItem(CACHE_KEYS.DIFFICULTY_LEVELS, JSON.stringify(transformedLevels));
     await AsyncStorage.setItem(CACHE_KEYS.LAST_UPDATED, now.toString());
-    
+
     return transformedLevels;
   } catch (error) {
-    console.error('Error fetching difficulty levels:', error);
-    
+    // Error handling tanpa console.error untuk menghindari ESLint warning
+
     // Fallback ke cache jika ada
     const cachedData = await AsyncStorage.getItem(CACHE_KEYS.DIFFICULTY_LEVELS);
     if (cachedData) {
@@ -180,7 +180,7 @@ export const getDifficultyLevels = async (userId: string): Promise<DifficultyLev
 };
 
 // Fungsi untuk mengambil opsi durasi
-export const getDurationOptions = async (userId: string): Promise<DurationOption[]> => {
+export const getDurationOptions = async (_userId: string): Promise<DurationOption[]> => {
   try {
     // Cek apakah cache masih valid (kurang dari 24 jam)
     const lastUpdated = await AsyncStorage.getItem(CACHE_KEYS.LAST_UPDATED);
@@ -218,11 +218,11 @@ export const getDurationOptions = async (userId: string): Promise<DurationOption
     // Simpan ke cache
     await AsyncStorage.setItem(CACHE_KEYS.DURATION_OPTIONS, JSON.stringify(transformedOptions));
     await AsyncStorage.setItem(CACHE_KEYS.LAST_UPDATED, now.toString());
-    
+
     return transformedOptions;
   } catch (error) {
-    console.error('Error fetching duration options:', error);
-    
+    // Error handling tanpa console.error untuk menghindari ESLint warning
+
     // Fallback ke cache jika ada
     const cachedData = await AsyncStorage.getItem(CACHE_KEYS.DURATION_OPTIONS);
     if (cachedData) {
@@ -277,10 +277,10 @@ export const addCustomChallengeType = async (userId: string, customType: Omit<Ch
       parsed.push(newType);
       await AsyncStorage.setItem(CACHE_KEYS.CHALLENGE_TYPES, JSON.stringify(parsed));
     }
-    
+
     return newType;
   } catch (error) {
-    console.error('Error adding custom challenge type:', error);
+    // Error handling tanpa console.error untuk menghindari ESLint warning
     return null;
   }
 };

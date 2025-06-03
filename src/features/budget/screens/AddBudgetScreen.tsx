@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
-// @ts-expect
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Typography, Input, Button, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
@@ -63,7 +62,6 @@ export const AddBudgetScreen = () => {
         const expenseCategories = await getCategories({ type: 'expense' });
         setCategories(expenseCategories);
       } catch (error) {
-        console.error('Error loading categories:', error);
         showError('Error', 'Gagal memuat kategori. Silakan coba lagi.');
       } finally {
         setIsLoadingCategories(false);
@@ -71,7 +69,7 @@ export const AddBudgetScreen = () => {
     };
 
     loadCategories();
-  }, []);
+  }, [showError]);
 
   // Efek untuk animasi kategori picker
   useEffect(() => {
@@ -81,7 +79,7 @@ export const AddBudgetScreen = () => {
       easing: Easing.bezier(0.4, 0, 0.2, 1),
       useNativeDriver: false
     }).start();
-  }, [showCategoryPicker]);
+  }, [showCategoryPicker, categoryPickerAnimation]);
 
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<BudgetFormData>({
     defaultValues: {
@@ -141,7 +139,7 @@ export const AddBudgetScreen = () => {
         end_date: data.endDate?.toISOString(),
       };
 
-      console.log('Submitting budget to Supabase:', budgetData);
+      
 
       // Simpan ke Supabase menggunakan store
       await addBudget(budgetData);
@@ -153,7 +151,6 @@ export const AddBudgetScreen = () => {
         navigation.goBack();
       }, 1500);
     } catch (error) {
-      console.error('Error submitting budget:', error);
       showError('Error', 'Terjadi kesalahan saat menyimpan anggaran');
     } finally {
       setIsSubmitting(false);
@@ -161,7 +158,7 @@ export const AddBudgetScreen = () => {
   };
 
   // Fungsi untuk menangani perubahan tanggal mulai
-  const handleStartDateChange = (_event: any, selectedDate?: Date) => {
+  const handleStartDateChange = (_event: unknown, selectedDate?: Date) => {
     setShowStartDatePicker(false);
     if (selectedDate) {
       setValue('startDate', selectedDate);
@@ -169,7 +166,7 @@ export const AddBudgetScreen = () => {
   };
 
   // Fungsi untuk menangani perubahan tanggal akhir
-  const handleEndDateChange = (_event: any, selectedDate?: Date) => {
+  const handleEndDateChange = (_event: unknown, selectedDate?: Date) => {
     setShowEndDatePicker(false);
     if (selectedDate) {
       setValue('endDate', selectedDate);
@@ -291,7 +288,7 @@ export const AddBudgetScreen = () => {
               >
                 <View style={styles.categoryIconContainer}>
                   <Ionicons
-                    name={category.icon as any}
+                    name={category.icon as keyof typeof Ionicons.glyphMap}
                     size={20}
                     color={selectedCategory === category.id ? theme.colors.white : category.color}
                   />
@@ -397,7 +394,7 @@ export const AddBudgetScreen = () => {
                       {selectedCategory ? (
                         <View style={styles.selectedCategoryContainer}>
                           <Ionicons
-                            name={(categories.find(cat => cat.id === selectedCategory)?.icon || 'help-circle-outline') as any}
+                            name={(categories.find(cat => cat.id === selectedCategory)?.icon || 'help-circle-outline') as keyof typeof Ionicons.glyphMap}
                             size={18}
                             color={categories.find(cat => cat.id === selectedCategory)?.color || theme.colors.primary[500]}
                             style={styles.selectedCategoryIcon}

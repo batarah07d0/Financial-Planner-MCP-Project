@@ -7,9 +7,9 @@ interface DatabaseService {
   // Operasi dasar database
   getAll: <T>(tableName: string) => Promise<T[]>;
   getById: <T>(tableName: string, id: string) => Promise<T | null>;
-  getWhere: <T>(tableName: string, conditions: Record<string, any>) => Promise<T[]>;
-  create: <T>(tableName: string, data: Record<string, any>) => Promise<T>;
-  update: <T>(tableName: string, id: string, data: Record<string, any>) => Promise<T | null>;
+  getWhere: <T>(tableName: string, conditions: Record<string, unknown>) => Promise<T[]>;
+  create: <T>(tableName: string, data: Record<string, unknown>) => Promise<T>;
+  update: <T>(tableName: string, id: string, data: Record<string, unknown>) => Promise<T | null>;
   delete: (tableName: string, id: string) => Promise<boolean>;
 }
 
@@ -34,13 +34,11 @@ export const DatabaseProvider = ({ children }: DatabaseProviderProps): React.Rea
           .order('created_at', { ascending: false });
 
         if (error) {
-          console.error(`Error fetching data from ${tableName}:`, error);
           throw error;
         }
 
         return (data || []) as T[];
       } catch (error) {
-        console.error(`Error in getAll for ${tableName}:`, error);
         return [];
       }
     },
@@ -59,19 +57,17 @@ export const DatabaseProvider = ({ children }: DatabaseProviderProps): React.Rea
             // PGRST116 adalah kode untuk "tidak ditemukan"
             return null;
           }
-          console.error(`Error fetching data by ID from ${tableName}:`, error);
           throw error;
         }
 
         return data as T;
       } catch (error) {
-        console.error(`Error in getById for ${tableName}:`, error);
         return null;
       }
     },
 
     // Mendapatkan data berdasarkan kondisi
-    getWhere: async <T,>(tableName: string, conditions: Record<string, any>): Promise<T[]> => {
+    getWhere: async <T,>(tableName: string, conditions: Record<string, unknown>): Promise<T[]> => {
       try {
         let query = supabase.from(tableName).select('*');
 
@@ -83,19 +79,17 @@ export const DatabaseProvider = ({ children }: DatabaseProviderProps): React.Rea
         const { data, error } = await query;
 
         if (error) {
-          console.error(`Error fetching data with conditions from ${tableName}:`, error);
           throw error;
         }
 
         return (data || []) as T[];
       } catch (error) {
-        console.error(`Error in getWhere for ${tableName}:`, error);
         return [];
       }
     },
 
     // Membuat data baru
-    create: async <T,>(tableName: string, data: Record<string, any>): Promise<T> => {
+    create: async <T,>(tableName: string, data: Record<string, unknown>): Promise<T> => {
       try {
         const now = new Date().toISOString();
         const newData = {
@@ -112,7 +106,6 @@ export const DatabaseProvider = ({ children }: DatabaseProviderProps): React.Rea
           .single();
 
         if (error) {
-          console.error(`Error creating data in ${tableName}:`, error);
           throw error;
         }
 
@@ -122,13 +115,12 @@ export const DatabaseProvider = ({ children }: DatabaseProviderProps): React.Rea
 
         return result as T;
       } catch (error) {
-        console.error(`Error in create for ${tableName}:`, error);
         throw error as Error;
       }
     },
 
     // Memperbarui data
-    update: async <T,>(tableName: string, id: string, data: Record<string, any>): Promise<T | null> => {
+    update: async <T,>(tableName: string, id: string, data: Record<string, unknown>): Promise<T | null> => {
       try {
         const now = new Date().toISOString();
         const updateData = {
@@ -144,13 +136,11 @@ export const DatabaseProvider = ({ children }: DatabaseProviderProps): React.Rea
           .single();
 
         if (error) {
-          console.error(`Error updating data in ${tableName}:`, error);
           throw error;
         }
 
         return result as T;
       } catch (error) {
-        console.error(`Error in update for ${tableName}:`, error);
         return null;
       }
     },
@@ -164,13 +154,11 @@ export const DatabaseProvider = ({ children }: DatabaseProviderProps): React.Rea
           .eq('id', id);
 
         if (error) {
-          console.error(`Error deleting data from ${tableName}:`, error);
           throw error;
         }
 
         return true;
       } catch (error) {
-        console.error(`Error in delete for ${tableName}:`, error);
         return false;
       }
     },

@@ -1,17 +1,28 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Simple logger untuk production-ready logging
+const logger = {
+  error: (message: string, error?: unknown) => {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.error(message, error);
+    }
+    // Dalam production, ini bisa dikirim ke service logging seperti Sentry
+  }
+};
+
 /**
  * Menyimpan data ke AsyncStorage
  * @param key - Kunci untuk menyimpan data
  * @param value - Nilai yang akan disimpan
  * @returns Promise yang menunjukkan keberhasilan operasi
  */
-export const storeData = async (key: string, value: any): Promise<void> => {
+export const storeData = async <T>(key: string, value: T): Promise<void> => {
   try {
     const jsonValue = JSON.stringify(value);
     await AsyncStorage.setItem(key, jsonValue);
   } catch (error) {
-    console.error('Error storing data:', error);
+    logger.error('Error storing data:', error);
     throw error;
   }
 };
@@ -26,7 +37,7 @@ export const getData = async <T>(key: string): Promise<T | null> => {
     const jsonValue = await AsyncStorage.getItem(key);
     return jsonValue != null ? JSON.parse(jsonValue) : null;
   } catch (error) {
-    console.error('Error retrieving data:', error);
+    logger.error('Error retrieving data:', error);
     throw error;
   }
 };
@@ -40,7 +51,7 @@ export const removeData = async (key: string): Promise<void> => {
   try {
     await AsyncStorage.removeItem(key);
   } catch (error) {
-    console.error('Error removing data:', error);
+    logger.error('Error removing data:', error);
     throw error;
   }
 };
@@ -52,9 +63,9 @@ export const removeData = async (key: string): Promise<void> => {
  * @param ttl - Time to live dalam milidetik
  * @returns Promise yang menunjukkan keberhasilan operasi
  */
-export const storeDataWithExpiry = async (
+export const storeDataWithExpiry = async <T>(
   key: string,
-  value: any,
+  value: T,
   ttl: number
 ): Promise<void> => {
   try {
@@ -64,7 +75,7 @@ export const storeDataWithExpiry = async (
     };
     await storeData(key, item);
   } catch (error) {
-    console.error('Error storing data with expiry:', error);
+    logger.error('Error storing data with expiry:', error);
     throw error;
   }
 };
@@ -86,7 +97,7 @@ export const getDataWithExpiry = async <T>(key: string): Promise<T | null> => {
 
     return item.value;
   } catch (error) {
-    console.error('Error retrieving data with expiry:', error);
+    logger.error('Error retrieving data with expiry:', error);
     throw error;
   }
 };
@@ -96,12 +107,7 @@ export const getDataWithExpiry = async <T>(key: string): Promise<T | null> => {
  * @returns Promise yang berisi array kunci
  */
 export const getAllKeys = async (): Promise<readonly string[]> => {
-  try {
-    return await AsyncStorage.getAllKeys();
-  } catch (error) {
-    console.error('Error getting all keys:', error);
-    throw error;
-  }
+  return await AsyncStorage.getAllKeys();
 };
 
 /**
@@ -109,10 +115,5 @@ export const getAllKeys = async (): Promise<readonly string[]> => {
  * @returns Promise yang menunjukkan keberhasilan operasi
  */
 export const clearAll = async (): Promise<void> => {
-  try {
-    await AsyncStorage.clear();
-  } catch (error) {
-    console.error('Error clearing all data:', error);
-    throw error;
-  }
+  await AsyncStorage.clear();
 };

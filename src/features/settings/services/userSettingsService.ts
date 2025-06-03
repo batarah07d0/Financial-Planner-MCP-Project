@@ -64,13 +64,11 @@ export const getUserSettings = async (userId: string): Promise<UserSettings | nu
         return defaultSettings;
       }
 
-      console.error('Error fetching user settings:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getUserSettings:', error);
     return null;
   }
 };
@@ -88,13 +86,11 @@ export const createUserSettings = async (
       });
 
     if (error) {
-      console.error('Error creating user settings:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in createUserSettings:', error);
     return false;
   }
 };
@@ -110,13 +106,11 @@ export const updateUserSettings = async (
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error updating user settings:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in updateUserSettings:', error);
     return false;
   }
 };
@@ -149,13 +143,11 @@ export const getSecuritySettings = async (userId: string): Promise<SecuritySetti
         return defaultSettings;
       }
 
-      console.error('Error fetching security settings:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getSecuritySettings:', error);
     return null;
   }
 };
@@ -173,13 +165,11 @@ export const createSecuritySettings = async (
       });
 
     if (error) {
-      console.error('Error creating security settings:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in createSecuritySettings:', error);
     return false;
   }
 };
@@ -198,13 +188,11 @@ export const updateSecuritySettings = async (
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error updating security settings:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in updateSecuritySettings:', error);
     return false;
   }
 };
@@ -236,13 +224,11 @@ export const getBackupSettings = async (userId: string): Promise<BackupSettings 
         return defaultSettings;
       }
 
-      console.error('Error fetching backup settings:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getBackupSettings:', error);
     return null;
   }
 };
@@ -260,13 +246,11 @@ export const createBackupSettings = async (
       });
 
     if (error) {
-      console.error('Error creating backup settings:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in createBackupSettings:', error);
     return false;
   }
 };
@@ -285,13 +269,11 @@ export const updateBackupSettings = async (
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error updating backup settings:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in updateBackupSettings:', error);
     return false;
   }
 };
@@ -306,13 +288,11 @@ export const getBackupHistory = async (userId: string): Promise<BackupHistory[]>
       .limit(10);
 
     if (error) {
-      console.error('Error fetching backup history:', error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error in getBackupHistory:', error);
     return [];
   }
 };
@@ -333,13 +313,11 @@ export const createBackupRecord = async (
       .single();
 
     if (error) {
-      console.error('Error creating backup record:', error);
       return null;
     }
 
     return data.id;
   } catch (error) {
-    console.error('Error in createBackupRecord:', error);
     return null;
   }
 };
@@ -355,13 +333,11 @@ export const updateBackupRecord = async (
       .eq('id', backupId);
 
     if (error) {
-      console.error('Error updating backup record:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in updateBackupRecord:', error);
     return false;
   }
 };

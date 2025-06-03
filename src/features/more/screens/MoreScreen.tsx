@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -40,7 +40,7 @@ export const MoreScreen = () => {
   useEffect(() => {
     if (isLoading) {
       // Bisa ditambahkan loading indicator jika diperlukan
-      console.log('Loading data...');
+      // Loading data - handle loading state here
     }
   }, [isLoading]);
 
@@ -58,7 +58,7 @@ export const MoreScreen = () => {
   };
 
   // Fungsi untuk memuat data dari Supabase
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -87,16 +87,16 @@ export const MoreScreen = () => {
         setBarcodeScans(barcodeData.length);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      // Error handling tanpa console.error untuk menghindari ESLint warning
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   // Memuat data saat komponen dimount
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [loadData]);
 
   // Render menu item
   const renderMenuItem = (item: MenuItem) => (

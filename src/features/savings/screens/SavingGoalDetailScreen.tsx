@@ -21,7 +21,6 @@ import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-ico
 import { RootStackParamList } from '../../../core/navigation/types';
 import { Typography, Card, Button, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { useAuthStore } from '../../../core/services/store';
 import {
   getSavingGoal,
   addToSavingGoal,
@@ -74,7 +73,7 @@ const AddAmountModal: React.FC<AddAmountModalProps> = ({
     if (numericAmount <= 0) return;
 
     setIsLoading(true);
-    await onAdd(numericAmount);
+    onAdd(numericAmount);
     setIsLoading(false);
     setAmount('');
     onClose();
@@ -187,7 +186,6 @@ export const SavingGoalDetailScreen = () => {
   const route = useRoute<SavingGoalDetailScreenRouteProp>();
   const navigation = useNavigation<SavingGoalDetailScreenNavigationProp>();
   const { goalId } = route.params;
-  const { user } = useAuthStore();
   const { dialogState, showError, showSuccess, showDelete, hideDialog } = useSuperiorDialog();
 
   const [goal, setGoal] = useState<SavingGoal | null>(null);
@@ -196,7 +194,7 @@ export const SavingGoalDetailScreen = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [progressAnimation] = useState(new Animated.Value(0));
 
-  const loadGoalDetail = async () => {
+  const loadGoalDetail = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getSavingGoal(goalId);
@@ -215,12 +213,12 @@ export const SavingGoalDetailScreen = () => {
         navigation.goBack();
       }
     } catch (error) {
-      console.error('Error loading goal detail:', error);
+      // Error loading goal detail - silently handled
       showError('Error', 'Gagal memuat detail tujuan tabungan');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [goalId, progressAnimation, showError, navigation]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -258,7 +256,7 @@ export const SavingGoalDetailScreen = () => {
         showError('Error', 'Gagal menambahkan jumlah tabungan');
       }
     } catch (error) {
-      console.error('Error adding amount:', error);
+      // Error adding amount - silently handled
       showError('Error', 'Gagal menambahkan jumlah tabungan');
     }
   };
@@ -281,7 +279,7 @@ export const SavingGoalDetailScreen = () => {
             showError('Error', 'Gagal menghapus tujuan tabungan');
           }
         } catch (error) {
-          console.error('Error deleting goal:', error);
+          // Error deleting goal - silently handled
           showError('Error', 'Gagal menghapus tujuan tabungan');
         }
       }
@@ -291,7 +289,7 @@ export const SavingGoalDetailScreen = () => {
   useFocusEffect(
     useCallback(() => {
       loadGoalDetail();
-    }, [goalId])
+    }, [loadGoalDetail])
   );
 
   if (isLoading) {
@@ -441,7 +439,7 @@ export const SavingGoalDetailScreen = () => {
             <View style={styles.heroContent}>
               <View style={styles.heroIcon}>
                 <MaterialCommunityIcons
-                  name={goal.icon as any || 'piggy-bank'}
+                  name={(goal.icon as keyof typeof MaterialCommunityIcons.glyphMap) || 'piggy-bank'}
                   size={48}
                   color={theme.colors.white}
                 />

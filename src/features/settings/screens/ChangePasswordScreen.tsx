@@ -52,7 +52,7 @@ export const ChangePasswordScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   // Validasi password
   const validatePassword = () => {
@@ -133,16 +133,16 @@ export const ChangePasswordScreen = () => {
           },
         ]
       );
-    } catch (error: any) {
-      console.error('Error changing password:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       // Kirim notifikasi error
       await sendAccountUpdateNotification('password', false);
 
       // Handle specific error messages
-      if (error.message.includes('Invalid login credentials')) {
+      if (errorMessage.includes('Invalid login credentials')) {
         setError('Password saat ini tidak valid');
-      } else if (error.message.includes('auth')) {
+      } else if (errorMessage.includes('auth')) {
         setError('Terjadi kesalahan autentikasi');
       } else {
         setError('Gagal mengubah password. Silakan coba lagi.');

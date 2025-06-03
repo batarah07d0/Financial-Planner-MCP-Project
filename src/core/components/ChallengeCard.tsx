@@ -67,7 +67,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false, // Karena kita menganimasikan width
     }).start();
-  }, [progress]);
+  }, [progress, progressAnim]);
 
   // Mendapatkan ikon berdasarkan tipe tantangan
   const getChallengeIcon = () => {
@@ -178,7 +178,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 style={styles.iconContainer}
               >
                 <Ionicons
-                  name={getChallengeIcon() as any}
+                  name={getChallengeIcon() as keyof typeof Ionicons.glyphMap}
                   size={20}
                   color={theme.colors.white}
                 />

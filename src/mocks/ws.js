@@ -11,6 +11,12 @@ class WebSocket {
     this.OPEN = 1;
     this.CLOSING = 2;
     this.CLOSED = 3;
+
+    // Event handlers - definisikan sebagai properties
+    this.onopen = null;
+    this.onclose = null;
+    this.onerror = null;
+    this.onmessage = null;
     
     // Gunakan WebSocket native jika tersedia
     if (typeof window !== 'undefined' && window.WebSocket) {

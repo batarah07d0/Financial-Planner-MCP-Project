@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Dimensions,
-  StatusBar,
   TextInput,
   Animated,
   Platform,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Typography } from './Typography';
-import { Button } from './Button';
 import { theme } from '../theme';
 import { useLocation, LocationData, LocationAddress } from '../hooks';
 import { Ionicons } from '@expo/vector-icons';
@@ -74,8 +71,30 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-50)).current;
 
+  // Fungsi untuk mendapatkan alamat dari koordinat
+  const handleGetAddress = useCallback(async (latitude: number, longitude: number) => {
+    setIsAddressLoading(true);
+
+    try {
+      const addressData = await getAddressFromCoordinates(latitude, longitude);
+
+      if (addressData) {
+        // Format alamat
+        const formattedAddress = formatAddress(addressData);
+        setSelectedAddress(formattedAddress);
+      } else {
+        setSelectedAddress(undefined);
+      }
+    } catch (error) {
+      // Error getting address - silently fail
+      setSelectedAddress(undefined);
+    } finally {
+      setIsAddressLoading(false);
+    }
+  }, [getAddressFromCoordinates]);
+
   // Fungsi untuk mendapatkan lokasi saat ini
-  const handleGetCurrentLocation = async () => {
+  const handleGetCurrentLocation = useCallback(async () => {
     const currentLocation = await getCurrentLocation();
 
     if (currentLocation) {
@@ -94,29 +113,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       // Dapatkan alamat dari koordinat
       await handleGetAddress(currentLocation.latitude, currentLocation.longitude);
     }
-  };
-
-  // Fungsi untuk mendapatkan alamat dari koordinat
-  const handleGetAddress = async (latitude: number, longitude: number) => {
-    setIsAddressLoading(true);
-
-    try {
-      const addressData = await getAddressFromCoordinates(latitude, longitude);
-
-      if (addressData) {
-        // Format alamat
-        const formattedAddress = formatAddress(addressData);
-        setSelectedAddress(formattedAddress);
-      } else {
-        setSelectedAddress(undefined);
-      }
-    } catch (error) {
-      console.error('Error getting address:', error);
-      setSelectedAddress(undefined);
-    } finally {
-      setIsAddressLoading(false);
-    }
-  };
+  }, [getCurrentLocation, handleGetAddress]);
 
   // Fungsi untuk memformat alamat
   const formatAddress = (address: LocationAddress): string => {
@@ -154,7 +151,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   };
 
   // Fungsi untuk menangani klik pada peta
-  const handleMapPress = (event: any) => {
+  const handleMapPress = (event: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
     const { coordinate } = event.nativeEvent;
 
     setSelectedLocation({
@@ -198,7 +195,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   };
 
   // Fungsi untuk animasi masuk
-  const startEntranceAnimation = () => {
+  const startEntranceAnimation = useCallback(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -211,7 +208,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
         useNativeDriver: true,
       }),
     ]).start();
-  };
+  }, [fadeAnim, slideAnim]);
 
   // Fungsi untuk toggle search bar
   const toggleSearchBar = () => {
@@ -233,7 +230,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
     setTimeout(() => {
       startEntranceAnimation();
     }, 100);
-  }, []);
+  }, [initialLocation, handleGetCurrentLocation, startEntranceAnimation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -546,7 +543,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   );
 };
 
-const { height, width } = Dimensions.get('window');
+
 
 const styles = StyleSheet.create({
   container: {

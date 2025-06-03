@@ -144,7 +144,7 @@ const fallbackDurationOptions: DurationOption[] = [
   },
 ];
 
-export const AddChallengeScreen = () => {
+const AddChallengeScreenComponent = () => {
   const navigation = useNavigation<AddChallengeScreenNavigationProp>();
   const { user } = useAuthStore();
   const { setupChallengeReminders } = useNotificationManager();
@@ -172,8 +172,6 @@ export const AddChallengeScreen = () => {
   const [customTypeName, setCustomTypeName] = useState('');
   const [customTypeDescription, setCustomTypeDescription] = useState('');
   const [customTypeIcon, setCustomTypeIcon] = useState('');
-  const [customTypeIconType, setCustomTypeIconType] = useState('MaterialCommunityIcons');
-  const [customTypeColor, setCustomTypeColor] = useState(theme.colors.primary[500]);
 
   // Animasi
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -200,7 +198,7 @@ export const AddChallengeScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim, scaleAnim]);
 
   // Efek untuk memuat data dari Supabase
   useEffect(() => {
@@ -227,7 +225,7 @@ export const AddChallengeScreen = () => {
           setDurationOptions(durations);
         }
       } catch (error) {
-        console.error('Error loading options:', error);
+        // Error loading options - silently handled
         // Fallback ke data hardcoded sudah diatur di useState
       } finally {
         setIsLoadingOptions(false);
@@ -255,8 +253,8 @@ export const AddChallengeScreen = () => {
         name: customTypeName,
         description: customTypeDescription,
         icon: customTypeIcon,
-        iconType: customTypeIconType,
-        color: customTypeColor,
+        iconType: 'MaterialCommunityIcons',
+        color: theme.colors.primary[500],
         gradientColors: [theme.colors.primary[400], theme.colors.primary[600]],
       });
 
@@ -271,7 +269,7 @@ export const AddChallengeScreen = () => {
         showError('Error', 'Gagal menambahkan jenis tantangan kustom');
       }
     } catch (error) {
-      console.error('Error adding custom challenge type:', error);
+      // Error adding custom challenge type - silently handled
       showError('Error', 'Terjadi kesalahan saat menambahkan jenis tantangan kustom');
     } finally {
       setIsLoading(false);
@@ -362,7 +360,7 @@ export const AddChallengeScreen = () => {
       const { data: newChallenge, error } = await addChallenge(challengeInput);
 
       if (error || !newChallenge) {
-        console.error('Error adding challenge:', error);
+        // Error adding challenge - silently handled
         showError('Error', 'Gagal menambahkan tantangan');
         setIsLoading(false);
         return;
@@ -372,7 +370,7 @@ export const AddChallengeScreen = () => {
       const { error: startError } = await startChallenge(user.id, newChallenge.id);
 
       if (startError) {
-        console.error('Error starting challenge:', startError);
+        // Error starting challenge - silently handled
         showWarning(
           'Peringatan',
           'Tantangan berhasil dibuat tetapi gagal dimulai. Anda dapat memulainya nanti dari halaman Tantangan.'
@@ -391,7 +389,7 @@ export const AddChallengeScreen = () => {
         setTimeout(() => navigation.goBack(), 2000);
       }
     } catch (error) {
-      console.error('Error saving challenge:', error);
+      // Error saving challenge - silently handled
       showError('Error', 'Terjadi kesalahan saat menyimpan tantangan');
     } finally {
       setIsLoading(false);
@@ -542,19 +540,19 @@ export const AddChallengeScreen = () => {
                       activeOpacity={0.7}
                     >
                       <LinearGradient
-                        colors={type.gradientColors as any}
+                        colors={type.gradientColors as [string, string]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.optionIconContainer}
                       >
                         {type.iconType === 'MaterialCommunityIcons' && (
-                          <MaterialCommunityIcons name={type.icon as any} size={24} color={theme.colors.white} />
+                          <MaterialCommunityIcons name={type.icon as keyof typeof MaterialCommunityIcons.glyphMap} size={24} color={theme.colors.white} />
                         )}
                         {type.iconType === 'FontAwesome5' && (
-                          <FontAwesome5 name={type.icon as any} size={22} color={theme.colors.white} />
+                          <FontAwesome5 name={type.icon as keyof typeof FontAwesome5.glyphMap} size={22} color={theme.colors.white} />
                         )}
                         {type.iconType === 'Ionicons' && (
-                          <Ionicons name={type.icon as any} size={24} color={theme.colors.white} />
+                          <Ionicons name={type.icon as keyof typeof Ionicons.glyphMap} size={24} color={theme.colors.white} />
                         )}
                       </LinearGradient>
                       <View style={styles.optionTextContainer}>
@@ -606,12 +604,12 @@ export const AddChallengeScreen = () => {
                     activeOpacity={0.7}
                   >
                     <LinearGradient
-                      colors={difficulty.gradientColors as any}
+                      colors={difficulty.gradientColors as [string, string]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.difficultyIconContainer}
                     >
-                      <Ionicons name={difficulty.icon as any} size={30} color={theme.colors.white} />
+                      <Ionicons name={difficulty.icon as keyof typeof Ionicons.glyphMap} size={30} color={theme.colors.white} />
                     </LinearGradient>
                     <Typography variant="body2" weight="600" style={styles.difficultyName}>
                       {difficulty.name}
@@ -652,14 +650,14 @@ export const AddChallengeScreen = () => {
                     <View style={styles.durationIconContainer}>
                       {duration.iconType === 'MaterialCommunityIcons' && (
                         <MaterialCommunityIcons
-                          name={duration.icon as any}
+                          name={duration.icon as keyof typeof MaterialCommunityIcons.glyphMap}
                           size={24}
                           color={selectedDuration === duration.id ? theme.colors.primary[500] : theme.colors.neutral[500]}
                         />
                       )}
                       {duration.iconType === 'FontAwesome5' && (
                         <FontAwesome5
-                          name={duration.icon as any}
+                          name={duration.icon as keyof typeof FontAwesome5.glyphMap}
                           size={20}
                           color={selectedDuration === duration.id ? theme.colors.primary[500] : theme.colors.neutral[500]}
                         />
@@ -1122,3 +1120,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+// Set display name untuk komponen
+AddChallengeScreenComponent.displayName = 'AddChallengeScreen';
+
+// Export komponen dengan display name
+export const AddChallengeScreen = AddChallengeScreenComponent;

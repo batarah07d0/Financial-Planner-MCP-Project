@@ -16,52 +16,45 @@ export const getBudgets = async (
     categoryId?: string;
   } = {}
 ): Promise<Budget[]> => {
+  const {
+    limit = 10,
+    offset = 0,
+    period,
+    categoryId,
+  } = options;
+
+  let query = supabase
+    .from('budgets')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+    .range(offset, offset + limit - 1);
+
+  // Cek apakah kolom period ada di tabel budgets
   try {
-    const {
-      limit = 10,
-      offset = 0,
-      period,
-      categoryId,
-    } = options;
-
-    let query = supabase
-      .from('budgets')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-      .range(offset, offset + limit - 1);
-
-    // Cek apakah kolom period ada di tabel budgets
-    try {
-      if (period) {
-        query = query.eq('period', period);
-      }
-    } catch (periodError) {
-      console.warn('Kolom period mungkin belum ada di tabel budgets:', periodError);
-      // Lanjutkan tanpa filter period
+    if (period) {
+      query = query.eq('period', period);
     }
+  } catch (periodError) {
+    // Lanjutkan tanpa filter period
+  }
 
-    if (categoryId) {
-      query = query.eq('category_id', categoryId);
+  if (categoryId) {
+    query = query.eq('category_id', categoryId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    // Jika error terkait kolom period, coba lagi tanpa filter period
+    if (error.message && error.message.includes('period does not exist') && period) {
+      return await getBudgets(userId, { ...options, period: undefined });
     }
-
-    const { data, error } = await query;
-
-    if (error) {
-      // Jika error terkait kolom period, coba lagi tanpa filter period
-      if (error.message && error.message.includes('period does not exist') && period) {
-        console.warn('Kolom period tidak ditemukan, mencoba tanpa filter period');
-        return await getBudgets(userId, { ...options, period: undefined });
-      }
-      throw error;
-    }
-
-    return data as Budget[];
-  } catch (error: any) {
-    console.error('Error getting budgets:', error.message);
     throw error;
   }
+
+  return data as Budget[];
 };
 
 /**
@@ -70,24 +63,19 @@ export const getBudgets = async (
  * @returns Promise yang berisi anggaran
  */
 export const getBudgetById = async (id: string): Promise<Budget> => {
-  try {
-    const { data, error } = await supabase
-      .from('budgets')
-      .select('*')
-      .eq('id', id)
-      .single();
+  const { data, error } = await supabase
+    .from('budgets')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-    if (error) throw error;
+  if (error) throw error;
 
-    if (!data) {
-      throw new Error('Anggaran tidak ditemukan');
-    }
-
-    return data as Budget;
-  } catch (error: any) {
-    console.error('Error getting budget by ID:', error.message);
-    throw error;
+  if (!data) {
+    throw new Error('Anggaran tidak ditemukan');
   }
+
+  return data as Budget;
 };
 
 /**
@@ -98,24 +86,19 @@ export const getBudgetById = async (id: string): Promise<Budget> => {
 export const createBudget = async (
   budget: Omit<Budget, 'id' | 'created_at' | 'updated_at'>
 ): Promise<Budget> => {
-  try {
-    const { data, error } = await supabase
-      .from('budgets')
-      .insert([budget])
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('budgets')
+    .insert([budget])
+    .select()
+    .single();
 
-    if (error) throw error;
+  if (error) throw error;
 
-    if (!data) {
-      throw new Error('Gagal membuat anggaran');
-    }
-
-    return data as Budget;
-  } catch (error: any) {
-    console.error('Error creating budget:', error.message);
-    throw error;
+  if (!data) {
+    throw new Error('Gagal membuat anggaran');
   }
+
+  return data as Budget;
 };
 
 /**
@@ -128,25 +111,20 @@ export const updateBudget = async (
   id: string,
   updates: Partial<Budget>
 ): Promise<Budget> => {
-  try {
-    const { data, error } = await supabase
-      .from('budgets')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('budgets')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
 
-    if (error) throw error;
+  if (error) throw error;
 
-    if (!data) {
-      throw new Error('Gagal memperbarui anggaran');
-    }
-
-    return data as Budget;
-  } catch (error: any) {
-    console.error('Error updating budget:', error.message);
-    throw error;
+  if (!data) {
+    throw new Error('Gagal memperbarui anggaran');
   }
+
+  return data as Budget;
 };
 
 /**
@@ -155,17 +133,12 @@ export const updateBudget = async (
  * @returns Promise yang menunjukkan keberhasilan operasi
  */
 export const deleteBudget = async (id: string): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from('budgets')
-      .delete()
-      .eq('id', id);
+  const { error } = await supabase
+    .from('budgets')
+    .delete()
+    .eq('id', id);
 
-    if (error) throw error;
-  } catch (error: any) {
-    console.error('Error deleting budget:', error.message);
-    throw error;
-  }
+  if (error) throw error;
 };
 
 /**
@@ -182,25 +155,79 @@ export const getBudgetSpending = async (
   startDate: string,
   endDate: string
 ): Promise<number> => {
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('amount')
-      .eq('user_id', userId)
-      .eq('category_id', categoryId)
-      .eq('type', 'expense')
-      .gte('date', startDate)
-      .lte('date', endDate);
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('user_id', userId)
+    .eq('category_id', categoryId)
+    .eq('type', 'expense')
+    .gte('date', startDate)
+    .lte('date', endDate);
 
-    if (error) throw error;
+  if (error) throw error;
 
-    if (!data) {
-      return 0;
-    }
-
-    return data.reduce((sum, transaction) => sum + transaction.amount, 0);
-  } catch (error: any) {
-    console.error('Error getting budget spending:', error.message);
-    throw error;
+  if (!data) {
+    return 0;
   }
+
+  return data.reduce((sum, transaction) => sum + transaction.amount, 0);
+};
+
+/**
+ * Mendapatkan detail pengeluaran untuk anggaran dengan breakdown
+ * @param userId - ID pengguna
+ * @param categoryId - ID kategori
+ * @param startDate - Tanggal mulai
+ * @param endDate - Tanggal akhir
+ * @returns Promise yang berisi detail pengeluaran
+ */
+export const getBudgetSpendingDetails = async (
+  userId: string,
+  categoryId: string,
+  startDate: string,
+  endDate: string
+): Promise<{
+  total: number;
+  planned: number;
+  unplanned: number;
+  transactions: Array<{
+    amount: number;
+    description?: string;
+    date: string;
+    is_planned?: boolean;
+  }>;
+}> => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('amount, description, date, is_planned')
+    .eq('user_id', userId)
+    .eq('category_id', categoryId)
+    .eq('type', 'expense')
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date', { ascending: false });
+
+  if (error) throw error;
+
+  if (!data) {
+    return {
+      total: 0,
+      planned: 0,
+      unplanned: 0,
+      transactions: []
+    };
+  }
+
+  const total = data.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const planned = data
+    .filter(t => t.is_planned)
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const unplanned = total - planned;
+
+  return {
+    total,
+    planned,
+    unplanned,
+    transactions: data
+  };
 };

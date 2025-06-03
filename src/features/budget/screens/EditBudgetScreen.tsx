@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { formatCurrency } from '../../../core/utils';
+// formatCurrency removed as it's not used in this component
 import { useSuperiorDialog } from '../../../core/hooks';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { getBudgetById, updateBudget } from '../../../core/services/supabase/budget.service';
@@ -51,7 +51,7 @@ export const EditBudgetScreen = () => {
   const { responsiveSpacing, responsiveFontSize, isSmallDevice } = useAppDimensions();
 
   // Load budget and categories data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -71,12 +71,11 @@ export const EditBudgetScreen = () => {
       });
 
     } catch (error) {
-      console.error('Error loading data:', error);
       showError('Error', 'Gagal memuat data anggaran');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [budgetId, showError]);
 
   // Format currency input
   const formatCurrencyInput = (value: string) => {
@@ -186,7 +185,6 @@ export const EditBudgetScreen = () => {
       }, 1500);
 
     } catch (error) {
-      console.error('Error updating budget:', error);
       showError('Error', 'Gagal memperbarui anggaran');
     } finally {
       setIsSubmitting(false);
@@ -200,7 +198,7 @@ export const EditBudgetScreen = () => {
 
   useEffect(() => {
     loadData();
-  }, [budgetId]);
+  }, [loadData]);
 
   if (isLoading) {
     return (
@@ -447,7 +445,7 @@ export const EditBudgetScreen = () => {
                   borderRadius: responsiveSpacing(isSmallDevice ? 16 : 18),
                 }]}>
                   <Ionicons
-                    name={(category.icon || 'wallet-outline') as any}
+                    name={(category.icon || 'wallet-outline') as keyof typeof Ionicons.glyphMap}
                     size={responsiveSpacing(isSmallDevice ? 16 : 18)}
                     color={theme.colors.white}
                   />
@@ -548,7 +546,7 @@ export const EditBudgetScreen = () => {
                     marginHorizontal: responsiveSpacing(4),
                   },
                 ]}
-                onPress={() => handlePeriodChange(option.value as any)}
+                onPress={() => handlePeriodChange(option.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
               >
                 <View style={[styles.periodIcon, {
                   backgroundColor: formData.period === option.value
@@ -560,7 +558,7 @@ export const EditBudgetScreen = () => {
                   marginBottom: responsiveSpacing(theme.spacing.sm),
                 }]}>
                   <Ionicons
-                    name={option.icon as any}
+                    name={option.icon as keyof typeof Ionicons.glyphMap}
                     size={responsiveSpacing(isSmallDevice ? 16 : 18)}
                     color={
                       formData.period === option.value

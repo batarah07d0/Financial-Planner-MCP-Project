@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import * as Haptics from 'expo-haptics';
 
-import { Typography, Card, Button, TextInput, SuperiorDialog } from '../../../core/components';
+import { Typography, Button, TextInput, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
 import { Category } from '../../../core/services/supabase/types';
@@ -88,7 +88,7 @@ export const EditTransactionScreen = () => {
   });
 
   // Load transaction and categories data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -117,13 +117,16 @@ export const EditTransactionScreen = () => {
       setValue('payment_method', transactionData.payment_method || '');
 
     } catch (error) {
-      console.error('Error loading data:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error loading data:', error);
+      }
       showError('Error', 'Gagal memuat data transaksi');
       navigation.goBack();
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [transactionId, setValue, showError, navigation]);
 
   // Handle form submission
   const onSubmit = async (data: EditTransactionFormData) => {
@@ -164,7 +167,10 @@ export const EditTransactionScreen = () => {
       setTimeout(() => navigation.goBack(), 1500);
 
     } catch (error) {
-      console.error('Error updating transaction:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error updating transaction:', error);
+      }
       showError('Error', 'Gagal memperbarui transaksi');
     } finally {
       setIsSubmitting(false);
@@ -181,7 +187,7 @@ export const EditTransactionScreen = () => {
 
   useEffect(() => {
     loadData();
-  }, [transactionId]);
+  }, [loadData]);
 
   if (isLoading) {
     return (

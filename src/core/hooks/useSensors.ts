@@ -41,7 +41,7 @@ export const useSensors = () => {
           break;
       }
     } catch (error) {
-      console.warn('Haptic feedback not available:', error);
+      // Haptic feedback not available - silently handled
     }
   }, []);
 

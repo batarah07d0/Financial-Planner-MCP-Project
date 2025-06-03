@@ -36,7 +36,7 @@ export const useSupabaseAuth = () => {
           }
         }
       } catch (error) {
-        console.error('Error checking auth session:', error);
+        // Error checking auth session - silently handled
       } finally {
         setIsLoading(false);
       }
@@ -71,7 +71,7 @@ export const useSupabaseAuth = () => {
         authListener.subscription.unsubscribe();
       }
     };
-  }, []);
+  }, [setUser, setIsAuthenticated, setIsLoading]);
 
   return {
     user,

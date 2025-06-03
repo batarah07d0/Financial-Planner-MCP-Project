@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -32,38 +32,7 @@ export const BiometricAuth: React.FC<BiometricAuthProps> = ({
   const [animatedValue] = useState(new Animated.Value(0));
   const { authenticate, isAvailable, isLoading, error } = useBiometrics();
 
-
-  useEffect(() => {
-    if (visible) {
-
-      animatedValue.setValue(0);
-
-
-      Animated.timing(animatedValue, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-
-
-      handleAuthenticate();
-    }
-  }, [visible]);
-
-
-  const scale = animatedValue.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.8, 1.1, 1],
-  });
-
-  const opacity = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
-
-
-  const handleAuthenticate = async () => {
+  const handleAuthenticate = useCallback(async () => {
     if (!isAvailable) {
       onCancel();
       return;
@@ -78,7 +47,32 @@ export const BiometricAuth: React.FC<BiometricAuthProps> = ({
     if (success) {
       onSuccess();
     }
-  };
+  }, [isAvailable, onCancel, authenticate, promptMessage, fallbackLabel, cancelLabel, onSuccess]);
+
+  useEffect(() => {
+    if (visible) {
+      animatedValue.setValue(0);
+
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+
+      handleAuthenticate();
+    }
+  }, [visible, handleAuthenticate, animatedValue]);
+
+  const scale = animatedValue.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.8, 1.1, 1],
+  });
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
   return (
     <Modal

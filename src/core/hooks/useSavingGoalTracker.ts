@@ -6,7 +6,7 @@ import { savingGoalTrackerService, SavingGoalProgress } from '../services/saving
 export const useSavingGoalTracker = () => {
   const { user } = useAuthStore();
   const appState = useRef(AppState.currentState);
-  const trackingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCheckRef = useRef<number>(0);
 
   // Check interval (every 6 hours)
@@ -26,21 +26,22 @@ export const useSavingGoalTracker = () => {
 
     try {
       lastCheckRef.current = now;
-      console.log('Tracking saving goals progress...');
-      
+      // Tracking saving goals progress
+
       const progressList = await savingGoalTrackerService.trackAllGoalsProgress(user.id);
-      
+
       const notifiedGoals = progressList.filter(progress => progress.shouldNotify);
+      // Saving goal notifications processed silently
       if (notifiedGoals.length > 0) {
-        console.log(`Saving goal notifications sent for ${notifiedGoals.length} goals`);
+        // Notifications sent for goals
       }
 
       return progressList;
     } catch (error) {
-      console.error('Error tracking goals progress:', error);
+      // Error tracking goals progress - silently handled
       return [];
     }
-  }, [user]);
+  }, [user, MIN_CHECK_INTERVAL]);
 
   // Update specific goal progress
   const updateGoalProgress = useCallback(async (
@@ -56,7 +57,7 @@ export const useSavingGoalTracker = () => {
         newAmount
       );
     } catch (error) {
-      console.error('Error updating goal progress:', error);
+      // Error updating goal progress - silently handled
       return null;
     }
   }, [user]);
@@ -75,7 +76,7 @@ export const useSavingGoalTracker = () => {
         targetAmount
       );
     } catch (error) {
-      console.error('Error sending completion celebration:', error);
+      // Error sending completion celebration - silently handled
       return false;
     }
   }, [user]);
@@ -94,7 +95,7 @@ export const useSavingGoalTracker = () => {
         daysWithoutProgress
       );
     } catch (error) {
-      console.error('Error sending motivation reminder:', error);
+      // Error sending motivation reminder - silently handled
       return false;
     }
   }, [user]);
@@ -106,7 +107,7 @@ export const useSavingGoalTracker = () => {
     try {
       return await savingGoalTrackerService.getProgressSummary(user.id);
     } catch (error) {
-      console.error('Error getting progress summary:', error);
+      // Error getting progress summary - silently handled
       return null;
     }
   }, [user]);
@@ -118,8 +119,8 @@ export const useSavingGoalTracker = () => {
     }
 
     if (user) {
-      console.log('Setting up saving goal tracking...');
-      
+      // Setting up saving goal tracking
+
       // Initial check
       trackAllGoalsProgress();
 
@@ -128,7 +129,7 @@ export const useSavingGoalTracker = () => {
         trackAllGoalsProgress();
       }, CHECK_INTERVAL);
     }
-  }, [user, trackAllGoalsProgress]);
+  }, [user, trackAllGoalsProgress, CHECK_INTERVAL]);
 
   // Cleanup interval
   const cleanupPeriodicTracking = useCallback(() => {
@@ -142,7 +143,6 @@ export const useSavingGoalTracker = () => {
   const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
     if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
       // App came to foreground, check goals progress
-      console.log('App became active, checking saving goals...');
       trackAllGoalsProgress();
     }
     appState.current = nextAppState;

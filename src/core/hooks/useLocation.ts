@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { Alert } from 'react-native';
 
@@ -49,7 +49,7 @@ export const useLocation = (options: UseLocationOptions = {}) => {
   const [watchId, setWatchId] = useState<Location.LocationSubscription | null>(null);
 
   // Fungsi untuk meminta izin lokasi
-  const requestPermission = async (): Promise<boolean> => {
+  const requestPermission = useCallback(async (): Promise<boolean> => {
     setIsLoading(true);
     setErrorMsg(null);
 
@@ -67,13 +67,14 @@ export const useLocation = (options: UseLocationOptions = {}) => {
       }
 
       return permissionGranted;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat meminta izin lokasi');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat meminta izin lokasi';
+      setErrorMsg(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Fungsi untuk mendapatkan lokasi saat ini
   const getCurrentLocation = async (): Promise<LocationData | null> => {
@@ -104,8 +105,9 @@ export const useLocation = (options: UseLocationOptions = {}) => {
 
       setLocation(locationData);
       return locationData;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat mendapatkan lokasi');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat mendapatkan lokasi';
+      setErrorMsg(errorMessage);
       return null;
     } finally {
       setIsLoading(false);
@@ -145,8 +147,9 @@ export const useLocation = (options: UseLocationOptions = {}) => {
       }
 
       return null;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat mendapatkan alamat');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat mendapatkan alamat';
+      setErrorMsg(errorMessage);
       return null;
     } finally {
       setIsLoading(false);
@@ -189,8 +192,9 @@ export const useLocation = (options: UseLocationOptions = {}) => {
       setWatchId(subscription);
       setIsWatching(true);
       return true;
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Terjadi kesalahan saat memantau lokasi');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat memantau lokasi';
+      setErrorMsg(errorMessage);
       return false;
     }
   };
@@ -215,7 +219,7 @@ export const useLocation = (options: UseLocationOptions = {}) => {
         watchId.remove();
       }
     };
-  }, []);
+  }, [requestPermissionOnMount, requestPermission, watchId]);
 
   return {
     location,

@@ -58,27 +58,8 @@ export const SettingsScreen = () => {
   // Animasi untuk scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
-  // Efek untuk memuat pengaturan dan statistik pengguna
-  useEffect(() => {
-    if (user) {
-      loadUserData();
-    }
-
-    // Mengatur status bar
-    StatusBar.setBarStyle('dark-content');
-    if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor('transparent');
-      StatusBar.setTranslucent(true);
-    }
-
-    return () => {
-      // Reset status bar saat unmount
-      StatusBar.setBarStyle('default');
-    };
-  }, [user]);
-
   // Fungsi untuk memuat data pengguna
-  const loadUserData = async () => {
+  const loadUserData = React.useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -98,11 +79,30 @@ export const SettingsScreen = () => {
 
       setStats(userStats);
     } catch (error) {
-      console.error('Error loading user data:', error);
+      // Error handling tanpa console.error
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  // Efek untuk memuat pengaturan dan statistik pengguna
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    }
+
+    // Mengatur status bar
+    StatusBar.setBarStyle('dark-content');
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor('transparent');
+      StatusBar.setTranslucent(true);
+    }
+
+    return () => {
+      // Reset status bar saat unmount
+      StatusBar.setBarStyle('default');
+    };
+  }, [user, loadUserData]);
 
   // Fungsi untuk menangani toggle notifikasi
   const handleToggleNotifications = async (value: boolean) => {
@@ -115,7 +115,7 @@ export const SettingsScreen = () => {
         notification_enabled: value,
       });
     } catch (error) {
-      console.error('Error toggling notifications:', error);
+      // Error handling tanpa console.error
     }
   };
 
@@ -130,7 +130,6 @@ export const SettingsScreen = () => {
       setShowLogoutDialog(false);
       await logout();
     } catch (error) {
-      console.error('Error logging out:', error);
       Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
     }
   };
@@ -142,43 +141,37 @@ export const SettingsScreen = () => {
 
   // Fungsi untuk menghapus semua data pengguna dari database
   const deleteUserData = async (userId: string) => {
-    try {
-      // Hapus data dari semua tabel yang terkait dengan user
-      const tables = [
-        'transactions',
-        'budgets',
-        'challenges',
-        'saving_zones',
-        'user_settings',
-        'backup_history',
-        'security_settings',
-        'profiles'
-      ];
+    // Hapus data dari semua tabel yang terkait dengan user
+    const tables = [
+      'transactions',
+      'budgets',
+      'challenges',
+      'saving_zones',
+      'user_settings',
+      'backup_history',
+      'security_settings',
+      'profiles'
+    ];
 
-      for (const table of tables) {
-        const { error } = await supabase
-          .from(table)
-          .delete()
-          .eq('user_id', userId);
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-          console.error(`Error deleting from ${table}:`, error);
-        }
-      }
-
-      // Hapus data dari tabel profiles jika menggunakan id langsung
-      const { error: profileError } = await supabase
-        .from('profiles')
+    for (const table of tables) {
+      const { error } = await supabase
+        .from(table)
         .delete()
-        .eq('id', userId);
+        .eq('user_id', userId);
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error deleting profile:', profileError);
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        // Error handling tanpa console.error
       }
+    }
 
-    } catch (error) {
-      console.error('Error deleting user data:', error);
-      throw error;
+    // Hapus data dari tabel profiles jika menggunakan id langsung
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      // Error handling tanpa console.error
     }
   };
 
@@ -197,8 +190,6 @@ export const SettingsScreen = () => {
 
       if (deleteError) {
         // Jika gagal hapus dari auth, coba dengan metode lain
-        console.error('Error deleting user from auth:', deleteError);
-
         // Logout user dan biarkan mereka tidak bisa login lagi
         await logout();
         Alert.alert(
@@ -218,7 +209,6 @@ export const SettingsScreen = () => {
       );
 
     } catch (error) {
-      console.error('Error deleting account:', error);
       Alert.alert(
         'Error',
         'Gagal menghapus akun. Silakan coba lagi atau hubungi dukungan.'

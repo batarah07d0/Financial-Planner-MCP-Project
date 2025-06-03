@@ -29,7 +29,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <View style={[styles.container, style]}>
       <Ionicons
-        name={icon as any}
+        name={icon as keyof typeof Ionicons.glyphMap}
         size={iconSize}
         color={iconColor}
       />

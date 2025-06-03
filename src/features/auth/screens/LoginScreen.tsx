@@ -36,13 +36,9 @@ export const LoginScreen = () => {
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
     width,
-    height,
-    breakpoint,
     isLandscape,
-    responsiveFontSize,
     responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -108,7 +104,7 @@ export const LoginScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [route.params]);
+  }, [route.params, fadeAnim, slideAnim]);
 
   const handleLogin = async () => {
     if (!email.trim()) {

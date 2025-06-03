@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,11 +9,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { formatCurrency, formatDate, formatPercentage } from '../../../core/utils';
+import { formatCurrency, formatDate, formatPercentage, getCategoryIcon, getCategoryColor } from '../../../core/utils';
 import { useSuperiorDialog } from '../../../core/hooks';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { getBudgetById, deleteBudget, getBudgetSpending } from '../../../core/services/supabase/budget.service';
@@ -22,11 +23,13 @@ import { getTransactions } from '../../../core/services/supabase/transaction.ser
 import { useAuthStore } from '../../../core/services/store/authStore';
 import { useBudgetStore } from '../../../core/services/store/budgetStore';
 import { Budget, Category, Transaction } from '../../../core/services/supabase/types';
+import { RootStackParamList } from '../../../core/navigation/types';
 
 type BudgetDetailRouteProp = RouteProp<{ BudgetDetail: { id: string } }, 'BudgetDetail'>;
+type BudgetDetailNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const BudgetDetailScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<BudgetDetailNavigationProp>();
   const route = useRoute<BudgetDetailRouteProp>();
   const { id: budgetId } = route.params;
 
@@ -44,7 +47,7 @@ export const BudgetDetailScreen = () => {
   const { responsiveSpacing, responsiveFontSize, isSmallDevice } = useAppDimensions();
 
   // Load budget data
-  const loadBudgetData = async () => {
+  const loadBudgetData = useCallback(async () => {
     try {
       if (!user?.id) return;
 
@@ -54,10 +57,31 @@ export const BudgetDetailScreen = () => {
       const budgetData = await getBudgetById(budgetId);
       setBudget(budgetData);
 
-      // Get category data
+      // Get category data dengan enhanced mapping
       const categories = await getCategories({ type: 'expense' });
       const categoryData = categories.find(cat => cat.id === budgetData.category_id);
-      setCategory(categoryData || null);
+
+      // Enhanced category data dengan fallback yang lebih baik
+      if (categoryData) {
+        const enhancedCategory = {
+          ...categoryData,
+          icon: getCategoryIcon(categoryData.name, categoryData.icon),
+          color: getCategoryColor(categoryData.name, categoryData.color),
+        };
+        setCategory(enhancedCategory);
+      } else {
+        // Fallback jika kategori tidak ditemukan
+        setCategory({
+          id: budgetData.category_id,
+          name: 'Kategori',
+          type: 'expense' as const,
+          icon: getCategoryIcon('Kategori'),
+          color: getCategoryColor('Kategori'),
+          is_default: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
 
       // Calculate date range based on period
       const now = new Date();
@@ -112,12 +136,11 @@ export const BudgetDetailScreen = () => {
       setTransactions(transactionData);
 
     } catch (error) {
-      console.error('Error loading budget data:', error);
       showError('Error', 'Gagal memuat data anggaran');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [budgetId, user?.id, showError]);
 
   // Refresh data
   const handleRefresh = async () => {
@@ -128,6 +151,7 @@ export const BudgetDetailScreen = () => {
 
   // Handle edit budget
   const handleEdit = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('EditBudget', { id: budgetId });
   };
 
@@ -144,7 +168,6 @@ export const BudgetDetailScreen = () => {
           showSuccess('Berhasil', 'Anggaran berhasil dihapus');
           setTimeout(() => navigation.goBack(), 1500);
         } catch (error) {
-          console.error('Error deleting budget:', error);
           showError('Error', 'Gagal menghapus anggaran');
         } finally {
           setIsDeleting(false);
@@ -158,9 +181,39 @@ export const BudgetDetailScreen = () => {
     navigation.goBack();
   };
 
+  // Handle share budget report
+  const handleShareBudget = async () => {
+    try {
+      if (!budget) return;
+
+      // For now, just show success message
+      // In real app, you would use Share API or similar
+      showSuccess('Berhasil', 'Laporan anggaran siap dibagikan');
+
+      // Example implementation with Share API:
+      // import { Share } from 'react-native';
+      // const reportText = `
+      // 📊 Laporan Anggaran - ${category?.name || 'Kategori'}
+      // 💰 Total Anggaran: ${formatCurrency(budget.amount)}
+      // 💸 Terpakai: ${formatCurrency(spent)} (${formatPercentage(percentage)})
+      // 💵 Sisa: ${formatCurrency(remainingAmount)}
+      // 📅 Periode: ${getPeriodText()}
+      // 📈 Status: ${statusInfo.text}
+      // Generated by Financial Planner App
+      // `.trim();
+      // await Share.share({
+      //   message: reportText,
+      //   title: 'Laporan Anggaran'
+      // });
+
+    } catch (error) {
+      showError('Error', 'Gagal membagikan laporan');
+    }
+  };
+
   useEffect(() => {
     loadBudgetData();
-  }, [budgetId, user?.id]);
+  }, [budgetId, user?.id, loadBudgetData]);
 
   if (isLoading) {
     return (
@@ -234,18 +287,82 @@ export const BudgetDetailScreen = () => {
 
   const statusInfo = getStatusInfo();
 
-  // Get progress colors
-  const getProgressColors = (): [string, string] => {
-    if (percentage >= 1) {
-      return [theme.colors.danger[400], theme.colors.danger[600]];
-    } else if (percentage >= 0.8) {
-      return [theme.colors.warning[400], theme.colors.warning[600]];
-    } else {
-      return [theme.colors.success[400], theme.colors.success[600]];
+  // Enhanced Progress Logic dengan Multiple Indicators
+  const getProgressData = () => {
+    const safePercentage = Math.max(0, percentage);
+    const displayPercentage = Math.min(safePercentage, 1.5); // Allow up to 150% for visual
+
+    // Progress Zones dengan logic yang lebih detail
+    const zones = {
+      safe: { min: 0, max: 0.5, color: theme.colors.success[500], label: 'Aman' },
+      moderate: { min: 0.5, max: 0.7, color: theme.colors.info[500], label: 'Moderat' },
+      caution: { min: 0.7, max: 0.85, color: theme.colors.warning[500], label: 'Hati-hati' },
+      warning: { min: 0.85, max: 1, color: theme.colors.warning[600], label: 'Hampir Habis' },
+      danger: { min: 1, max: 1.5, color: theme.colors.danger[500], label: 'Melebihi' },
+    };
+
+    // Determine current zone
+    let currentZone = zones.safe;
+    if (safePercentage >= zones.danger.min) currentZone = zones.danger;
+    else if (safePercentage >= zones.warning.min) currentZone = zones.warning;
+    else if (safePercentage >= zones.caution.min) currentZone = zones.caution;
+    else if (safePercentage >= zones.moderate.min) currentZone = zones.moderate;
+
+    // Progress colors dengan gradient yang lebih smooth
+    const getProgressColors = (): [string, string] => {
+      if (safePercentage >= 1) {
+        return [theme.colors.danger[400], theme.colors.danger[600]];
+      } else if (safePercentage >= 0.85) {
+        return [theme.colors.warning[400], theme.colors.warning[600]];
+      } else if (safePercentage >= 0.7) {
+        return [theme.colors.warning[300], theme.colors.warning[500]];
+      } else if (safePercentage >= 0.5) {
+        return [theme.colors.info[300], theme.colors.info[500]];
+      } else {
+        return [theme.colors.success[400], theme.colors.success[600]];
+      }
+    };
+
+    // Velocity calculation (spending rate)
+    const now = new Date();
+    const periodStart = new Date();
+    let totalDays = 30; // Default monthly
+
+    if (budget.period === 'daily') {
+      totalDays = 1;
+    } else if (budget.period === 'weekly') {
+      totalDays = 7;
+    } else if (budget.period === 'yearly') {
+      totalDays = 365;
     }
+
+    const daysPassed = Math.max(1, Math.ceil((now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)));
+    const dailySpendingRate = spent / Math.min(daysPassed, totalDays);
+    const projectedSpending = dailySpendingRate * totalDays;
+    const projectedPercentage = budget.amount > 0 ? projectedSpending / budget.amount : 0;
+
+    return {
+      percentage: safePercentage,
+      displayPercentage,
+      currentZone,
+      progressColors: getProgressColors(),
+      zones,
+      velocity: {
+        dailyRate: dailySpendingRate,
+        projected: projectedSpending,
+        projectedPercentage,
+        isOnTrack: projectedPercentage <= 1,
+      },
+      insights: {
+        daysRemaining: Math.max(0, totalDays - daysPassed),
+        budgetRemaining: Math.max(0, budget.amount - spent),
+        averageDailyBudget: budget.amount / totalDays,
+        recommendedDailySpending: Math.max(0, (budget.amount - spent) / Math.max(1, totalDays - daysPassed)),
+      }
+    };
   };
 
-  const progressColors = getProgressColors();
+  const progressData = getProgressData();
 
   // Format period text
   const getPeriodText = () => {
@@ -355,29 +472,55 @@ export const BudgetDetailScreen = () => {
             borderRadius: theme.borderRadius.xl,
           }]}
         >
-          {/* Category Header */}
+          {/* Category Header dengan Enhanced Icon */}
           <View style={[styles.categoryHeader, {
             marginBottom: responsiveSpacing(theme.spacing.lg),
           }]}>
-            <View style={[styles.categoryIcon, {
-              backgroundColor: category?.color || theme.colors.primary[100],
-              width: responsiveSpacing(isSmallDevice ? 48 : 56),
-              height: responsiveSpacing(isSmallDevice ? 48 : 56),
-              borderRadius: responsiveSpacing(isSmallDevice ? 24 : 28),
+            {/* Enhanced Icon Container dengan gradient dan shadow */}
+            <View style={[styles.categoryIconContainer, {
+              width: responsiveSpacing(isSmallDevice ? 64 : 72),
+              height: responsiveSpacing(isSmallDevice ? 64 : 72),
+              borderRadius: responsiveSpacing(isSmallDevice ? 32 : 36),
+              marginRight: responsiveSpacing(theme.spacing.lg),
             }]}>
-              <Ionicons
-                name={(category?.icon || 'wallet-outline') as any}
-                size={responsiveSpacing(isSmallDevice ? 24 : 28)}
-                color={category?.color || theme.colors.primary[600]}
-              />
+              <LinearGradient
+                colors={[
+                  category?.color || theme.colors.primary[400],
+                  category?.color ? `${category.color}CC` : theme.colors.primary[600]
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.categoryIconGradient, {
+                  width: responsiveSpacing(isSmallDevice ? 64 : 72),
+                  height: responsiveSpacing(isSmallDevice ? 64 : 72),
+                  borderRadius: responsiveSpacing(isSmallDevice ? 32 : 36),
+                }]}
+              >
+                <Ionicons
+                  name={(category?.icon || 'wallet-outline') as keyof typeof Ionicons.glyphMap}
+                  size={responsiveSpacing(isSmallDevice ? 32 : 36)}
+                  color={theme.colors.white}
+                />
+              </LinearGradient>
+
+              {/* Subtle glow effect */}
+              <View style={[styles.categoryIconGlow, {
+                width: responsiveSpacing(isSmallDevice ? 64 : 72),
+                height: responsiveSpacing(isSmallDevice ? 64 : 72),
+                borderRadius: responsiveSpacing(isSmallDevice ? 32 : 36),
+                backgroundColor: `${category?.color || theme.colors.primary[500]}20`,
+              }]} />
             </View>
+
             <View style={styles.categoryInfo}>
               <Typography
                 variant="h4"
                 weight="700"
                 color={theme.colors.neutral[800]}
                 style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 20 : 24),
+                  fontSize: responsiveFontSize(isSmallDevice ? 22 : 26),
+                  letterSpacing: -0.5,
+                  lineHeight: responsiveFontSize(isSmallDevice ? 28 : 32),
                 }}
               >
                 {category?.name || 'Kategori'}
@@ -386,31 +529,42 @@ export const BudgetDetailScreen = () => {
                 variant="body2"
                 color={theme.colors.neutral[500]}
                 style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 13 : 15),
-                  marginTop: responsiveSpacing(4),
+                  fontSize: responsiveFontSize(isSmallDevice ? 14 : 16),
+                  marginTop: responsiveSpacing(6),
+                  fontWeight: '500',
                 }}
               >
                 Anggaran {getPeriodText()}
               </Typography>
             </View>
+
             <View style={[styles.statusBadge, {
               backgroundColor: statusInfo.bgColor,
-              paddingHorizontal: responsiveSpacing(theme.spacing.sm),
-              paddingVertical: responsiveSpacing(6),
+              paddingHorizontal: responsiveSpacing(theme.spacing.md),
+              paddingVertical: responsiveSpacing(8),
               borderRadius: theme.borderRadius.round,
+              shadowColor: statusInfo.color,
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 2,
             }]}>
               <Ionicons
                 name={statusInfo.icon}
-                size={responsiveSpacing(14)}
+                size={responsiveSpacing(16)}
                 color={statusInfo.color}
-                style={{ marginRight: responsiveSpacing(4) }}
+                style={{ marginRight: responsiveSpacing(6) }}
               />
               <Typography
                 variant="caption"
-                weight="600"
+                weight="700"
                 color={statusInfo.color}
                 style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 11 : 12),
+                  fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                  letterSpacing: 0.2,
                 }}
               >
                 {statusInfo.text}
@@ -495,59 +649,187 @@ export const BudgetDetailScreen = () => {
             </View>
           </View>
 
-          {/* Progress Section */}
+          {/* Enhanced Progress Section dengan Multiple Indicators */}
           <View style={styles.progressSection}>
+            {/* Progress Header dengan Zone Indicator */}
             <View style={[styles.progressHeader, {
               marginBottom: responsiveSpacing(theme.spacing.sm),
             }]}>
-              <Typography
-                variant="body1"
-                weight="600"
-                color={theme.colors.neutral[700]}
-                style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 14 : 16),
-                }}
-              >
-                Progress Penggunaan
-              </Typography>
+              <View style={styles.progressTitleContainer}>
+                <Typography
+                  variant="body1"
+                  weight="600"
+                  color={theme.colors.neutral[700]}
+                  style={{
+                    fontSize: responsiveFontSize(isSmallDevice ? 14 : 16),
+                  }}
+                >
+                  Progress Penggunaan
+                </Typography>
+                <View style={[styles.zoneBadge, {
+                  backgroundColor: `${progressData.currentZone.color}20`,
+                  paddingHorizontal: responsiveSpacing(8),
+                  paddingVertical: responsiveSpacing(4),
+                  borderRadius: theme.borderRadius.sm,
+                  marginLeft: responsiveSpacing(8),
+                }]}>
+                  <Typography
+                    variant="caption"
+                    weight="600"
+                    color={progressData.currentZone.color}
+                    style={{
+                      fontSize: responsiveFontSize(isSmallDevice ? 10 : 11),
+                    }}
+                  >
+                    {progressData.currentZone.label}
+                  </Typography>
+                </View>
+              </View>
               <Typography
                 variant="h5"
                 weight="700"
-                color={percentage >= 1 ? theme.colors.danger[500] : theme.colors.primary[600]}
+                color={progressData.currentZone.color}
                 style={{
                   fontSize: responsiveFontSize(isSmallDevice ? 18 : 20),
                 }}
               >
-                {formatPercentage(percentage)}
+                {formatPercentage(progressData.percentage)}
               </Typography>
             </View>
 
-            <View style={[styles.progressBar, {
-              height: responsiveSpacing(isSmallDevice ? 12 : 16),
-              borderRadius: theme.borderRadius.round,
-              marginBottom: responsiveSpacing(theme.spacing.sm),
+            {/* Enhanced Progress Bar dengan Zone Markers */}
+            <View style={[styles.progressBarContainer, {
+              marginBottom: responsiveSpacing(theme.spacing.md),
             }]}>
-              <LinearGradient
-                colors={progressColors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${Math.min(percentage * 100, 100)}%`,
-                    borderRadius: theme.borderRadius.round,
-                  },
-                ]}
-              />
+              <View style={[styles.progressBar, {
+                height: responsiveSpacing(isSmallDevice ? 12 : 16),
+                borderRadius: theme.borderRadius.round,
+                backgroundColor: theme.colors.neutral[200],
+              }]}>
+                <LinearGradient
+                  colors={progressData.progressColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${Math.min(progressData.displayPercentage * 100, 100)}%`,
+                      borderRadius: theme.borderRadius.round,
+                    },
+                  ]}
+                />
+
+                {/* Zone Markers */}
+                <View style={[styles.zoneMarker, {
+                  left: '50%',
+                  backgroundColor: theme.colors.neutral[400],
+                }]} />
+                <View style={[styles.zoneMarker, {
+                  left: '70%',
+                  backgroundColor: theme.colors.warning[400],
+                }]} />
+                <View style={[styles.zoneMarker, {
+                  left: '85%',
+                  backgroundColor: theme.colors.warning[500],
+                }]} />
+              </View>
+
+              {/* Progress Labels */}
+              <View style={styles.progressLabels}>
+                <Typography variant="caption" color={theme.colors.neutral[500]} style={{ fontSize: responsiveFontSize(9) }}>
+                  0%
+                </Typography>
+                <Typography variant="caption" color={theme.colors.neutral[500]} style={{ fontSize: responsiveFontSize(9) }}>
+                  50%
+                </Typography>
+                <Typography variant="caption" color={theme.colors.neutral[500]} style={{ fontSize: responsiveFontSize(9) }}>
+                  100%
+                </Typography>
+              </View>
             </View>
 
-            {percentage >= 1 && (
+            {/* Velocity & Insights Cards */}
+            <View style={styles.insightsContainer}>
+              {/* Spending Velocity Card */}
+              <View style={[styles.insightCard, {
+                backgroundColor: progressData.velocity.isOnTrack ? theme.colors.success[50] : theme.colors.warning[50],
+                borderLeftColor: progressData.velocity.isOnTrack ? theme.colors.success[500] : theme.colors.warning[500],
+              }]}>
+                <View style={styles.insightHeader}>
+                  <Ionicons
+                    name={progressData.velocity.isOnTrack ? "trending-down" : "trending-up"}
+                    size={responsiveSpacing(16)}
+                    color={progressData.velocity.isOnTrack ? theme.colors.success[500] : theme.colors.warning[500]}
+                  />
+                  <Typography
+                    variant="body2"
+                    weight="600"
+                    color={theme.colors.neutral[700]}
+                    style={{
+                      fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                      marginLeft: responsiveSpacing(6),
+                    }}
+                  >
+                    Kecepatan Pengeluaran
+                  </Typography>
+                </View>
+                <Typography
+                  variant="caption"
+                  color={theme.colors.neutral[600]}
+                  style={{
+                    fontSize: responsiveFontSize(isSmallDevice ? 10 : 12),
+                    marginTop: responsiveSpacing(4),
+                  }}
+                >
+                  {formatCurrency(progressData.velocity.dailyRate)}/hari • Proyeksi: {formatPercentage(progressData.velocity.projectedPercentage)}
+                </Typography>
+              </View>
+
+              {/* Budget Recommendation Card */}
+              <View style={[styles.insightCard, {
+                backgroundColor: theme.colors.info[50],
+                borderLeftColor: theme.colors.info[500],
+              }]}>
+                <View style={styles.insightHeader}>
+                  <Ionicons
+                    name="bulb"
+                    size={responsiveSpacing(16)}
+                    color={theme.colors.info[500]}
+                  />
+                  <Typography
+                    variant="body2"
+                    weight="600"
+                    color={theme.colors.neutral[700]}
+                    style={{
+                      fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                      marginLeft: responsiveSpacing(6),
+                    }}
+                  >
+                    Rekomendasi Harian
+                  </Typography>
+                </View>
+                <Typography
+                  variant="caption"
+                  color={theme.colors.neutral[600]}
+                  style={{
+                    fontSize: responsiveFontSize(isSmallDevice ? 10 : 12),
+                    marginTop: responsiveSpacing(4),
+                  }}
+                >
+                  {formatCurrency(progressData.insights.recommendedDailySpending)}/hari untuk {progressData.insights.daysRemaining} hari tersisa
+                </Typography>
+              </View>
+            </View>
+
+            {/* Warning/Alert Messages */}
+            {progressData.percentage >= 1 && (
               <View style={[styles.warningMessage, {
                 backgroundColor: theme.colors.danger[50],
                 padding: responsiveSpacing(theme.spacing.sm),
                 borderRadius: theme.borderRadius.md,
                 borderLeftWidth: 4,
                 borderLeftColor: theme.colors.danger[500],
+                marginTop: responsiveSpacing(theme.spacing.sm),
               }]}>
                 <View style={styles.warningHeader}>
                   <Ionicons
@@ -576,6 +858,46 @@ export const BudgetDetailScreen = () => {
                   }}
                 >
                   Anda telah melebihi anggaran sebesar {formatCurrency(spent - budget.amount)}
+                </Typography>
+              </View>
+            )}
+
+            {progressData.percentage >= 0.85 && progressData.percentage < 1 && (
+              <View style={[styles.warningMessage, {
+                backgroundColor: theme.colors.warning[50],
+                padding: responsiveSpacing(theme.spacing.sm),
+                borderRadius: theme.borderRadius.md,
+                borderLeftWidth: 4,
+                borderLeftColor: theme.colors.warning[500],
+                marginTop: responsiveSpacing(theme.spacing.sm),
+              }]}>
+                <View style={styles.warningHeader}>
+                  <Ionicons
+                    name="alert-circle"
+                    size={responsiveSpacing(16)}
+                    color={theme.colors.warning[500]}
+                  />
+                  <Typography
+                    variant="body2"
+                    weight="600"
+                    color={theme.colors.warning[700]}
+                    style={{
+                      fontSize: responsiveFontSize(isSmallDevice ? 13 : 15),
+                      marginLeft: responsiveSpacing(6),
+                    }}
+                  >
+                    Hampir Mencapai Batas
+                  </Typography>
+                </View>
+                <Typography
+                  variant="caption"
+                  color={theme.colors.warning[600]}
+                  style={{
+                    fontSize: responsiveFontSize(isSmallDevice ? 11 : 13),
+                    marginTop: responsiveSpacing(4),
+                  }}
+                >
+                  Sisa anggaran: {formatCurrency(remainingAmount)}. Pertimbangkan untuk mengurangi pengeluaran.
                 </Typography>
               </View>
             )}
@@ -627,17 +949,31 @@ export const BudgetDetailScreen = () => {
                 ]}
               >
                 <View style={styles.transactionLeft}>
-                  <View style={[styles.transactionIcon, {
-                    backgroundColor: theme.colors.danger[100],
-                    width: responsiveSpacing(isSmallDevice ? 32 : 36),
-                    height: responsiveSpacing(isSmallDevice ? 32 : 36),
-                    borderRadius: responsiveSpacing(isSmallDevice ? 16 : 18),
+                  {/* Enhanced Transaction Icon dengan kategori */}
+                  <View style={[styles.transactionIconContainer, {
+                    width: responsiveSpacing(isSmallDevice ? 36 : 40),
+                    height: responsiveSpacing(isSmallDevice ? 36 : 40),
+                    borderRadius: responsiveSpacing(isSmallDevice ? 18 : 20),
                   }]}>
-                    <Ionicons
-                      name="arrow-up"
-                      size={responsiveSpacing(isSmallDevice ? 14 : 16)}
-                      color={theme.colors.danger[500]}
-                    />
+                    <LinearGradient
+                      colors={[
+                        category?.color || theme.colors.danger[400],
+                        category?.color ? `${category.color}DD` : theme.colors.danger[600]
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[styles.transactionIconGradient, {
+                        width: responsiveSpacing(isSmallDevice ? 36 : 40),
+                        height: responsiveSpacing(isSmallDevice ? 36 : 40),
+                        borderRadius: responsiveSpacing(isSmallDevice ? 18 : 20),
+                      }]}
+                    >
+                      <Ionicons
+                        name={(category?.icon || 'wallet-outline') as keyof typeof Ionicons.glyphMap}
+                        size={responsiveSpacing(isSmallDevice ? 16 : 18)}
+                        color={theme.colors.white}
+                      />
+                    </LinearGradient>
                   </View>
                   <View style={styles.transactionInfo}>
                     <Typography
@@ -683,6 +1019,7 @@ export const BudgetDetailScreen = () => {
                 }]}
                 onPress={() => {
                   // Navigate to transactions with filter
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   (navigation as any).navigate('Transactions', {
                     categoryId: budget.category_id,
                     type: 'expense'
@@ -704,6 +1041,176 @@ export const BudgetDetailScreen = () => {
             )}
           </View>
         )}
+
+        {/* Quick Actions Card */}
+        <View style={[styles.actionsCard, {
+          backgroundColor: theme.colors.white,
+          padding: responsiveSpacing(isSmallDevice ? theme.spacing.md : theme.spacing.lg),
+          borderRadius: theme.borderRadius.xl,
+          marginBottom: responsiveSpacing(theme.spacing.lg),
+        }]}>
+          <Typography
+            variant="h6"
+            weight="700"
+            color={theme.colors.neutral[800]}
+            style={{
+              fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
+              marginBottom: responsiveSpacing(theme.spacing.md),
+            }}
+          >
+            Aksi Cepat
+          </Typography>
+
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.quickActionButton, {
+                backgroundColor: theme.colors.primary[50],
+                borderColor: theme.colors.primary[200],
+              }]}
+              onPress={() => {
+                // Navigate to add transaction with pre-filled category
+                navigation.navigate('AddTransaction', {
+                  type: 'expense',
+                  categoryId: budget.category_id,
+                  budgetId: budget.id,
+                });
+              }}
+            >
+              <View style={[styles.quickActionIcon, {
+                backgroundColor: theme.colors.primary[100],
+              }]}>
+                <Ionicons
+                  name="add-circle"
+                  size={responsiveSpacing(24)}
+                  color={theme.colors.primary[600]}
+                />
+              </View>
+              <Typography
+                variant="body2"
+                weight="600"
+                color={theme.colors.primary[700]}
+                style={{
+                  fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                  textAlign: 'center',
+                  marginTop: responsiveSpacing(8),
+                }}
+              >
+                Tambah{'\n'}Pengeluaran
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionButton, {
+                backgroundColor: theme.colors.info[50],
+                borderColor: theme.colors.info[200],
+              }]}
+              onPress={() => {
+                // Navigate to transactions filtered by this budget's category
+                navigation.navigate('Main', {
+                  screen: 'Transactions',
+                  params: {
+                    categoryId: budget.category_id,
+                    type: 'expense',
+                    budgetId: budget.id,
+                  }
+                });
+              }}
+            >
+              <View style={[styles.quickActionIcon, {
+                backgroundColor: theme.colors.info[100],
+              }]}>
+                <Ionicons
+                  name="list"
+                  size={responsiveSpacing(24)}
+                  color={theme.colors.info[600]}
+                />
+              </View>
+              <Typography
+                variant="body2"
+                weight="600"
+                color={theme.colors.info[700]}
+                style={{
+                  fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                  textAlign: 'center',
+                  marginTop: responsiveSpacing(8),
+                }}
+              >
+                Lihat Semua{'\n'}Transaksi
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionButton, {
+                backgroundColor: theme.colors.success[50],
+                borderColor: theme.colors.success[200],
+              }]}
+              onPress={() => {
+                // Navigate to budget analytics/reports (placeholder for now)
+                showSuccess('Info', 'Fitur analisis detail akan segera hadir!');
+                // TODO: Implement BudgetAnalytics screen
+                // navigation.navigate('BudgetAnalytics', {
+                //   budgetId: budget.id,
+                //   categoryId: budget.category_id,
+                // });
+              }}
+            >
+              <View style={[styles.quickActionIcon, {
+                backgroundColor: theme.colors.success[100],
+              }]}>
+                <Ionicons
+                  name="analytics"
+                  size={responsiveSpacing(24)}
+                  color={theme.colors.success[600]}
+                />
+              </View>
+              <Typography
+                variant="body2"
+                weight="600"
+                color={theme.colors.success[700]}
+                style={{
+                  fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                  textAlign: 'center',
+                  marginTop: responsiveSpacing(8),
+                }}
+              >
+                Analisis{'\n'}Detail
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionButton, {
+                backgroundColor: theme.colors.warning[50],
+                borderColor: theme.colors.warning[200],
+              }]}
+              onPress={() => {
+                // Share budget report
+                handleShareBudget();
+              }}
+            >
+              <View style={[styles.quickActionIcon, {
+                backgroundColor: theme.colors.warning[100],
+              }]}>
+                <Ionicons
+                  name="share"
+                  size={responsiveSpacing(24)}
+                  color={theme.colors.warning[600]}
+                />
+              </View>
+              <Typography
+                variant="body2"
+                weight="600"
+                color={theme.colors.warning[700]}
+                style={{
+                  fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                  textAlign: 'center',
+                  marginTop: responsiveSpacing(8),
+                }}
+              >
+                Bagikan{'\n'}Laporan
+              </Typography>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Budget Info Card */}
         <View style={[styles.infoCard, {
@@ -746,6 +1253,28 @@ export const BudgetDetailScreen = () => {
               }}
             >
               {getPeriodText()}
+            </Typography>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Typography
+              variant="body2"
+              color={theme.colors.neutral[600]}
+              style={{
+                fontSize: responsiveFontSize(isSmallDevice ? 13 : 15),
+              }}
+            >
+              Rata-rata Harian
+            </Typography>
+            <Typography
+              variant="body2"
+              weight="600"
+              color={theme.colors.neutral[800]}
+              style={{
+                fontSize: responsiveFontSize(isSmallDevice ? 13 : 15),
+              }}
+            >
+              {formatCurrency(progressData.insights.averageDailyBudget)}
             </Typography>
           </View>
 
@@ -896,6 +1425,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: theme.spacing.md,
   },
+  categoryIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  categoryIconGradient: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryIconGlow: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    right: -3,
+    bottom: -3,
+    zIndex: -1,
+  },
   categoryInfo: {
     flex: 1,
   },
@@ -965,6 +1519,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: theme.spacing.sm,
   },
+  transactionIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.sm,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  transactionIconGradient: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   transactionInfo: {
     flex: 1,
   },
@@ -996,5 +1567,79 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[100],
+  },
+  // Enhanced Progress Styles
+  progressTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  zoneBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressBarContainer: {
+    position: 'relative',
+  },
+  zoneMarker: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 2,
+    borderRadius: 1,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  insightsContainer: {
+    gap: theme.spacing.sm,
+  },
+  insightCard: {
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    borderLeftWidth: 4,
+    ...theme.elevation.xs,
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // Quick Actions Styles
+  actionsCard: {
+    ...theme.elevation.sm,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  quickActionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    minHeight: 80,
+    ...theme.elevation.xs,
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xs,
   },
 });

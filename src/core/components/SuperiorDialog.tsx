@@ -143,7 +143,7 @@ export const SuperiorDialog: React.FC<SuperiorDialogProps> = ({
         return () => clearTimeout(timer);
       }
     }
-  }, [visible, autoClose, onClose]);
+  }, [visible, autoClose, onClose, animatedValue, triggerHapticFeedback, config.haptic]);
 
   // Animasi scale dan opacity
   const scale = animatedValue.interpolate({
@@ -253,7 +253,7 @@ export const SuperiorDialog: React.FC<SuperiorDialogProps> = ({
                     <ActivityIndicator size={28} color="white" />
                   ) : (
                     <Ionicons
-                      name={customIcon as any || config.icon as any}
+                      name={(customIcon || config.icon) as keyof typeof Ionicons.glyphMap}
                       size={28}
                       color="white"
                     />

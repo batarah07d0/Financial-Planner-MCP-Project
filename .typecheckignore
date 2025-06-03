@@ -1,0 +1,28 @@
+# TypeScript Type Check Ignore File
+# File ini memastikan TypeScript compiler tidak memparse file yang menggunakan Flow
+
+# React Native TCP Socket - modern alternative without Flow annotations
+# node_modules/react-native-tcp-socket/**/* (tidak diperlukan lagi)
+
+# Semua node_modules
+node_modules/**/*
+**/node_modules/**/*
+
+# File JavaScript dengan Flow annotations
+**/*.flow.js
+**/flow-typed/**/*
+
+# File konfigurasi
+babel.config.js
+metro.config.js
+webpack.config.js
+**/*.config.js
+
+# Mock files
+src/mocks/**/*.js
+
+# Build outputs
+dist/**/*
+build/**/*
+.expo/**/*
+web-build/**/*

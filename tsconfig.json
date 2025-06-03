@@ -9,12 +9,38 @@
       ]
     },
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "allowJs": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "src/types/env.d.ts",
-    ".eslintrc.js"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/types/**/*.d.ts",
+    "App.tsx",
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "node_modules/**/*",
+    "**/node_modules/**/*",
+
+    "node_modules/react-native-paper/lib/typescript/**/*",
+    "**/*.config.js",
+    "babel.config.js",
+    "metro.config.js",
+    "webpack.config.js",
+    "app.config.js",
+    ".eslintrc.js",
+    "index.js",
+    "src/mocks/**/*.js",
+    "polyfill.js",
+    "scripts/**/*"
   ]
 }

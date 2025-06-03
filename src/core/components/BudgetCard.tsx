@@ -144,31 +144,65 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
             },
           ]}
         >
-          {/* Header dengan ikon dan status badge */}
+          {/* Header dengan ikon dan status badge - Enhanced Layout */}
           <View style={[styles.header, {
             marginBottom: responsiveSpacing(theme.spacing.md),
+            alignItems: 'flex-start', // Align ke atas untuk memberikan ruang lebih
           }]}>
             <View style={styles.headerLeft}>
+              {/* Enhanced Icon Container dengan gradient dan shadow */}
               <View style={[styles.iconContainer, {
-                backgroundColor: categoryColor || theme.colors.primary[100],
-                width: responsiveSpacing(isSmallDevice ? 40 : 48),
-                height: responsiveSpacing(isSmallDevice ? 40 : 48),
-                borderRadius: responsiveSpacing(isSmallDevice ? 20 : 24),
+                width: responsiveSpacing(isSmallDevice ? 48 : 56),
+                height: responsiveSpacing(isSmallDevice ? 48 : 56),
+                borderRadius: responsiveSpacing(isSmallDevice ? 24 : 28),
+                marginRight: responsiveSpacing(theme.spacing.md),
+                flexShrink: 0, // Mencegah ikon menyusut
               }]}>
-                <Ionicons
-                  name={categoryIcon as any}
-                  size={responsiveSpacing(isSmallDevice ? 20 : 24)}
-                  color={categoryColor || theme.colors.primary[600]}
-                />
+                <LinearGradient
+                  colors={[
+                    categoryColor || theme.colors.primary[400],
+                    categoryColor ? `${categoryColor}CC` : theme.colors.primary[600]
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.iconGradient, {
+                    width: responsiveSpacing(isSmallDevice ? 48 : 56),
+                    height: responsiveSpacing(isSmallDevice ? 48 : 56),
+                    borderRadius: responsiveSpacing(isSmallDevice ? 24 : 28),
+                  }]}
+                >
+                  <Ionicons
+                    name={categoryIcon as keyof typeof Ionicons.glyphMap}
+                    size={responsiveSpacing(isSmallDevice ? 24 : 28)}
+                    color={theme.colors.white}
+                  />
+                </LinearGradient>
+
+                {/* Subtle glow effect */}
+                <View style={[styles.iconGlow, {
+                  width: responsiveSpacing(isSmallDevice ? 48 : 56),
+                  height: responsiveSpacing(isSmallDevice ? 48 : 56),
+                  borderRadius: responsiveSpacing(isSmallDevice ? 24 : 28),
+                  backgroundColor: `${categoryColor || theme.colors.primary[500]}20`,
+                }]} />
               </View>
-              <View style={styles.categoryInfo}>
+
+              <View style={[styles.categoryInfo, {
+                minHeight: responsiveSpacing(isSmallDevice ? 48 : 56), // Minimal height sama dengan ikon
+                justifyContent: 'center', // Center vertikal
+              }]}>
                 <Typography
                   variant="body1"
                   weight="700"
                   style={{
-                    fontSize: responsiveFontSize(isSmallDevice ? 15 : 17),
+                    fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
                     color: theme.colors.neutral[800],
+                    letterSpacing: -0.3,
+                    lineHeight: responsiveFontSize(isSmallDevice ? 20 : 22),
+                    marginBottom: responsiveSpacing(2),
                   }}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {category}
                 </Typography>
@@ -176,9 +210,12 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
                   variant="caption"
                   color={theme.colors.neutral[500]}
                   style={{
-                    fontSize: responsiveFontSize(isSmallDevice ? 11 : 13),
-                    marginTop: responsiveSpacing(2),
+                    fontSize: responsiveFontSize(isSmallDevice ? 12 : 14),
+                    fontWeight: '500',
+                    lineHeight: responsiveFontSize(isSmallDevice ? 16 : 18),
                   }}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {getPeriodText()}
                 </Typography>
@@ -188,8 +225,9 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
             <View style={[styles.statusBadge, {
               backgroundColor: statusBadge.bgColor,
               paddingHorizontal: responsiveSpacing(theme.spacing.sm),
-              paddingVertical: responsiveSpacing(4),
+              paddingVertical: responsiveSpacing(6),
               borderRadius: theme.borderRadius.round,
+              marginTop: responsiveSpacing(2), // Sedikit margin dari atas
             }]}>
               <Typography
                 variant="caption"
@@ -197,7 +235,9 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
                 color={statusBadge.color}
                 style={{
                   fontSize: responsiveFontSize(isSmallDevice ? 10 : 11),
+                  lineHeight: responsiveFontSize(isSmallDevice ? 12 : 14),
                 }}
+                numberOfLines={1}
               >
                 {statusBadge.text}
               </Typography>
@@ -349,23 +389,48 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start', // Align ke atas untuk memberikan ruang lebih
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0, // Memungkinkan flex shrink
   },
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.sm,
+    position: 'relative',
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  iconGradient: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconGlow: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    zIndex: -1,
   },
   categoryInfo: {
     flex: 1,
+    minWidth: 0, // Memungkinkan flex shrink
+    paddingRight: theme.spacing.sm, // Memberikan ruang dari status badge
   },
   statusBadge: {
     alignSelf: 'flex-start',
+    flexShrink: 0, // Mencegah badge menyusut
+    maxWidth: 100, // Membatasi lebar maksimum badge
   },
   amountSection: {
     // Container for amount display

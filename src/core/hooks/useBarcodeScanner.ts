@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera as ExpoCamera, BarcodeScanningResult } from 'expo-camera';
+import { Camera as ExpoCamera, BarcodeScanningResult, CameraView } from 'expo-camera';
 import { BarcodeScanStatus, BarcodeScanResult } from '../../features/transactions/models/Barcode';
 import { searchBarcode } from '../../features/transactions/services/barcodeService';
 import { Vibration } from 'react-native';
@@ -26,12 +26,12 @@ export const useBarcodeScanner = (options: BarcodeScannerOptions = {}) => {
   const [scanResult, setScanResult] = useState<BarcodeScanResult>({
     status: BarcodeScanStatus.READY,
   });
-  const [camera, setCamera] = useState<any | null>(null);
+  const [camera, setCamera] = useState<CameraView | null>(null);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
   const [flashMode, setFlashMode] = useState<'off' | 'on' | 'auto'>('off');
 
   // Ref untuk menyimpan timeout
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref untuk menyimpan barcode terakhir yang dipindai
   const lastScannedBarcodeRef = useRef<string | null>(null);
   // Ref untuk menyimpan waktu terakhir pemindaian
@@ -69,7 +69,7 @@ export const useBarcodeScanner = (options: BarcodeScannerOptions = {}) => {
   };
 
   // Fungsi untuk menangani hasil pemindaian barcode
-  const handleBarCodeScanned = async ({ type, data }: BarcodeScanningResult) => {
+  const handleBarCodeScanned = async ({ type: _type, data }: BarcodeScanningResult) => {
     // Periksa apakah sedang dalam mode pemindaian
     if (!isScanning) return;
 
@@ -207,7 +207,7 @@ export const useBarcodeScanner = (options: BarcodeScannerOptions = {}) => {
         const photo = await camera.takePictureAsync();
         return photo;
       } catch (error) {
-        console.error('Error taking picture:', error);
+        // Error taking picture - silently handled
         return null;
       }
     }

@@ -16,35 +16,30 @@ const SupabaseContext = createContext<SupabaseContextType>({
 // Provider untuk Supabase
 export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isReady, setIsReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Inisialisasi koneksi Supabase
     const initSupabase = async () => {
       try {
         // Cek koneksi ke Supabase
-        const { data, error } = await supabase.from('health_check').select('*').limit(1);
+        const { error } = await supabase.from('health_check').select('*').limit(1);
         
         if (error) {
-          console.warn('Tidak dapat terhubung ke Supabase:', error.message);
+          if (__DEV__) {
+            // eslint-disable-next-line no-console
+            console.warn('Tidak dapat terhubung ke Supabase:', error.message);
+          }
           // Tetap lanjutkan karena mungkin offline
         }
-        
-        console.log('Supabase connection initialized successfully');
-        setIsReady(true);
-        setError(null);
-      } catch (err: any) {
-        console.error('Supabase initialization error:', err);
-        
-        // Pesan error yang lebih deskriptif
-        let errorMessage = 'Terjadi kesalahan saat menginisialisasi koneksi Supabase';
-        
-        if (err.message) {
-          errorMessage = err.message;
+
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('Supabase connection initialized successfully');
         }
-        
-        setError(errorMessage);
-        
+        setIsReady(true);
+
+      } catch (err: unknown) {
+        // Error handled silently
         // Tetap set isReady ke true agar aplikasi bisa berjalan dalam mode offline
         setIsReady(true);
       }

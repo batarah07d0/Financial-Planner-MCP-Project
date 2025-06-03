@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,11 +12,12 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography, BudgetCard } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { formatCurrency } from '../../../core/utils';
+import { formatCurrency, getCategoryIcon, getCategoryColor } from '../../../core/utils';
 import { useBudgetStore } from '../../../core/services/store/budgetStore';
 import { useAuthStore } from '../../../core/services/store/authStore';
 import { getCategories } from '../../../core/services/supabase/category.service';
 import { getBudgetSpending } from '../../../core/services/supabase/budget.service';
+import { Budget } from '../../../core/services/supabase/types';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useBudgetMonitor } from '../../../core/hooks/useBudgetMonitor';
@@ -57,11 +58,13 @@ export const BudgetScreen = () => {
   } = useAppDimensions();
 
   // Menggunakan store untuk state management
-  const { budgets: supabaseBudgets, fetchBudgets, isLoading: storeLoading } = useBudgetStore();
+  const { budgets: supabaseBudgets, fetchBudgets } = useBudgetStore();
   const { user } = useAuthStore();
   const { checkBudgetThresholds } = useBudgetMonitor();
 
-  // Fungsi untuk memuat kategori
+
+
+  // Fungsi untuk memuat kategori dengan enhanced mapping
   const loadCategories = async () => {
     try {
       const categories = await getCategories({ type: 'expense' });
@@ -70,19 +73,19 @@ export const BudgetScreen = () => {
       categories.forEach(category => {
         newCategoryMap[category.id] = {
           name: category.name,
-          icon: category.icon,
-          color: category.color,
+          icon: getCategoryIcon(category.name, category.icon),
+          color: getCategoryColor(category.name, category.color),
         };
       });
 
       setCategoryMap(newCategoryMap);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      // Error loading categories - handled silently
     }
   };
 
   // Fungsi untuk menghitung pengeluaran untuk setiap anggaran
-  const calculateSpending = async (budgetList: any[]) => {
+  const calculateSpending = useCallback(async (budgetList: Budget[]) => {
     if (!user?.id) return [];
 
     try {
@@ -156,13 +159,12 @@ export const BudgetScreen = () => {
 
       return displayBudgets;
     } catch (error) {
-      console.error('Error calculating spending:', error);
       return [];
     }
-  };
+  }, [user?.id, categoryMap, selectedPeriod]);
 
   // Fungsi untuk memuat anggaran
-  const loadBudgets = async () => {
+  const loadBudgets = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -180,22 +182,20 @@ export const BudgetScreen = () => {
 
         // Setelah memuat budget, cek threshold untuk notifikasi
         checkBudgetThresholds();
-      } catch (error: any) {
-        // Jika error terkait kolom period, log ke console untuk developer
-        if (error.message && error.message.includes('period does not exist')) {
-          console.warn('Database schema update needed: period column missing in budgets table');
+      } catch (error: unknown) {
+        // Jika error terkait kolom period, handle gracefully
+        if (error instanceof Error && error.message && error.message.includes('period does not exist')) {
           setBudgets([]);
         } else {
           throw error;
         }
       }
     } catch (error) {
-      console.error('Error loading budgets:', error);
       setBudgets([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, fetchBudgets, checkBudgetThresholds]);
 
   // Fungsi untuk refresh data
   const handleRefresh = async () => {
@@ -207,6 +207,7 @@ export const BudgetScreen = () => {
   // Fungsi untuk menangani klik pada anggaran
   const handleBudgetPress = (id: string) => {
     // Navigasi ke halaman detail anggaran
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('BudgetDetail', { id });
   };
 
@@ -226,7 +227,7 @@ export const BudgetScreen = () => {
   // Memuat anggaran saat komponen dimount atau periode berubah
   useEffect(() => {
     loadBudgets();
-  }, [selectedPeriod, user]);
+  }, [selectedPeriod, user, loadBudgets]);
 
   // Refresh data saat screen focus (user kembali dari AddBudgetScreen)
   useFocusEffect(
@@ -234,17 +235,16 @@ export const BudgetScreen = () => {
       if (user?.id) {
         loadBudgets();
       }
-    }, [user?.id, selectedPeriod])
+    }, [user?.id, loadBudgets])
   );
 
   // Listen untuk perubahan data budget dari store
   useEffect(() => {
     const processStoreBudgets = async () => {
       if (supabaseBudgets.length > 0 && categoryMap && Object.keys(categoryMap).length > 0) {
-        console.log('Processing budgets from store...');
 
         // Menghitung pengeluaran untuk setiap anggaran
-        let displayBudgets = await calculateSpending(supabaseBudgets);
+        const displayBudgets = await calculateSpending(supabaseBudgets);
 
         // Filter berdasarkan period yang dipilih
         const filteredBudgets = displayBudgets.filter(budget => {
@@ -254,29 +254,34 @@ export const BudgetScreen = () => {
 
         // Tampilkan hanya budget yang sesuai dengan periode yang dipilih
         if (filteredBudgets.length > 0) {
-          console.log(`Found ${filteredBudgets.length} budget(s) for ${selectedPeriod} period`);
           setBudgets(filteredBudgets);
         } else {
-          console.log(`No budgets found for ${selectedPeriod} period`);
           setBudgets([]);
         }
       }
     };
 
     processStoreBudgets();
-  }, [supabaseBudgets, categoryMap, selectedPeriod]);
+  }, [supabaseBudgets, categoryMap, selectedPeriod, calculateSpending]);
 
-  // Render item untuk FlatList
+  // Render item untuk FlatList dengan enhanced category data
   const renderItem = ({ item }: { item: BudgetDisplay }) => {
     const categoryData = categoryMap[item.categoryId];
+
+    // Enhanced category data dengan fallback yang lebih baik
+    const enhancedCategoryData = {
+      icon: categoryData?.icon || getCategoryIcon(item.category),
+      color: categoryData?.color || '#6B7280',
+    };
+
     return (
       <BudgetCard
         id={item.id}
         category={item.category}
         amount={item.amount}
         spent={item.spent}
-        categoryIcon={categoryData?.icon}
-        categoryColor={categoryData?.color}
+        categoryIcon={enhancedCategoryData.icon}
+        categoryColor={enhancedCategoryData.color}
         period={item.period}
         onPress={handleBudgetPress}
       />

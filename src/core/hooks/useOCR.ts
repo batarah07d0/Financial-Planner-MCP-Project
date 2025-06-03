@@ -36,7 +36,7 @@ export const useOCR = () => {
   // Fungsi untuk melakukan OCR pada gambar
   const recognizeText = async (
     imageUri: string,
-    language: string = 'ind'
+    _language: string = 'ind'
   ): Promise<OCRResult | null> => {
     setIsLoading(true);
     setProgress(0);
@@ -61,8 +61,21 @@ export const useOCR = () => {
       // Terminasi worker
       await worker.terminate();
 
-      // Format hasil OCR dengan tipe any untuk menghindari error TypeScript
-      const resultData: any = result.data;
+      // Format hasil OCR dengan tipe yang lebih spesifik
+      const resultData = result.data as {
+        text?: string;
+        confidence?: number;
+        lines?: Array<{
+          text?: string;
+          confidence?: number;
+          bbox?: { x0: number; y0: number; x1: number; y1: number };
+        }>;
+        words?: Array<{
+          text?: string;
+          confidence?: number;
+          bbox?: { x0: number; y0: number; x1: number; y1: number };
+        }>;
+      };
 
       const formattedResult: OCRResult = {
         text: resultData.text || '',
@@ -72,13 +85,13 @@ export const useOCR = () => {
 
       // Coba ekstrak data lines atau words dari hasil OCR
       if (resultData.lines && Array.isArray(resultData.lines)) {
-        formattedResult.lines = resultData.lines.map((line: any) => ({
+        formattedResult.lines = resultData.lines.map((line) => ({
           text: line.text || '',
           confidence: line.confidence || 0,
           bbox: line.bbox || { x0: 0, y0: 0, x1: 0, y1: 0 },
         }));
       } else if (resultData.words && Array.isArray(resultData.words)) {
-        formattedResult.lines = resultData.words.map((word: any) => ({
+        formattedResult.lines = resultData.words.map((word) => ({
           text: word.text || '',
           confidence: word.confidence || 0,
           bbox: word.bbox || { x0: 0, y0: 0, x1: 0, y1: 0 },
@@ -86,8 +99,9 @@ export const useOCR = () => {
       }
 
       return formattedResult;
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan saat melakukan OCR');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan saat melakukan OCR';
+      setError(errorMessage);
       return null;
     } finally {
       setIsLoading(false);
@@ -103,14 +117,14 @@ export const useOCR = () => {
     }
 
     // Ekstrak tanggal
-    const dateRegex = /(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/g;
+    const dateRegex = /(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/g;
     const dateMatches = ocrResult.text.match(dateRegex);
     if (dateMatches && dateMatches.length > 0) {
       result.date = dateMatches[0];
     }
 
     // Ekstrak total
-    const totalRegex = /total\s*:?\s*rp\.?\s*([\d\.,]+)/i;
+    const totalRegex = /total\s*:?\s*rp.?\s*([\d.,]+)/i;
     const totalMatch = ocrResult.text.match(totalRegex);
     if (totalMatch && totalMatch.length > 1) {
       const totalStr = totalMatch[1].replace(/[^\d]/g, '');
@@ -127,8 +141,8 @@ export const useOCR = () => {
     const items: Array<{ name: string; price: number; quantity?: number }> = [];
 
     // Cari baris yang memiliki pola: nama item diikuti dengan harga
-    const itemRegex = /(.+)\s+(\d+)\s*x\s*rp\.?\s*([\d\.,]+)/i;
-    const itemRegexSimple = /(.+)\s+rp\.?\s*([\d\.,]+)/i;
+    const itemRegex = /(.+)\s+(\d+)\s*x\s*rp.?\s*([\d.,]+)/i;
+    const itemRegexSimple = /(.+)\s+rp.?\s*([\d.,]+)/i;
 
     for (let i = 1; i < lines.length - 1; i++) {
       const line = lines[i].trim();

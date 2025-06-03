@@ -33,7 +33,7 @@ interface AuthState {
   setIsAuthenticated: (isAuthenticated: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
   isAuthenticated: false,
@@ -52,22 +52,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Password tidak boleh kosong');
       }
 
-      console.log('Attempting login with:', { email });
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error('Supabase auth error:', error);
         throw error;
       }
 
-      console.log('Login response:', data);
-
       if (data.user) {
-        console.log('User authenticated:', data.user.id);
         set({
           user: {
             id: data.user.id,
@@ -78,23 +72,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isLoading: false,
         });
       } else {
-        console.error('No user data returned from Supabase');
         throw new Error('Gagal mendapatkan data pengguna');
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
+    } catch (error: unknown) {
+      const errorObj = error as Error;
 
       // Pesan error yang lebih user-friendly
       let errorMessage = 'Gagal masuk. Silakan coba lagi.';
 
-      if (error.message.includes('Invalid login credentials')) {
+      if (errorObj.message.includes('Invalid login credentials')) {
         errorMessage = 'Email atau password salah. Silakan coba lagi.';
-      } else if (error.message.includes('Email not confirmed')) {
+      } else if (errorObj.message.includes('Email not confirmed')) {
         errorMessage = 'Email belum dikonfirmasi. Silakan cek email Anda untuk konfirmasi atau hubungi admin.';
-      } else if (error.message.includes('Email')) {
-        errorMessage = error.message;
-      } else if (error.message.includes('Password')) {
-        errorMessage = error.message;
+      } else if (errorObj.message.includes('Email')) {
+        errorMessage = errorObj.message;
+      } else if (errorObj.message.includes('Password')) {
+        errorMessage = errorObj.message;
       }
 
       set({
@@ -122,8 +115,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Password minimal 8 karakter');
       }
 
-      console.log('Attempting registration with:', { email, name });
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -135,11 +126,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (error) {
-        console.error('Supabase auth error:', error);
         throw error;
       }
-
-      console.log('Registration response:', data);
 
       if (data.user) {
         // Buat atau perbarui profil pengguna di database
@@ -152,12 +140,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .single();
 
           if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found
-            console.error('Error checking existing profile:', fetchError);
+            // Error checking existing profile, but continue
           }
 
           if (existingProfile) {
             // Profil sudah ada, perbarui saja
-            console.log('Profile already exists, updating...');
             const { error: updateError } = await supabase
               .from('profiles')
               .update({
@@ -168,11 +155,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               .eq('id', data.user.id);
 
             if (updateError) {
-              console.error('Error updating profile:', updateError);
+              // Error updating profile, but continue
             }
           } else {
             // Profil belum ada, buat baru
-            console.log('Creating new profile...');
             const { error: profileError } = await supabase
               .from('profiles')
               .insert([
@@ -184,10 +170,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               ]);
 
             if (profileError) {
-              console.error('Error creating profile:', profileError);
               // Jika error terkait kolom 'name' tidak ditemukan, coba tanpa kolom name
               if (profileError.message && profileError.message.includes("name")) {
-                console.log('Trying to create profile without name column');
                 const { error: retryError } = await supabase
                   .from('profiles')
                   .insert([
@@ -198,22 +182,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   ]);
 
                 if (retryError) {
-                  console.error('Error creating profile (retry):', retryError);
-
                   // Jika masih error dan terkait dengan duplicate key, abaikan saja
                   // karena kemungkinan profil sudah ada tetapi tidak terdeteksi
                   if (retryError.code === '23505') {
-                    console.log('Profile likely already exists, ignoring duplicate key error');
+                    // Profile likely already exists, ignoring duplicate key error
                   }
                 }
               } else if (profileError.code === '23505') {
                 // Duplicate key error, profil sudah ada
-                console.log('Profile already exists (duplicate key), ignoring error');
+                // Profile already exists (duplicate key), ignoring error
               }
             }
           }
         } catch (insertError) {
-          console.error('Exception during profile creation:', insertError);
+          // Exception during profile creation, but continue
         }
 
         // Tidak langsung set isAuthenticated = true
@@ -234,20 +216,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       } else {
         throw new Error('Gagal mendapatkan data pengguna');
       }
-    } catch (error: any) {
-      console.error('Registration error:', error);
+    } catch (error: unknown) {
+      const errorObj = error as Error;
 
       // Pesan error yang lebih user-friendly
       let errorMessage = 'Gagal mendaftar. Silakan coba lagi.';
 
-      if (error.message.includes('already registered')) {
+      if (errorObj.message.includes('already registered')) {
         errorMessage = 'Email sudah terdaftar. Silakan gunakan email lain atau login.';
-      } else if (error.message.includes('Email')) {
-        errorMessage = error.message;
-      } else if (error.message.includes('Password')) {
-        errorMessage = error.message;
-      } else if (error.message.includes('Nama')) {
-        errorMessage = error.message;
+      } else if (errorObj.message.includes('Email')) {
+        errorMessage = errorObj.message;
+      } else if (errorObj.message.includes('Password')) {
+        errorMessage = errorObj.message;
+      } else if (errorObj.message.includes('Nama')) {
+        errorMessage = errorObj.message;
       }
 
       set({
@@ -272,9 +254,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false,
         isLoading: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorObj = error as Error;
       set({
-        error: error.message || 'Gagal keluar. Silakan coba lagi.',
+        error: errorObj.message || 'Gagal keluar. Silakan coba lagi.',
         isLoading: false,
       });
     }
@@ -289,9 +272,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
 
       set({ isLoading: false });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorObj = error as Error;
       set({
-        error: error.message || 'Gagal mengirim email reset password. Silakan coba lagi.',
+        error: errorObj.message || 'Gagal mengirim email reset password. Silakan coba lagi.',
         isLoading: false,
       });
     }
@@ -303,7 +287,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem('@onboarding_completed', completed.toString());
       set({ hasCompletedOnboarding: completed });
     } catch (error) {
-      console.error('Error saving onboarding status:', error);
       // Tetap set state meskipun gagal simpan ke storage
       set({ hasCompletedOnboarding: completed });
     }
@@ -318,7 +301,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // FOR PRESENTATION: Always set to false to show onboarding
       set({ hasCompletedOnboarding: false });
     } catch (error) {
-      console.error('Error loading onboarding status:', error);
       // Default ke false jika error
       set({ hasCompletedOnboarding: false });
     }

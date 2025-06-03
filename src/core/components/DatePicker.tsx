@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
   ScrollView,
 } from 'react-native';
 import { Typography } from './Typography';
@@ -51,7 +50,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   // Fungsi untuk mendapatkan nama bulan
   const getMonthName = (month: number): string => {
@@ -62,16 +61,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     return months[month];
   };
 
-  // Fungsi untuk mendapatkan nama hari
-  const getDayName = (date: Date): string => {
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    return days[date.getDay()];
-  };
+
 
   // Fungsi untuk mendapatkan tanggal dalam bulan
   const getDaysInMonth = (month: number, year: number): Date[] => {
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+    new Date(year, month + 1, 0); // lastDay - calculated but not used
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
@@ -396,7 +391,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   );
 };
 
-const { width } = Dimensions.get('window');
+
 
 const styles = StyleSheet.create({
   container: {

@@ -35,6 +35,26 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
 
+  const fetchProfile = React.useCallback(async () => {
+    try {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url, email')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        return;
+      }
+
+      setProfileData(data);
+    } catch (error) {
+      // Error handling tanpa console.error
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       fetchProfile();
@@ -53,28 +73,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
         useNativeDriver: true,
       }),
     ]).start();
-  }, [user]);
-
-  const fetchProfile = async () => {
-    try {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url, email')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
-      setProfileData(data);
-    } catch (error) {
-      console.error('Error in fetchProfile:', error);
-    }
-  };
+  }, [user, fadeAnim, scaleAnim, fetchProfile]);
 
   const pickImage = async () => {
     try {
@@ -97,7 +96,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
         await uploadAvatar(result.assets[0].base64);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Alert.alert('Error', 'Gagal memilih gambar');
     }
   };
@@ -123,7 +121,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
               .from('avatars')
               .remove([oldFileName]);
           } catch (removeError) {
-            console.error('Error removing old avatar:', removeError);
             // Lanjutkan meskipun gagal menghapus avatar lama
           }
         }
@@ -167,7 +164,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
 
       Alert.alert('Sukses', 'Foto profil berhasil diperbarui');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
       Alert.alert('Error', 'Gagal mengunggah foto profil. Silakan coba lagi.');
     } finally {
       setUploading(false);

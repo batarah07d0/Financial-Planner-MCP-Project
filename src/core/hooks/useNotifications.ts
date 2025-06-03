@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
@@ -19,7 +19,7 @@ Notifications.setNotificationHandler({
 export interface NotificationData {
   title: string;
   body: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 // Tipe data untuk jadwal notifikasi
@@ -39,12 +39,12 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Gunakan any untuk menghindari masalah dengan tipe yang deprecated
-  const notificationListener = useRef<any>(undefined);
-  const responseListener = useRef<any>(undefined);
+  // Ref untuk listener notifikasi
+  const notificationListener = useRef<{ remove: () => void } | undefined>(undefined);
+  const responseListener = useRef<{ remove: () => void } | undefined>(undefined);
 
   // Fungsi untuk meminta izin notifikasi
-  const requestPermission = async (): Promise<boolean> => {
+  const requestPermission = useCallback(async (): Promise<boolean> => {
     setIsLoading(true);
 
     try {
@@ -82,12 +82,12 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
       setHasPermission(true);
       return true;
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
+      // Error requesting notification permission - silently handled
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showErrorDialog]);
 
   // Fungsi untuk mendaftarkan token push notification
   const registerForPushNotificationsAsync = async (): Promise<string | undefined> => {
@@ -128,7 +128,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         !Device.isDevice;
 
       if (isExpoGo) {
-        console.log('Push notifications tidak didukung di Expo Go SDK 53+');
+        // Push notifications tidak didukung di Expo Go SDK 53+
         return 'expo-go-unsupported';
       }
 
@@ -139,11 +139,11 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         });
         return data;
       } catch (tokenError) {
-        console.log('Tidak dapat mendapatkan token push notification:', tokenError);
+        // Tidak dapat mendapatkan token push notification - silently handled
         return undefined;
       }
     } catch (error) {
-      console.error('Error registering for push notifications:', error);
+      // Error registering for push notifications - silently handled
       return undefined;
     }
   };
@@ -169,7 +169,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
 
       return notificationId;
     } catch (error) {
-      console.error('Error sending local notification:', error);
+      // Error sending local notification - silently handled
       return null;
     }
   };
@@ -185,15 +185,25 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         if (!permissionGranted) return null;
       }
 
-      const trigger: any = {};
+      // Trigger object untuk notifikasi terjadwal
+      let trigger: Notifications.NotificationTriggerInput;
 
-      if (schedule.seconds !== undefined) trigger.seconds = schedule.seconds;
-      if (schedule.minutes !== undefined) trigger.minute = schedule.minutes;
-      if (schedule.hours !== undefined) trigger.hour = schedule.hours;
-      if (schedule.day !== undefined) trigger.day = schedule.day;
-      if (schedule.month !== undefined) trigger.month = schedule.month;
-      if (schedule.year !== undefined) trigger.year = schedule.year;
-      if (schedule.repeats !== undefined) trigger.repeats = schedule.repeats;
+      if (schedule.seconds !== undefined) {
+        trigger = {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: schedule.seconds
+        };
+      } else {
+        trigger = {
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          ...(schedule.minutes !== undefined && { minute: schedule.minutes }),
+          ...(schedule.hours !== undefined && { hour: schedule.hours }),
+          ...(schedule.day !== undefined && { day: schedule.day }),
+          ...(schedule.month !== undefined && { month: schedule.month }),
+          ...(schedule.year !== undefined && { year: schedule.year }),
+          ...(schedule.repeats !== undefined && { repeats: schedule.repeats }),
+        };
+      }
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -206,7 +216,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
 
       return notificationId;
     } catch (error) {
-      console.error('Error scheduling notification:', error);
+      // Error scheduling notification - silently handled
       return null;
     }
   };
@@ -217,7 +227,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
       await Notifications.cancelScheduledNotificationAsync(notificationId);
       return true;
     } catch (error) {
-      console.error('Error canceling notification:', error);
+      // Error canceling notification - silently handled
       return false;
     }
   };
@@ -228,7 +238,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
       await Notifications.cancelAllScheduledNotificationsAsync();
       return true;
     } catch (error) {
-      console.error('Error canceling all notifications:', error);
+      // Error canceling all notifications - silently handled
       return false;
     }
   };
@@ -238,7 +248,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
     try {
       return await Notifications.getAllScheduledNotificationsAsync();
     } catch (error) {
-      console.error('Error getting scheduled notifications:', error);
+      // Error getting scheduled notifications - silently handled
       return [];
     }
   };
@@ -254,30 +264,28 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
       });
 
       // Listener untuk respons terhadap notifikasi
-      responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-        console.log('Notification response:', response);
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(_response => {
+        // Notification response handled silently
       });
     } catch (error) {
-      console.log('Error setting up notification listeners:', error);
+      // Error setting up notification listeners - silently handled
     }
 
     return () => {
       try {
-        // Gunakan try-catch untuk menangani error pada API yang deprecated
+        // Cleanup notification listeners
         if (notificationListener.current) {
-          // @ts-ignore - Abaikan error tipe karena API deprecated
-          Notifications.removeNotificationSubscription(notificationListener.current);
+          notificationListener.current.remove();
         }
 
         if (responseListener.current) {
-          // @ts-ignore - Abaikan error tipe karena API deprecated
-          Notifications.removeNotificationSubscription(responseListener.current);
+          responseListener.current.remove();
         }
       } catch (error) {
-        console.log('Error removing notification listeners:', error);
+        // Error removing notification listeners - silently handled
       }
     };
-  }, []);
+  }, [requestPermission]);
 
   // Fungsi khusus untuk notifikasi budget alert
   const sendBudgetAlert = async (
@@ -306,7 +314,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         data: { type: 'budget_alert', budgetName, percentageUsed },
       });
     } catch (error) {
-      console.error('Error sending budget alert:', error);
+      // Error sending budget alert - silently handled
       return null;
     }
   };
@@ -337,7 +345,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         data: { type: 'challenge_reminder', challengeTitle, daysLeft },
       });
     } catch (error) {
-      console.error('Error sending challenge reminder:', error);
+      // Error sending challenge reminder - silently handled
       return null;
     }
   };
@@ -373,7 +381,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         data: { type: 'saving_goal', goalName, progressPercentage },
       });
     } catch (error) {
-      console.error('Error sending saving goal progress:', error);
+      // Error sending saving goal progress - silently handled
       return null;
     }
   };
@@ -413,7 +421,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         data: { type: 'account_update', updateType, success },
       });
     } catch (error) {
-      console.error('Error sending account update notification:', error);
+      // Error sending account update notification - silently handled
       return null;
     }
   };
@@ -430,7 +438,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         data: { type: 'transaction_reminder' },
       });
     } catch (error) {
-      console.error('Error sending transaction reminder:', error);
+      // Error sending transaction reminder - silently handled
       return null;
     }
   };
@@ -454,7 +462,7 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
         }
       );
     } catch (error) {
-      console.error('Error scheduling daily reminder:', error);
+      // Error scheduling daily reminder - silently handled
       return null;
     }
   };

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
-  Alert,
   Text,
   Platform,
+  ViewStyle,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +20,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { RootStackParamList } from '../../../core/navigation/types';
 import { Typography, TextInput, Button, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { useAuthStore } from '../../../core/services/store';
+
 import {
   getSavingGoal,
   updateSavingGoal,
@@ -44,7 +44,7 @@ interface DateInputProps {
   value: string;
   onPress: () => void;
   placeholder: string;
-  style?: any;
+  style?: ViewStyle;
 }
 
 const DateInput = React.memo<DateInputProps>(({
@@ -124,6 +124,8 @@ const DateInput = React.memo<DateInputProps>(({
   );
 });
 
+DateInput.displayName = 'DateInput';
+
 // Goal icons
 const GOAL_ICONS = [
   'wallet',
@@ -168,7 +170,7 @@ export const EditSavingGoalScreen = () => {
   const route = useRoute<EditSavingGoalScreenRouteProp>();
   const navigation = useNavigation<EditSavingGoalScreenNavigationProp>();
   const { goalId } = route.params;
-  const { user } = useAuthStore();
+
   const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
 
   const [goal, setGoal] = useState<SavingGoal | null>(null);
@@ -187,25 +189,20 @@ export const EditSavingGoalScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  const formatCurrency = (value: string) => {
+  const formatCurrency = useCallback((value: string) => {
     const numericValue = value.replace(/[^\d]/g, '');
     if (!numericValue) return '';
     const number = parseInt(numericValue);
     return new Intl.NumberFormat('id-ID').format(number);
-  };
+  }, []);
 
-  const parseCurrency = (value: string): number => {
+  const parseCurrency = useCallback((value: string): number => {
     return parseInt(value.replace(/[^\d]/g, '')) || 0;
-  };
+  }, []);
 
-  const formatDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
-  const loadGoalData = async () => {
+
+  const loadGoalData = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getSavingGoal(goalId);
@@ -225,12 +222,12 @@ export const EditSavingGoalScreen = () => {
         navigation.goBack();
       }
     } catch (error) {
-      console.error('Error loading goal:', error);
+      // Error loading goal - silently handled
       showError('Error', 'Gagal memuat data tujuan tabungan');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [goalId, showError, navigation]);
 
   // Date formatting functions
   const formatDateForDatabase = useCallback((date: Date): string => {
@@ -250,7 +247,7 @@ export const EditSavingGoalScreen = () => {
     setShowDatePicker(true);
   }, [formData.targetDate]);
 
-  const handleDateChange = useCallback((_: any, date?: Date) => {
+  const handleDateChange = useCallback((_: unknown, date?: Date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
     }
@@ -266,9 +263,9 @@ export const EditSavingGoalScreen = () => {
     }
   }, [formatDateForDatabase]);
 
-  const handleIconSelect = (icon: string) => {
+  const handleIconSelect = useCallback((icon: string) => {
     setFormData(prev => ({ ...prev, icon }));
-  };
+  }, []);
 
   const handleColorSelect = (color: string) => {
     setFormData(prev => ({ ...prev, color }));
@@ -333,7 +330,7 @@ export const EditSavingGoalScreen = () => {
         showError('Error', 'Gagal memperbarui tujuan tabungan');
       }
     } catch (error) {
-      console.error('Error updating saving goal:', error);
+      // Error updating saving goal - silently handled
       showError('Error', 'Gagal memperbarui tujuan tabungan');
     } finally {
       setIsSaving(false);
@@ -343,7 +340,7 @@ export const EditSavingGoalScreen = () => {
   useFocusEffect(
     useCallback(() => {
       loadGoalData();
-    }, [goalId])
+    }, [loadGoalData])
   );
 
   if (isLoading) {
@@ -409,7 +406,7 @@ export const EditSavingGoalScreen = () => {
           >
             <View style={styles.previewContent}>
               <View style={styles.previewIcon}>
-                <Ionicons name={formData.icon as any} size={32} color={theme.colors.white} />
+                <Ionicons name={(formData.icon as keyof typeof Ionicons.glyphMap)} size={32} color={theme.colors.white} />
               </View>
               <Typography variant="h6" weight="600" color={theme.colors.white} style={styles.previewTitle}>
                 {formData.name || 'Nama Tujuan Tabungan'}
@@ -519,7 +516,7 @@ export const EditSavingGoalScreen = () => {
                 onPress={() => handleIconSelect(icon)}
               >
                 <Ionicons
-                  name={icon as any}
+                  name={(icon as keyof typeof Ionicons.glyphMap)}
                   size={24}
                   color={formData.icon === icon ? theme.colors.white : theme.colors.neutral[600]}
                 />
@@ -627,13 +624,13 @@ const dateInputStyles = StyleSheet.create({
   },
   dateText: {
     fontSize: responsiveFontSize(16),
-    fontWeight: '500' as any,
+    fontWeight: '500' as const,
     color: theme.colors.neutral[800],
     includeFontPadding: false,
   },
   placeholderText: {
     color: theme.colors.neutral[400],
-    fontWeight: '400' as any,
+    fontWeight: '400' as const,
   },
   dateInputContent: {
     flex: 1,

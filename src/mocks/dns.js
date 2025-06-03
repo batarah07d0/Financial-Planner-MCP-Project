@@ -2,68 +2,68 @@
 // Ini adalah implementasi sederhana yang tidak bergantung pada modul Node.js dgram
 
 // Fungsi-fungsi dasar DNS yang dimock
-const lookup = (hostname, options, callback) => {
+const lookup = (_hostname, options, callback) => {
   // Jika options adalah fungsi, itu adalah callback
   if (typeof options === 'function') {
     callback = options;
     options = {};
   }
-  
+
   // Implementasi sederhana yang selalu mengembalikan 127.0.0.1
   setTimeout(() => {
     callback(null, '127.0.0.1', 4);
   }, 0);
 };
 
-const resolve = (hostname, callback) => {
+const resolve = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, ['127.0.0.1']);
   }, 0);
 };
 
-const resolve4 = (hostname, callback) => {
+const resolve4 = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, ['127.0.0.1']);
   }, 0);
 };
 
-const resolve6 = (hostname, callback) => {
+const resolve6 = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, ['::1']);
   }, 0);
 };
 
-const resolveMx = (hostname, callback) => {
+const resolveMx = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, []);
   }, 0);
 };
 
-const resolveTxt = (hostname, callback) => {
+const resolveTxt = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, []);
   }, 0);
 };
 
-const resolveSrv = (hostname, callback) => {
+const resolveSrv = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, []);
   }, 0);
 };
 
-const resolveNs = (hostname, callback) => {
+const resolveNs = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, []);
   }, 0);
 };
 
-const resolveCname = (hostname, callback) => {
+const resolveCname = (_hostname, callback) => {
   setTimeout(() => {
     callback(null, []);
   }, 0);
 };
 
-const reverse = (ip, callback) => {
+const reverse = (_ip, callback) => {
   setTimeout(() => {
     callback(null, ['localhost']);
   }, 0);
@@ -71,34 +71,34 @@ const reverse = (ip, callback) => {
 
 // Versi Promise dari fungsi-fungsi di atas
 const promises = {
-  lookup: (hostname, options) => {
+  lookup: (_hostname, _options) => {
     return Promise.resolve({ address: '127.0.0.1', family: 4 });
   },
-  resolve: (hostname) => {
+  resolve: (_hostname) => {
     return Promise.resolve(['127.0.0.1']);
   },
-  resolve4: (hostname) => {
+  resolve4: (_hostname) => {
     return Promise.resolve(['127.0.0.1']);
   },
-  resolve6: (hostname) => {
+  resolve6: (_hostname) => {
     return Promise.resolve(['::1']);
   },
-  resolveMx: (hostname) => {
+  resolveMx: (_hostname) => {
     return Promise.resolve([]);
   },
-  resolveTxt: (hostname) => {
+  resolveTxt: (_hostname) => {
     return Promise.resolve([]);
   },
-  resolveSrv: (hostname) => {
+  resolveSrv: (_hostname) => {
     return Promise.resolve([]);
   },
-  resolveNs: (hostname) => {
+  resolveNs: (_hostname) => {
     return Promise.resolve([]);
   },
-  resolveCname: (hostname) => {
+  resolveCname: (_hostname) => {
     return Promise.resolve([]);
   },
-  reverse: (ip) => {
+  reverse: (_ip) => {
     return Promise.resolve(['localhost']);
   }
 };

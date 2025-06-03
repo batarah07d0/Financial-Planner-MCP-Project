@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,12 +7,11 @@ import {
   ActivityIndicator,
   StatusBar,
   Platform,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
@@ -56,7 +55,7 @@ export const TransactionDetailScreen = () => {
   const navigation = useNavigation<TransactionDetailNavigationProp>();
   const route = useRoute<TransactionDetailRouteProp>();
   const { id: transactionId } = route.params;
-  const { responsiveSpacing, responsiveFontSize } = useAppDimensions();
+  const { responsiveSpacing } = useAppDimensions();
 
   const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
@@ -68,7 +67,7 @@ export const TransactionDetailScreen = () => {
   const { dialogState, showSuccess, showError, showDelete, hideDialog } = useSuperiorDialog();
 
   // Load transaction data
-  const loadTransactionData = async () => {
+  const loadTransactionData = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -90,7 +89,6 @@ export const TransactionDetailScreen = () => {
           const categoryData = await getCategoryById(transactionData.category_id);
           setCategory(categoryData);
         } catch (error) {
-          console.warn('Category not found:', error);
           // Set default category if not found
           setCategory({
             id: transactionData.category_id,
@@ -105,13 +103,12 @@ export const TransactionDetailScreen = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading transaction data:', error);
       showError('Error', 'Gagal memuat detail transaksi');
       navigation.goBack();
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [transactionId, showError, navigation]);
 
   // Handle delete transaction
   const handleDelete = () => {
@@ -135,7 +132,6 @@ export const TransactionDetailScreen = () => {
           showSuccess('Berhasil', 'Transaksi berhasil dihapus');
           setTimeout(() => navigation.goBack(), 1500);
         } catch (error) {
-          console.error('Error deleting transaction:', error);
           showError('Error', 'Gagal menghapus transaksi');
         } finally {
           setIsDeleting(false);
@@ -162,7 +158,7 @@ export const TransactionDetailScreen = () => {
 
   useEffect(() => {
     loadTransactionData();
-  }, [transactionId]);
+  }, [transactionId, loadTransactionData]);
 
   // Get category icon
   const getCategoryIcon = () => {
@@ -454,7 +450,6 @@ export const TransactionDetailScreen = () => {
                   style={styles.mapButton}
                   onPress={() => {
                     // TODO: Open in maps app
-                    console.log('Open location in maps:', transaction.location_lat, transaction.location_lng);
                   }}
                 >
                   <Ionicons name="map" size={16} color={theme.colors.primary[500]} />

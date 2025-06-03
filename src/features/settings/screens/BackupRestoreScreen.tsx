@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
   Switch,
   TouchableOpacity,
   Alert,
@@ -31,102 +30,110 @@ import {
 } from '../services/userSettingsService';
 import { supabase } from '../../../config/supabase';
 
+// Interface untuk data backup
+interface BackupData {
+  user_id: string;
+  backup_date: string;
+  data: Record<string, unknown> | string;
+  metadata: {
+    version: string;
+    encryption: boolean;
+    encrypted?: boolean;
+  };
+}
+
 // Fungsi untuk melakukan backup sesungguhnya
 const performActualBackup = async (userId: string, settings: BackupSettings) => {
-  const backupData: any = {
+  const backupDataObj: Record<string, unknown> = {};
+  let totalSize = 0;
+
+  // Backup Transaksi
+  if (settings.include_transactions) {
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    backupDataObj.transactions = transactions;
+    totalSize += JSON.stringify(transactions).length;
+  }
+
+  // Backup Anggaran
+  if (settings.include_budgets) {
+    const { data: budgets, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    backupDataObj.budgets = budgets;
+    totalSize += JSON.stringify(budgets).length;
+  }
+
+  // Backup Tantangan
+  if (settings.include_challenges) {
+    const { data: userChallenges, error } = await supabase
+      .from('user_challenges')
+      .select('*, challenges(*)')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    backupDataObj.challenges = userChallenges;
+    totalSize += JSON.stringify(userChallenges).length;
+  }
+
+  // Backup Pengaturan
+  if (settings.include_settings) {
+    const [userSettings, securitySettings] = await Promise.all([
+      supabase.from('user_settings').select('*').eq('user_id', userId).single(),
+      supabase.from('security_settings').select('*').eq('user_id', userId).single()
+    ]);
+
+    backupDataObj.settings = {
+      user_settings: userSettings.data,
+      security_settings: securitySettings.data
+    };
+    totalSize += JSON.stringify(backupDataObj.settings).length;
+  }
+
+  // Buat objek backup data final
+  const backupData: BackupData = {
     user_id: userId,
     backup_date: new Date().toISOString(),
-    data: {},
+    data: backupDataObj,
     metadata: {
       version: '1.0',
       encryption: settings.encryption_enabled,
     }
   };
 
-  let totalSize = 0;
-
-  try {
-    // Backup Transaksi
-    if (settings.include_transactions) {
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      backupData.data.transactions = transactions;
-      totalSize += JSON.stringify(transactions).length;
-    }
-
-    // Backup Anggaran
-    if (settings.include_budgets) {
-      const { data: budgets, error } = await supabase
-        .from('budgets')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      backupData.data.budgets = budgets;
-      totalSize += JSON.stringify(budgets).length;
-    }
-
-    // Backup Tantangan
-    if (settings.include_challenges) {
-      const { data: userChallenges, error } = await supabase
-        .from('user_challenges')
-        .select('*, challenges(*)')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      backupData.data.challenges = userChallenges;
-      totalSize += JSON.stringify(userChallenges).length;
-    }
-
-    // Backup Pengaturan
-    if (settings.include_settings) {
-      const [userSettings, securitySettings] = await Promise.all([
-        supabase.from('user_settings').select('*').eq('user_id', userId).single(),
-        supabase.from('security_settings').select('*').eq('user_id', userId).single()
-      ]);
-
-      backupData.data.settings = {
-        user_settings: userSettings.data,
-        security_settings: securitySettings.data
-      };
-      totalSize += JSON.stringify(backupData.data.settings).length;
-    }
-
-    // Enkripsi data jika diaktifkan
-    if (settings.encryption_enabled) {
-      // Simulasi enkripsi (dalam implementasi nyata, gunakan crypto library)
-      backupData.data = btoa(JSON.stringify(backupData.data));
-      backupData.metadata.encrypted = true;
-    }
-
-    // Simpan ke Supabase Storage
-    const fileName = `backup_${userId}_${Date.now()}.json`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('backups')
-      .upload(fileName, JSON.stringify(backupData), {
-        contentType: 'application/json',
-        upsert: false
-      });
-
-    if (uploadError) throw uploadError;
-
-    // Hitung ukuran dalam MB
-    const sizeInMB = totalSize / (1024 * 1024);
-
-    return {
-      file_path: uploadData.path,
-      size_mb: sizeInMB,
-      backup_data: backupData
-    };
-
-  } catch (error) {
-    console.error('Error in performActualBackup:', error);
-    throw error;
+  // Enkripsi data jika diaktifkan
+  if (settings.encryption_enabled) {
+    // Simulasi enkripsi (dalam implementasi nyata, gunakan crypto library)
+    backupData.data = btoa(JSON.stringify(backupData.data));
+    backupData.metadata.encrypted = true;
   }
+
+  // Simpan ke Supabase Storage
+  const fileName = `backup_${userId}_${Date.now()}.json`;
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('backups')
+    .upload(fileName, JSON.stringify(backupData), {
+      contentType: 'application/json',
+      upsert: false
+    });
+
+  if (uploadError) throw uploadError;
+
+  // Hitung ukuran dalam MB
+  const sizeInMB = totalSize / (1024 * 1024);
+
+  return {
+    file_path: uploadData.path,
+    size_mb: sizeInMB,
+    backup_data: backupData
+  };
 };
 
 export const BackupRestoreScreen = () => {
@@ -144,10 +151,31 @@ export const BackupRestoreScreen = () => {
     encryption_enabled: true,
   });
 
-  const [history, setHistory] = useState<BackupHistory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setHistory] = useState<BackupHistory[]>([]);
+  const [, setIsLoading] = useState(true);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  const loadData = React.useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      const [userSettings, backupHistory] = await Promise.all([
+        getBackupSettings(user.id),
+        getBackupHistory(user.id),
+      ]);
+
+      if (userSettings) {
+        setSettings(userSettings);
+      }
+      setHistory(backupHistory);
+    } catch (error) {
+      Alert.alert('Error', 'Gagal memuat data backup');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -165,31 +193,9 @@ export const BackupRestoreScreen = () => {
       StatusBar.setBackgroundColor('transparent');
       StatusBar.setTranslucent(true);
     }
-  }, []);
+  }, [loadData, fadeAnim]);
 
-  const loadData = async () => {
-    if (!user) return;
-
-    try {
-      setIsLoading(true);
-      const [userSettings, backupHistory] = await Promise.all([
-        getBackupSettings(user.id),
-        getBackupHistory(user.id),
-      ]);
-
-      if (userSettings) {
-        setSettings(userSettings);
-      }
-      setHistory(backupHistory);
-    } catch (error) {
-      console.error('Error loading backup data:', error);
-      Alert.alert('Error', 'Gagal memuat data backup');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateSetting = async (key: keyof BackupSettings, value: any) => {
+  const updateSetting = async (key: keyof BackupSettings, value: boolean | string | number) => {
     if (!user) return;
 
     try {
@@ -198,7 +204,6 @@ export const BackupRestoreScreen = () => {
 
       await updateBackupSettings(user.id, { [key]: value });
     } catch (error) {
-      console.error('Error updating backup setting:', error);
       Alert.alert('Error', 'Gagal memperbarui pengaturan');
       // Revert state on error
       setSettings(settings);
@@ -241,7 +246,6 @@ export const BackupRestoreScreen = () => {
       Alert.alert('Sukses', 'Backup berhasil dibuat');
       loadData(); // Reload data to show new backup
     } catch (error) {
-      console.error('Error performing backup:', error);
       Alert.alert('Error', 'Gagal membuat backup');
     } finally {
       setIsBackingUp(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../config/supabase';
 import { useAuthStore } from '../../../core/services/store/authStore';
+import { Transaction } from '../../../core/services/supabase/types';
 
 // Tipe data untuk kategori pengeluaran
 interface ExpenseCategory {
@@ -55,11 +56,12 @@ const categoryColors = [
 export const AnalyticsScreen = () => {
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [expenseTrends, setExpenseTrends] = useState<ExpenseTrend[]>([]);
-  const [allTransactions, setAllTransactions] = useState<any[]>([]); // Untuk summary
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]); // Untuk summary
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const { user } = useAuthStore();
   const [categoryMap, setCategoryMap] = useState<Record<string, { name: string, color: string, icon: string }>>({});
+  const [rawCategoriesData, setRawCategoriesData] = useState<Array<{id: string, amount: number, percentage: number, index: number}>>([]);
   const [animatedValues] = useState({
     summary: new Animated.Value(0),
     categories: new Animated.Value(0),
@@ -67,6 +69,11 @@ export const AnalyticsScreen = () => {
     header: new Animated.Value(0),
     periodButtons: new Animated.Value(0),
   });
+
+  // Refs untuk mencegah infinite loading dan throttling
+  const lastFocusTime = useRef<number>(0);
+  const categoriesLoaded = useRef<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
@@ -94,8 +101,11 @@ export const AnalyticsScreen = () => {
     };
   };
 
-  // Fungsi untuk memuat kategori
-  const loadCategories = async () => {
+  // Fungsi untuk memuat kategori dengan useCallback untuk stabilitas
+  const loadCategories = useCallback(async () => {
+    // Hanya load sekali untuk mencegah infinite loop
+    if (categoriesLoaded.current) return;
+
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -114,18 +124,51 @@ export const AnalyticsScreen = () => {
           };
         });
         setCategoryMap(newCategoryMap);
+        categoriesLoaded.current = true;
       }
     } catch (error) {
-      console.error('Error loading categories:', error);
+      setError('Gagal memuat kategori');
     }
-  };
+  }, []);
 
-  // Fungsi untuk memuat data analisis
-  const loadAnalyticsData = async () => {
+  // Fungsi untuk menjalankan animasi terpisah
+  const runAnimations = useCallback(() => {
+    Animated.stagger(150, [
+      Animated.timing(animatedValues.header, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValues.periodButtons, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValues.summary, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValues.categories, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValues.trends, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [animatedValues]);
+
+  // Fungsi untuk memuat data analisis (tanpa animasi dan categoryMap dependency)
+  const loadAnalyticsData = useCallback(async () => {
     if (!user) return;
 
     try {
       setIsLoading(true);
+      setError(null);
 
       // Memuat kategori terlebih dahulu
       await loadCategories();
@@ -144,7 +187,7 @@ export const AnalyticsScreen = () => {
 
       // Hitung tanggal mulai berdasarkan periode yang dipilih untuk tren dan kategori
       const today = new Date();
-      let startDate = new Date();
+      const startDate = new Date();
 
       switch (selectedPeriod) {
         case 'weekly':
@@ -184,25 +227,13 @@ export const AnalyticsScreen = () => {
           }
         });
 
-        // Membuat data kategori pengeluaran
-        const categories: ExpenseCategory[] = Object.keys(expensesByCategory).map((categoryId, index) => {
-          const amount = expensesByCategory[categoryId];
-          const percentage = totalExpense > 0 ? amount / totalExpense : 0;
-          const categoryInfo = categoryMap[categoryId] || {
-            name: 'Lainnya',
-            color: categoryColors[index % categoryColors.length],
-            icon: 'pricetag-outline'
-          };
-
-          return {
-            id: categoryId,
-            name: categoryInfo.name,
-            amount,
-            color: categoryInfo.color,
-            percentage,
-            icon: categoryInfo.icon,
-          };
-        }).sort((a, b) => b.amount - a.amount); // Urutkan berdasarkan jumlah terbesar
+        // Simpan data mentah untuk diproses nanti
+        setRawCategoriesData(Object.keys(expensesByCategory).map((categoryId, index) => ({
+          id: categoryId,
+          amount: expensesByCategory[categoryId],
+          percentage: totalExpense > 0 ? expensesByCategory[categoryId] / totalExpense : 0,
+          index,
+        })).sort((a, b) => b.amount - a.amount));
 
         // Mengelompokkan transaksi berdasarkan periode untuk tren pengeluaran
         const trendsByPeriod: Record<string, { income: number, expense: number }> = {};
@@ -278,59 +309,68 @@ export const AnalyticsScreen = () => {
           expense: trendsByPeriod[period].expense,
         }));
 
-        setExpenseCategories(categories);
         setExpenseTrends(trends);
 
-        // Animasi komponen
-        Animated.stagger(150, [
-          Animated.timing(animatedValues.header, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValues.periodButtons, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValues.summary, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValues.categories, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValues.trends, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ]).start();
+        // Jalankan animasi setelah data dimuat
+        runAnimations();
       }
     } catch (error) {
-      console.error('Error loading analytics data:', error);
+      setError('Gagal memuat data analisis');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, selectedPeriod, loadCategories, runAnimations]);
 
-  // Memuat data analisis saat komponen dimount atau user berubah
+  // Effect terpisah untuk load kategori sekali saat mount
+  useEffect(() => {
+    if (user && !categoriesLoaded.current) {
+      loadCategories();
+    }
+  }, [user, loadCategories]);
+
+  // Effect untuk memproses raw categories data dengan categoryMap
+  useEffect(() => {
+    if (rawCategoriesData.length > 0 && Object.keys(categoryMap).length > 0) {
+      const processedCategories: ExpenseCategory[] = rawCategoriesData.map((item) => {
+        const categoryInfo = categoryMap[item.id] || {
+          name: 'Lainnya',
+          color: categoryColors[item.index % categoryColors.length],
+          icon: 'pricetag-outline'
+        };
+
+        return {
+          id: item.id,
+          name: categoryInfo.name,
+          amount: item.amount,
+          color: categoryInfo.color,
+          percentage: item.percentage,
+          icon: categoryInfo.icon,
+        };
+      });
+
+      setExpenseCategories(processedCategories);
+    }
+  }, [rawCategoriesData, categoryMap]);
+
+  // Effect untuk load data analisis saat user atau periode berubah
   useEffect(() => {
     if (user) {
       loadAnalyticsData();
     }
-  }, [user, selectedPeriod]);
+  }, [user, selectedPeriod, loadAnalyticsData]);
 
-  // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
+  // Refresh data ketika halaman difokuskan dengan throttling
   useFocusEffect(
     React.useCallback(() => {
       if (user) {
-        loadAnalyticsData();
+        const now = Date.now();
+        // Hanya refresh jika sudah lebih dari 3 detik sejak focus terakhir
+        if (now - lastFocusTime.current > 3000) {
+          lastFocusTime.current = now;
+          loadAnalyticsData();
+        }
       }
-    }, [user, selectedPeriod])
+    }, [user, loadAnalyticsData])
   );
 
   // Render periode buttons
@@ -566,7 +606,7 @@ export const AnalyticsScreen = () => {
                     ]}
                   >
                     <Ionicons
-                      name={category.icon as any}
+                      name={category.icon as keyof typeof Ionicons.glyphMap}
                       size={12}
                       color={theme.colors.white}
                     />
@@ -906,6 +946,30 @@ export const AnalyticsScreen = () => {
             </Typography>
           </View>
         </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <View style={styles.errorContent}>
+            <Ionicons name="alert-circle-outline" size={48} color={theme.colors.danger[500]} />
+            <Typography variant="h6" color={theme.colors.danger[600]} style={styles.errorTitle}>
+              Terjadi Kesalahan
+            </Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.errorMessage}>
+              {error}
+            </Typography>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => {
+                setError(null);
+                categoriesLoaded.current = false;
+                loadAnalyticsData();
+              }}
+            >
+              <Typography variant="body2" color={theme.colors.primary[600]} weight="600">
+                Coba Lagi
+              </Typography>
+            </TouchableOpacity>
+          </View>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {renderSummary()}
@@ -991,6 +1055,40 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: theme.spacing.md,
     textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.neutral[50],
+    padding: theme.spacing.layout.md,
+  },
+  errorContent: {
+    padding: theme.spacing.layout.md,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 300,
+    ...theme.elevation.md,
+  },
+  errorTitle: {
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    textAlign: 'center',
+    marginBottom: theme.spacing.lg,
+    lineHeight: 20,
+  },
+  retryButton: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary[500],
+    backgroundColor: theme.colors.primary[50],
   },
   scrollContent: {
     padding: theme.spacing.layout.sm,
