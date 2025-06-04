@@ -7,7 +7,7 @@ class Socket {
     this.eventHandlers = {};
   }
 
-  bind(port, address, callback) {
+  bind(_port, _address, callback) {
     if (typeof callback === 'function') {
       setTimeout(callback, 0);
     }
@@ -34,7 +34,7 @@ class Socket {
     return this;
   }
 
-  send(msg, offset, length, port, address, callback) {
+  send(msg, offset, length, port, _address, callback) {
     if (typeof offset === 'number' && typeof length === 'number') {
       // Bentuk lengkap
     } else if (typeof offset === 'number' && typeof length === 'function') {
@@ -74,27 +74,27 @@ class Socket {
     };
   }
 
-  setBroadcast(flag) {
+  setBroadcast(_flag) {
     return this;
   }
 
-  setTTL(ttl) {
+  setTTL(_ttl) {
     return this;
   }
 
-  setMulticastTTL(ttl) {
+  setMulticastTTL(_ttl) {
     return this;
   }
 
-  setMulticastInterface(interfaceAddress) {
+  setMulticastInterface(_interfaceAddress) {
     return this;
   }
 
-  addMembership(multicastAddress, interfaceAddress) {
+  addMembership(_multicastAddress, _interfaceAddress) {
     return this;
   }
 
-  dropMembership(multicastAddress, interfaceAddress) {
+  dropMembership(_multicastAddress, _interfaceAddress) {
     return this;
   }
 

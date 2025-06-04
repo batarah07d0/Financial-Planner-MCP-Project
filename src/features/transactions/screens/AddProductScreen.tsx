@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, TextInput, Button } from '../../../core/components';
+import { Typography, TextInput } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,14 +33,7 @@ export const AddProductScreen = () => {
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
-    isLandscape,
-    responsiveFontSize,
-    responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -78,7 +71,7 @@ export const AddProductScreen = () => {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -88,7 +81,6 @@ export const AddProductScreen = () => {
         setImageUri(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Alert.alert('Error', 'Gagal memilih gambar');
     }
   };
@@ -113,7 +105,6 @@ export const AddProductScreen = () => {
         setImageUri(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
       Alert.alert('Error', 'Gagal mengambil foto');
     }
   };
@@ -167,7 +158,6 @@ export const AddProductScreen = () => {
         ]
       );
     } catch (error) {
-      console.error('Error saving product:', error);
       Alert.alert('Error', 'Gagal menyimpan produk');
     } finally {
       setIsSubmitting(false);

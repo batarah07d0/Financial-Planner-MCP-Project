@@ -29,7 +29,6 @@ export class NotificationService {
       const settings = await getUserSettings(userId);
       return settings?.notification_enabled ?? true;
     } catch (error) {
-      console.error('Error checking notification settings:', error);
       return false;
     }
   }
@@ -55,7 +54,6 @@ export class NotificationService {
 
       return result !== null;
     } catch (error) {
-      console.error('Error sending budget alert:', error);
       return false;
     }
   }
@@ -79,7 +77,6 @@ export class NotificationService {
 
       return result !== null;
     } catch (error) {
-      console.error('Error sending challenge reminder:', error);
       return false;
     }
   }
@@ -107,7 +104,6 @@ export class NotificationService {
 
       return result !== null;
     } catch (error) {
-      console.error('Error sending saving goal progress:', error);
       return false;
     }
   }
@@ -131,7 +127,6 @@ export class NotificationService {
 
       return result !== null;
     } catch (error) {
-      console.error('Error sending account update notification:', error);
       return false;
     }
   }
@@ -148,7 +143,6 @@ export class NotificationService {
 
       return result !== null;
     } catch (error) {
-      console.error('Error sending transaction reminder:', error);
       return false;
     }
   }
@@ -169,7 +163,6 @@ export class NotificationService {
 
       return result !== null;
     } catch (error) {
-      console.error('Error setting up daily reminder:', error);
       return false;
     }
   }
@@ -181,7 +174,6 @@ export class NotificationService {
 
       return await this.notificationHook.cancelAllNotifications();
     } catch (error) {
-      console.error('Error canceling all notifications:', error);
       return false;
     }
   }
@@ -190,7 +182,7 @@ export class NotificationService {
   public async sendLocalNotification(notificationData: {
     title: string;
     body: string;
-    data?: Record<string, any>;
+    data?: Record<string, unknown>;
   }): Promise<boolean> {
     try {
       if (!this.notificationHook) return false;
@@ -198,7 +190,6 @@ export class NotificationService {
       const result = await this.notificationHook.sendLocalNotification(notificationData);
       return result !== null;
     } catch (error) {
-      console.error('Error sending local notification:', error);
       return false;
     }
   }
@@ -208,7 +199,7 @@ export class NotificationService {
     notificationData: {
       title: string;
       body: string;
-      data?: Record<string, any>;
+      data?: Record<string, unknown>;
     },
     schedule: {
       seconds?: number;
@@ -226,7 +217,6 @@ export class NotificationService {
 
       return await this.notificationHook.scheduleNotification(notificationData, schedule);
     } catch (error) {
-      console.error('Error scheduling notification:', error);
       return null;
     }
   }
@@ -245,7 +235,6 @@ export class NotificationService {
 
       return await this.notificationHook.scheduleDailyReminder(hour, minute);
     } catch (error) {
-      console.error('Error scheduling daily reminder:', error);
       return null;
     }
   }
@@ -328,7 +317,6 @@ export class NotificationService {
 
       return true;
     } catch (error) {
-      console.error('Error setting up challenge reminders:', error);
       return false;
     }
   }
@@ -373,7 +361,6 @@ export class NotificationService {
 
       return result !== null;
     } catch (error) {
-      console.error('Error sending challenge completion:', error);
       return false;
     }
   }

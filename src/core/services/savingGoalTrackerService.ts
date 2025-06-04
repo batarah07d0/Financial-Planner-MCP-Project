@@ -1,6 +1,6 @@
 import { getUserSettings } from '../../features/settings/services';
 import { notificationService } from './notificationService';
-import { getSavingGoals, updateSavingGoal } from './supabase/savingGoal.service';
+import { getSavingGoals, updateSavingGoal, SavingGoal } from './supabase/savingGoal.service';
 
 export interface SavingGoalProgress {
   id: string;
@@ -54,13 +54,12 @@ export class SavingGoalTrackerService {
 
       return progressList;
     } catch (error) {
-      console.error('Error tracking saving goals progress:', error);
       return [];
     }
   }
 
   // Calculate progress untuk single goal
-  private calculateProgress(goal: any): SavingGoalProgress {
+  private calculateProgress(goal: SavingGoal): SavingGoalProgress {
     const progressPercentage = goal.target_amount > 0 
       ? (goal.current_amount / goal.target_amount) * 100 
       : 0;
@@ -85,7 +84,7 @@ export class SavingGoalTrackerService {
   // Check milestone dan kirim notifikasi jika belum pernah
   private async checkMilestoneAndNotify(
     userId: string,
-    goal: any,
+    goal: SavingGoal,
     progress: SavingGoalProgress
   ): Promise<boolean> {
     try {
@@ -117,13 +116,11 @@ export class SavingGoalTrackerService {
       if (success) {
         // Mark milestone sebagai sudah dinotifikasi
         notifiedSet.add(milestone);
-        console.log(`Saving goal milestone notification sent: ${progress.name} - ${milestone}%`);
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Error checking milestone and notify:', error);
       return false;
     }
   }
@@ -142,7 +139,6 @@ export class SavingGoalTrackerService {
       });
 
       if (!updatedGoal) {
-        console.error('Failed to update saving goal');
         return null;
       }
 
@@ -157,7 +153,6 @@ export class SavingGoalTrackerService {
         shouldNotify,
       };
     } catch (error) {
-      console.error('Error updating goal progress:', error);
       return null;
     }
   }
@@ -184,7 +179,6 @@ export class SavingGoalTrackerService {
         },
       });
     } catch (error) {
-      console.error('Error sending completion celebration:', error);
       return false;
     }
   }
@@ -229,7 +223,6 @@ export class SavingGoalTrackerService {
 
       return false;
     } catch (error) {
-      console.error('Error sending motivation reminder:', error);
       return false;
     }
   }
@@ -284,7 +277,6 @@ export class SavingGoalTrackerService {
         overallProgress,
       };
     } catch (error) {
-      console.error('Error getting progress summary:', error);
       return {
         totalGoals: 0,
         completedGoals: 0,

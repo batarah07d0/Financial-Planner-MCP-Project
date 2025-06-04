@@ -17,7 +17,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       .eq('user_id', userId);
 
     if (transactionError) {
-      console.error('Error fetching transaction count:', transactionError);
+      // Error handling tanpa console.error
     }
 
     // Mendapatkan jumlah tantangan
@@ -27,7 +27,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       .eq('user_id', userId);
 
     if (challengeError) {
-      console.error('Error fetching challenge count:', challengeError);
+      // Error handling tanpa console.error
     }
 
     // Mendapatkan jumlah tantangan yang selesai
@@ -38,7 +38,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       .eq('status', 'completed');
 
     if (completedError) {
-      console.error('Error fetching completed challenges:', completedError);
+      // Error handling tanpa console.error
     }
 
     // Mendapatkan jumlah saving zones
@@ -48,7 +48,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       .eq('user_id', userId);
 
     if (savingZonesError) {
-      console.error('Error fetching saving zones:', savingZonesError);
+      // Error handling tanpa console.error
     }
 
     // Mendapatkan total tabungan dari user_challenges
@@ -58,7 +58,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       .eq('user_id', userId);
 
     if (savingError) {
-      console.error('Error fetching saving data:', savingError);
+      // Error handling tanpa console.error
     }
 
     const totalSavings = savingData
@@ -73,7 +73,6 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       totalSavings,
     };
   } catch (error) {
-    console.error('Error in getUserStats:', error);
     return {
       transactionCount: 0,
       challengeCount: 0,

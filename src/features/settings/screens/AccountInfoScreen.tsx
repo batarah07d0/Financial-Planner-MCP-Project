@@ -7,7 +7,6 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -37,6 +36,32 @@ export const AccountInfoScreen = () => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(30)).current;
 
+  const fetchProfile = React.useCallback(async () => {
+    try {
+      if (!user) return;
+
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        return;
+      }
+
+      if (data) {
+        setFullName(data.full_name || '');
+        setEmail(data.email || user.email || '');
+      }
+    } catch (error) {
+      // Error handling tanpa console.error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     // Animasi saat komponen mount
     Animated.parallel([
@@ -54,35 +79,9 @@ export const AccountInfoScreen = () => {
 
     // Ambil data profil dari Supabase
     fetchProfile();
-  }, []);
+  }, [fadeAnim, slideAnim, fetchProfile]);
 
-  const fetchProfile = async () => {
-    try {
-      setIsLoading(true);
 
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
-      if (data) {
-        setFullName(data.full_name || '');
-        setEmail(data.email || user.email || '');
-      }
-    } catch (error) {
-      console.error('Error in fetchProfile:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSave = async () => {
     try {
@@ -112,7 +111,6 @@ export const AccountInfoScreen = () => {
       Alert.alert('Sukses', 'Informasi akun berhasil diperbarui');
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating profile:', error);
       Alert.alert('Error', 'Gagal memperbarui informasi akun');
     } finally {
       setIsSaving(false);

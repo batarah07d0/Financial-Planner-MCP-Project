@@ -75,7 +75,6 @@ export const searchBarcode = async (
     // Jika tidak ditemukan di semua sumber
     return null;
   } catch (error) {
-    console.error('Error searching barcode:', error);
     return null;
   }
 };
@@ -90,7 +89,6 @@ const getLocalBarcodeData = async (barcode: string): Promise<BarcodeData | null>
     }
     return null;
   } catch (error) {
-    console.error('Error getting local barcode data:', error);
     return null;
   }
 };
@@ -112,20 +110,18 @@ const getCommunityBarcodeData = async (barcode: string): Promise<BarcodeData | n
 
     return data as BarcodeData;
   } catch (error) {
-    console.error('Error getting community barcode data:', error);
     return null;
   }
 };
 
 // Fungsi untuk mendapatkan data barcode dari API eksternal
 // Catatan: Ini adalah implementasi dummy, ganti dengan API yang sebenarnya
-const getApiBarcodeData = async (barcode: string): Promise<BarcodeData | null> => {
+const getApiBarcodeData = async (_barcode: string): Promise<BarcodeData | null> => {
   try {
     // Implementasi dummy, selalu mengembalikan null
     // Dalam implementasi sebenarnya, ini akan memanggil API eksternal
     return null;
   } catch (error) {
-    console.error('Error getting API barcode data:', error);
     return null;
   }
 };
@@ -135,34 +131,29 @@ export const addLocalBarcodeData = async (
   input: BarcodeDataInput,
   userId: string
 ): Promise<BarcodeData> => {
-  try {
-    const now = new Date().toISOString();
-    const newBarcodeData: BarcodeData = {
-      id: uuidv4(),
-      ...input,
-      createdAt: now,
-      updatedAt: now,
-      createdBy: userId,
-      isVerified: false,
-      upvotes: 0,
-      downvotes: 0,
-    };
+  const now = new Date().toISOString();
+  const newBarcodeData: BarcodeData = {
+    id: uuidv4(),
+    ...input,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: userId,
+    isVerified: false,
+    upvotes: 0,
+    downvotes: 0,
+  };
 
-    // Dapatkan data barcode yang ada
-    const jsonValue = await AsyncStorage.getItem(BARCODE_DATA_STORAGE_KEY);
-    const barcodeDataList = jsonValue ? JSON.parse(jsonValue) as BarcodeData[] : [];
+  // Dapatkan data barcode yang ada
+  const jsonValue = await AsyncStorage.getItem(BARCODE_DATA_STORAGE_KEY);
+  const barcodeDataList = jsonValue ? JSON.parse(jsonValue) as BarcodeData[] : [];
 
-    // Tambahkan data barcode baru
-    barcodeDataList.push(newBarcodeData);
+  // Tambahkan data barcode baru
+  barcodeDataList.push(newBarcodeData);
 
-    // Simpan kembali ke penyimpanan lokal
-    await AsyncStorage.setItem(BARCODE_DATA_STORAGE_KEY, JSON.stringify(barcodeDataList));
+  // Simpan kembali ke penyimpanan lokal
+  await AsyncStorage.setItem(BARCODE_DATA_STORAGE_KEY, JSON.stringify(barcodeDataList));
 
-    return newBarcodeData;
-  } catch (error) {
-    console.error('Error adding local barcode data:', error);
-    throw error;
-  }
+  return newBarcodeData;
 };
 
 // Fungsi untuk menambahkan data barcode baru ke database komunitas (Supabase)
@@ -198,8 +189,6 @@ export const addCommunityBarcodeData = async (
 
     return data as BarcodeData;
   } catch (error) {
-    console.error('Error adding community barcode data:', error);
-
     // Jika gagal menambahkan ke Supabase, tambahkan ke lokal saja
     return addLocalBarcodeData(input, userId);
   }
@@ -238,7 +227,6 @@ export const voteBarcodeData = async (
 
     return true;
   } catch (error) {
-    console.error('Error voting barcode data:', error);
     return false;
   }
 };
@@ -254,7 +242,6 @@ export const getBarcodeHistory = async (): Promise<BarcodeHistoryItem[]> => {
     }
     return [];
   } catch (error) {
-    console.error('Error getting barcode history:', error);
     return [];
   }
 };
@@ -263,32 +250,27 @@ export const getBarcodeHistory = async (): Promise<BarcodeHistoryItem[]> => {
 export const addBarcodeHistory = async (
   input: BarcodeHistoryItemInput
 ): Promise<BarcodeHistoryItem> => {
-  try {
-    const now = new Date().toISOString();
-    const newHistoryItem: BarcodeHistoryItem = {
-      id: uuidv4(),
-      ...input,
-      scannedAt: now,
-      addedToTransaction: input.addedToTransaction || false,
-    };
+  const now = new Date().toISOString();
+  const newHistoryItem: BarcodeHistoryItem = {
+    id: uuidv4(),
+    ...input,
+    scannedAt: now,
+    addedToTransaction: input.addedToTransaction || false,
+  };
 
-    // Dapatkan riwayat yang ada
-    const history = await getBarcodeHistory();
+  // Dapatkan riwayat yang ada
+  const history = await getBarcodeHistory();
 
-    // Tambahkan item baru
-    history.unshift(newHistoryItem);
+  // Tambahkan item baru
+  history.unshift(newHistoryItem);
 
-    // Batasi jumlah riwayat (misalnya 100 item terakhir)
-    const limitedHistory = history.slice(0, 100);
+  // Batasi jumlah riwayat (misalnya 100 item terakhir)
+  const limitedHistory = history.slice(0, 100);
 
-    // Simpan kembali ke penyimpanan lokal
-    await AsyncStorage.setItem(BARCODE_HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
+  // Simpan kembali ke penyimpanan lokal
+  await AsyncStorage.setItem(BARCODE_HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
 
-    return newHistoryItem;
-  } catch (error) {
-    console.error('Error adding barcode history:', error);
-    throw error;
-  }
+  return newHistoryItem;
 };
 
 // Fungsi untuk memperbarui status "ditambahkan ke transaksi" pada riwayat pemindaian
@@ -317,7 +299,6 @@ export const updateBarcodeHistoryTransactionStatus = async (
 
     return true;
   } catch (error) {
-    console.error('Error updating barcode history transaction status:', error);
     return false;
   }
 };

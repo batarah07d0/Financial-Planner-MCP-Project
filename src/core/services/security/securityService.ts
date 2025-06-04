@@ -1,10 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  enableEncryption, 
-  disableEncryption, 
+import {
+  enableEncryption,
   isEncryptionEnabled,
-  encryptData,
-  decryptData,
   encryptObject,
   decryptObject,
 } from './encryptionService';
@@ -34,7 +31,6 @@ export const getSecurityLevel = async (): Promise<SecurityLevel> => {
     const level = await AsyncStorage.getItem(SECURITY_LEVEL_KEY);
     return (level as SecurityLevel) || 'medium';
   } catch (error) {
-    console.error('Error getting security level:', error);
     return 'medium'; // Default ke medium jika terjadi kesalahan
   }
 };
@@ -43,15 +39,14 @@ export const getSecurityLevel = async (): Promise<SecurityLevel> => {
 export const setSecurityLevel = async (level: SecurityLevel): Promise<boolean> => {
   try {
     await AsyncStorage.setItem(SECURITY_LEVEL_KEY, level);
-    
+
     // Jika tingkat keamanan tinggi, aktifkan enkripsi
     if (level === 'high') {
       await enableEncryption();
     }
-    
+
     return true;
   } catch (error) {
-    console.error('Error setting security level:', error);
     return false;
   }
 };
@@ -62,7 +57,6 @@ export const getPrivacyMode = async (): Promise<PrivacyMode> => {
     const mode = await AsyncStorage.getItem(PRIVACY_MODE_KEY);
     return (mode as PrivacyMode) || 'standard';
   } catch (error) {
-    console.error('Error getting privacy mode:', error);
     return 'standard'; // Default ke standard jika terjadi kesalahan
   }
 };
@@ -71,15 +65,14 @@ export const getPrivacyMode = async (): Promise<PrivacyMode> => {
 export const setPrivacyMode = async (mode: PrivacyMode): Promise<boolean> => {
   try {
     await AsyncStorage.setItem(PRIVACY_MODE_KEY, mode);
-    
+
     // Jika mode privasi enhanced atau maximum, aktifkan enkripsi
     if (mode === 'enhanced' || mode === 'maximum') {
       await enableEncryption();
     }
-    
+
     return true;
   } catch (error) {
-    console.error('Error setting privacy mode:', error);
     return false;
   }
 };
@@ -113,8 +106,6 @@ export const getSensitiveDataSettings = async (): Promise<SensitiveData> => {
       requireAuthForSensitiveActions: true,
     };
   } catch (error) {
-    console.error('Error getting sensitive data settings:', error);
-    
     // Default settings jika terjadi kesalahan
     return {
       hideBalances: false,
@@ -130,26 +121,25 @@ export const setSensitiveDataSettings = async (settings: SensitiveData): Promise
   try {
     // Periksa apakah enkripsi diaktifkan
     const encryptionEnabled = await isEncryptionEnabled();
-    
+
     let dataToSave: string;
-    
+
     if (encryptionEnabled) {
       // Enkripsi data jika enkripsi diaktifkan
       const encryptedData = await encryptObject(settings);
       if (!encryptedData) {
         return false;
       }
-      
+
       dataToSave = encryptedData;
     } else {
       // Simpan data sebagai JSON jika enkripsi tidak diaktifkan
       dataToSave = JSON.stringify(settings);
     }
-    
+
     await AsyncStorage.setItem(SENSITIVE_DATA_KEY, dataToSave);
     return true;
   } catch (error) {
-    console.error('Error setting sensitive data settings:', error);
     return false;
   }
 };
@@ -210,7 +200,6 @@ export const requiresAuthentication = async (action: string): Promise<boolean> =
     
     return false;
   } catch (error) {
-    console.error('Error checking if action requires authentication:', error);
     return true; // Default ke true jika terjadi kesalahan (lebih aman)
   }
 };
@@ -219,7 +208,7 @@ export const requiresAuthentication = async (action: string): Promise<boolean> =
 export const shouldHideData = async (dataType: 'balances' | 'transactions' | 'budgets'): Promise<boolean> => {
   try {
     const sensitiveDataSettings = await getSensitiveDataSettings();
-    
+
     switch (dataType) {
       case 'balances':
         return sensitiveDataSettings.hideBalances;
@@ -231,7 +220,6 @@ export const shouldHideData = async (dataType: 'balances' | 'transactions' | 'bu
         return false;
     }
   } catch (error) {
-    console.error('Error checking if data should be hidden:', error);
     return false;
   }
 };

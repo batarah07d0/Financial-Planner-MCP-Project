@@ -42,12 +42,12 @@ export const Input: React.FC<InputProps> = ({
   // Menentukan apakah input adalah password
   const isPasswordInput = rest.secureTextEntry !== undefined;
 
-  const handleFocus = (e: any) => {
+  const handleFocus = (e: Parameters<NonNullable<TextInputProps['onFocus']>>[0]) => {
     setIsFocused(true);
     rest.onFocus?.(e);
   };
 
-  const handleBlur = (e: any) => {
+  const handleBlur = (e: Parameters<NonNullable<TextInputProps['onBlur']>>[0]) => {
     setIsFocused(false);
     rest.onBlur?.(e);
   };

@@ -62,7 +62,7 @@ export const BudgetAlert: React.FC<BudgetAlertProps> = ({
       // Kirim notifikasi budget alert
       sendBudgetAlert(budgetName, percentageUsed, remainingBudget);
     }
-  }, [visible, budgetName, percentageUsed, remainingBudget]);
+  }, [visible, budgetName, percentageUsed, remainingBudget, animatedValue, sendBudgetAlert, triggerHapticFeedback]);
 
   // Animasi untuk scale dan opacity
   const scale = animatedValue.interpolate({

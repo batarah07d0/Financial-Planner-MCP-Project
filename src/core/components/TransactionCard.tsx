@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, GestureResponderEvent } from 'react-native';
 import { Card } from './Card';
 import { Typography } from './Typography';
 import { theme } from '../theme';
@@ -54,7 +54,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     }
   };
 
-  const handleDelete = (e: any) => {
+  const handleDelete = (e: GestureResponderEvent) => {
     e.stopPropagation();
     if (onDelete) {
       onDelete(id);
@@ -122,7 +122,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
                 ]}
               >
                 <Ionicons
-                  name={getCategoryIcon()}
+                  name={getCategoryIcon() as keyof typeof Ionicons.glyphMap}
                   size={20}
                   color={
                     type === 'income'

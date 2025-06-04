@@ -19,7 +19,6 @@ const getEncryptionKey = async (): Promise<string | null> => {
     const key = await AsyncStorage.getItem(ENCRYPTION_KEY_KEY);
     return key;
   } catch (error) {
-    console.error('Error getting encryption key:', error);
     return null;
   }
 };
@@ -30,7 +29,6 @@ const saveEncryptionKey = async (key: string): Promise<boolean> => {
     await AsyncStorage.setItem(ENCRYPTION_KEY_KEY, key);
     return true;
   } catch (error) {
-    console.error('Error saving encryption key:', error);
     return false;
   }
 };
@@ -58,7 +56,6 @@ export const enableEncryption = async (): Promise<boolean> => {
     
     return true;
   } catch (error) {
-    console.error('Error enabling encryption:', error);
     return false;
   }
 };
@@ -68,13 +65,12 @@ export const disableEncryption = async (): Promise<boolean> => {
   try {
     // Hapus kunci enkripsi
     await AsyncStorage.removeItem(ENCRYPTION_KEY_KEY);
-    
+
     // Nonaktifkan enkripsi
     await AsyncStorage.setItem(ENCRYPTION_ENABLED_KEY, 'false');
-    
+
     return true;
   } catch (error) {
-    console.error('Error disabling encryption:', error);
     return false;
   }
 };
@@ -85,7 +81,6 @@ export const isEncryptionEnabled = async (): Promise<boolean> => {
     const value = await AsyncStorage.getItem(ENCRYPTION_ENABLED_KEY);
     return value === 'true';
   } catch (error) {
-    console.error('Error checking encryption enabled:', error);
     return false;
   }
 };
@@ -129,7 +124,6 @@ export const encryptData = async (data: string): Promise<string | null> => {
     // Gabungkan salt dan data terenkripsi
     return saltHex + encryptedData;
   } catch (error) {
-    console.error('Error encrypting data:', error);
     return null;
   }
 };
@@ -142,30 +136,29 @@ export const decryptData = async (encryptedData: string): Promise<string | null>
     if (!enabled) {
       return encryptedData; // Jika enkripsi tidak diaktifkan, kembalikan data asli
     }
-    
+
     // Dapatkan kunci enkripsi
     const key = await getEncryptionKey();
     if (!key) {
       return null;
     }
-    
+
     // Ekstrak salt dan data terenkripsi
     const saltHex = encryptedData.substring(0, 32);
     const encryptedPayload = encryptedData.substring(32);
-    
+
     // Hasilkan kunci derivasi
-    const derivedKey = await Crypto.digestStringAsync(
+    await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
       key + saltHex
     );
-    
+
     // Dekripsi data (dalam implementasi nyata, gunakan algoritma dekripsi yang sesuai)
     // Catatan: Ini hanya simulasi dekripsi karena keterbatasan expo-crypto
     // Dalam aplikasi produksi, gunakan library enkripsi yang lebih kuat
-    
+
     return encryptedPayload; // Ini hanya placeholder
   } catch (error) {
-    console.error('Error decrypting data:', error);
     return null;
   }
 };
@@ -176,7 +169,6 @@ export const encryptObject = async <T>(obj: T): Promise<string | null> => {
     const jsonString = JSON.stringify(obj);
     return await encryptData(jsonString);
   } catch (error) {
-    console.error('Error encrypting object:', error);
     return null;
   }
 };
@@ -188,10 +180,9 @@ export const decryptObject = async <T>(encryptedData: string): Promise<T | null>
     if (!jsonString) {
       return null;
     }
-    
+
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error('Error decrypting object:', error);
     return null;
   }
 };

@@ -98,7 +98,7 @@ export class BudgetMonitorService {
 
       return budgetStatuses;
     } catch (error) {
-      console.error('Error checking budget thresholds:', error);
+      // Error checking budget thresholds - silently handled
       return [];
     }
   }
@@ -113,9 +113,9 @@ export class BudgetMonitorService {
         budgetStatus.remainingAmount
       );
 
-      console.log(`Budget alert sent for ${budgetStatus.categoryName}: ${budgetStatus.percentage.toFixed(1)}%`);
+      // Budget alert sent successfully
     } catch (error) {
-      console.error('Error sending budget alert:', error);
+      // Error sending budget alert - silently handled
     }
   }
 
@@ -165,7 +165,7 @@ export class BudgetMonitorService {
 
       return budgetStatus;
     } catch (error) {
-      console.error('Error checking specific budget:', error);
+      // Error checking specific budget - silently handled
       return null;
     }
   }
@@ -219,7 +219,7 @@ export class BudgetMonitorService {
 
       return budgetStatuses;
     } catch (error) {
-      console.error('Error getting budget statuses:', error);
+      // Error getting budget statuses - silently handled
       return [];
     }
   }

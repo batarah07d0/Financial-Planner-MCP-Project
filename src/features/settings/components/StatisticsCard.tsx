@@ -41,7 +41,7 @@ export const StatisticsCard: React.FC<StatisticsCardProps> = ({ stats, isLoading
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim]);
 
   // Render loading skeleton
   const renderLoadingSkeleton = () => {
@@ -134,7 +134,7 @@ const StatItemComponent: React.FC<StatItemComponentProps> = ({ item, index }) =>
         useNativeDriver: true,
       })
     ]).start();
-  }, []);
+  }, [index, scaleAnim, valueAnim]);
 
   return (
     <Animated.View
@@ -152,7 +152,7 @@ const StatItemComponent: React.FC<StatItemComponentProps> = ({ item, index }) =>
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Ionicons name={item.icon as any} size={22} color={item.color} />
+          <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={22} color={item.color} />
         </LinearGradient>
       </View>
 

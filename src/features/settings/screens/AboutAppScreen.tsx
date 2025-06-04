@@ -44,7 +44,7 @@ export const AboutAppScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const handleContactSupport = () => {
     Linking.openURL('mailto:support@budgetwise.com?subject=Dukungan BudgetWise&body=Halo tim BudgetWise,%0D%0A%0D%0ASaya memerlukan bantuan dengan:%0D%0A%0D%0A[Jelaskan masalah Anda di sini]%0D%0A%0D%0AInformasi Perangkat:%0D%0A- Platform: ' + Platform.OS + '%0D%0A- Versi App: 1.0.0%0D%0A%0D%0ATerima kasih!');
@@ -126,7 +126,7 @@ export const AboutAppScreen = () => {
         ].map((feature, index) => (
           <View key={index} style={styles.featureItem}>
             <View style={[styles.featureIcon, { backgroundColor: `${feature.color}20` }]}>
-              <Ionicons name={feature.icon as any} size={20} color={feature.color} />
+              <Ionicons name={feature.icon as keyof typeof Ionicons.glyphMap} size={20} color={feature.color} />
             </View>
             <View style={styles.featureContent}>
               <Typography variant="body1" weight="500">{feature.title}</Typography>
@@ -214,10 +214,10 @@ export const AboutAppScreen = () => {
               <View style={styles.developerCardHeader}>
                 <View style={styles.developerAvatar}>
                   <LinearGradient
-                    colors={developer.gradientColors as any}
+                    colors={developer.gradientColors as [string, string]}
                     style={styles.avatarGradient}
                   >
-                    <Ionicons name={developer.icon as any} size={28} color="white" />
+                    <Ionicons name={developer.icon as keyof typeof Ionicons.glyphMap} size={28} color="white" />
                   </LinearGradient>
                 </View>
                 <View style={styles.developerNameContainer}>

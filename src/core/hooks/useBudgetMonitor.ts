@@ -6,7 +6,7 @@ import { budgetMonitorService, BudgetStatus } from '../services/budgetMonitorSer
 export const useBudgetMonitor = () => {
   const { user } = useAuthStore();
   const appState = useRef(AppState.currentState);
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCheckRef = useRef<number>(0);
 
   // Interval untuk checking (setiap 30 menit)
@@ -18,30 +18,28 @@ export const useBudgetMonitor = () => {
     if (!user) return [];
 
     const now = Date.now();
-    
+
     // Prevent too frequent checks
     if (now - lastCheckRef.current < MIN_CHECK_INTERVAL) {
-      console.log('Budget check skipped - too frequent');
+      // Budget check skipped - too frequent
       return [];
     }
 
     try {
-      console.log('Checking budget thresholds...');
+      // Checking budget thresholds
       lastCheckRef.current = now;
-      
+
       const budgetStatuses = await budgetMonitorService.checkBudgetThresholds(user.id);
-      
-      const alertedBudgets = budgetStatuses.filter(status => status.shouldAlert);
-      if (alertedBudgets.length > 0) {
-        console.log(`Budget alerts sent for ${alertedBudgets.length} budgets`);
-      }
+
+      // Budget alerts processed silently
+      budgetStatuses.filter(status => status.shouldAlert);
 
       return budgetStatuses;
     } catch (error) {
-      console.error('Error in budget threshold check:', error);
+      // Error in budget threshold check - silently handled
       return [];
     }
-  }, [user]);
+  }, [user, MIN_CHECK_INTERVAL]);
 
   // Fungsi untuk mengecek budget tertentu (real-time)
   const checkSpecificBudget = useCallback(async (
@@ -57,7 +55,7 @@ export const useBudgetMonitor = () => {
         budgetAmount
       );
     } catch (error) {
-      console.error('Error checking specific budget:', error);
+      // Error checking specific budget - silently handled
       return null;
     }
   }, [user]);
@@ -69,7 +67,7 @@ export const useBudgetMonitor = () => {
     try {
       return await budgetMonitorService.getBudgetStatuses(user.id);
     } catch (error) {
-      console.error('Error getting budget statuses:', error);
+      // Error getting budget statuses - silently handled
       return [];
     }
   }, [user]);
@@ -81,8 +79,8 @@ export const useBudgetMonitor = () => {
     }
 
     if (user) {
-      console.log('Setting up budget monitoring...');
-      
+      // Setting up budget monitoring
+
       // Initial check
       checkBudgetThresholds();
 
@@ -91,7 +89,7 @@ export const useBudgetMonitor = () => {
         checkBudgetThresholds();
       }, CHECK_INTERVAL);
     }
-  }, [user, checkBudgetThresholds]);
+  }, [user, checkBudgetThresholds, CHECK_INTERVAL]);
 
   // Cleanup interval
   const cleanupPeriodicCheck = useCallback(() => {
@@ -105,7 +103,6 @@ export const useBudgetMonitor = () => {
   const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
     if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
       // App came to foreground, check budgets
-      console.log('App became active, checking budgets...');
       checkBudgetThresholds();
     }
     appState.current = nextAppState;

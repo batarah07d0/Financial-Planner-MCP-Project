@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,18 +8,17 @@ import {
   Animated,
   ScrollView,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 // Import dari mock untuk Expo Go
 import MapView, { Marker, Callout, PROVIDER_GOOGLE, Circle } from 'react-native-maps';
-import { Typography, Card, Button, EmptyState } from '../../../core/components';
+import { Typography, EmptyState } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { formatCurrency, formatDate, formatPercentage } from '../../../core/utils';
+import { formatCurrency, formatDate } from '../../../core/utils';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { useLocation } from '../../../core/hooks';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { useAuthStore } from '../../../core/services/store';
@@ -42,49 +41,7 @@ interface TransactionWithLocation {
   color?: string;
 }
 
-// Kategori default untuk fallback
-const DEFAULT_CATEGORIES = {
-  'Makanan & Minuman': {
-    icon: 'fast-food-outline',
-    color: '#FF6B6B',
-    id: '5245eee1-d757-4b44-abd6-ecc6efd35207'
-  },
-  'Transportasi': {
-    icon: 'car-outline',
-    color: '#4ECDC4',
-    id: 'd2c02aea-95e3-47d2-8ae3-17e7ea224edd'
-  },
-  'Belanja': {
-    icon: 'cart-outline',
-    color: '#FFD166',
-    id: '5a948b41-68dc-46df-90b2-03e095de1641'
-  },
-  'Hiburan': {
-    icon: 'film-outline',
-    color: '#F72585',
-    id: 'acde3aca-6151-484f-8c38-de7897950e9c'
-  },
-  'Tagihan': {
-    icon: 'receipt-outline',
-    color: '#3A86FF',
-    id: 'fe362fb2-2075-41a5-a2f4-df6440e4f515'
-  },
-  'Kesehatan': {
-    icon: 'medical-outline',
-    color: '#06D6A0',
-    id: '43fe341c-5299-475f-bfab-b54b0cc5b7d9'
-  },
-  'Pendidikan': {
-    icon: 'school-outline',
-    color: '#118AB2',
-    id: 'd0bf30a5-2e40-420b-affc-8030207372a5'
-  },
-  'Lainnya': {
-    icon: 'ellipsis-horizontal-outline',
-    color: '#8A8A8A',
-    id: 'a9d327c0-09bb-4b9c-a164-ea053f93751e'
-  }
-};
+
 
 // Konstanta untuk animasi
 const ANIMATION_DURATION = 300;
@@ -101,14 +58,8 @@ export const ExpenseMapScreen = () => {
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
-    isLandscape,
-    responsiveFontSize,
     responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -134,24 +85,17 @@ export const ExpenseMapScreen = () => {
     return 16; // medium device
   };
 
-  // Responsive header height
-  const getHeaderHeight = () => {
-    if (isLandscape) return 60;
-    if (isSmallDevice) return 80;
-    if (isLargeDevice) return 100;
-    return 90; // medium device
-  };
+
 
   // Fungsi untuk memuat kategori dari Supabase (tidak digunakan lagi)
   // Kategori sekarang diambil langsung dari relasi transaksi
 
   // Fungsi untuk memuat transaksi dengan lokasi dari Supabase
-  const loadTransactionsWithLocation = async () => {
+  const loadTransactionsWithLocation = useCallback(async () => {
     try {
       setIsLoading(true);
 
       if (!user) {
-        console.warn('User not authenticated');
         return;
       }
 
@@ -166,7 +110,6 @@ export const ExpenseMapScreen = () => {
         .order('date', { ascending: false });
 
       if (error) {
-        console.error('Error loading transactions with location:', error);
         Alert.alert('Error', 'Gagal memuat data transaksi');
         return;
       }
@@ -207,12 +150,11 @@ export const ExpenseMapScreen = () => {
         useNativeDriver: true,
       }).start();
     } catch (error) {
-      console.error('Error loading transactions with location:', error);
       Alert.alert('Error', 'Gagal memuat data transaksi');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, headerAnimation]);
 
   // Fungsi untuk menangani klik pada marker
   const handleMarkerPress = (transaction: TransactionWithLocation) => {
@@ -232,7 +174,7 @@ export const ExpenseMapScreen = () => {
   };
 
   // Fungsi untuk mendapatkan lokasi saat ini dan memindahkan peta
-  const handleGetCurrentLocation = async () => {
+  const handleGetCurrentLocation = useCallback(async () => {
     const currentLocation = await getCurrentLocation();
 
     if (currentLocation && mapRef.current) {
@@ -243,7 +185,7 @@ export const ExpenseMapScreen = () => {
         longitudeDelta: 0.0421,
       });
     }
-  };
+  }, [getCurrentLocation]);
 
   // Fungsi untuk mengubah tipe peta
   const toggleMapType = () => {
@@ -302,7 +244,7 @@ export const ExpenseMapScreen = () => {
   useEffect(() => {
     loadTransactionsWithLocation();
     handleGetCurrentLocation();
-  }, []);
+  }, [loadTransactionsWithLocation, handleGetCurrentLocation]);
 
   // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
   useFocusEffect(
@@ -310,7 +252,7 @@ export const ExpenseMapScreen = () => {
       if (user) {
         loadTransactionsWithLocation();
       }
-    }, [user])
+    }, [user, loadTransactionsWithLocation])
   );
 
   // Render marker untuk setiap transaksi
@@ -332,7 +274,7 @@ export const ExpenseMapScreen = () => {
             ]}
           >
             <Ionicons
-              name={(transaction.icon || 'pricetag-outline') as any}
+              name={(transaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
               size={getMarkerSize()}
               color={theme.colors.white}
             />
@@ -357,7 +299,7 @@ export const ExpenseMapScreen = () => {
                 { backgroundColor: transaction.color || theme.colors.neutral[500] }
               ]}>
                 <Ionicons
-                  name={(transaction.icon || 'pricetag-outline') as any}
+                  name={(transaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
                   size={20}
                   color={theme.colors.white}
                 />
@@ -467,7 +409,7 @@ export const ExpenseMapScreen = () => {
                 ]}
               >
                 <Ionicons
-                  name={(category.icon || 'pricetag-outline') as any}
+                  name={(category.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
                   size={16}
                   color={theme.colors.white}
                 />
@@ -696,7 +638,7 @@ export const ExpenseMapScreen = () => {
                   ]}
                 >
                   <Ionicons
-                    name={(selectedTransaction.icon || 'pricetag-outline') as any}
+                    name={(selectedTransaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
                     size={24}
                     color={theme.colors.white}
                   />
@@ -769,8 +711,7 @@ export const ExpenseMapScreen = () => {
   );
 };
 
-// Dimensi layar dapat digunakan jika diperlukan
-// const { width, height } = Dimensions.get('window');
+
 
 const styles = StyleSheet.create({
   container: {

@@ -11,6 +11,8 @@ import { supabase } from '../../config/supabase';
 import { OnboardingScreen } from '../../features/onboarding/screens';
 import {
   AddTransactionScreen,
+  TransactionDetailScreen,
+  EditTransactionScreen,
   ExpenseMapScreen,
   ReceiptScannerScreen,
   BarcodeScannerScreen,
@@ -19,6 +21,8 @@ import {
 } from '../../features/transactions/screens';
 import {
   AddBudgetScreen,
+  BudgetDetailScreen,
+  EditBudgetScreen,
 } from '../../features/budget/screens';
 import {
   SavingGoalsScreen,
@@ -74,7 +78,11 @@ export const RootNavigator = () => {
           <>
             <Stack.Screen name="Main" component={TabNavigator} />
             <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
+            <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
+            <Stack.Screen name="EditTransaction" component={EditTransactionScreen} />
             <Stack.Screen name="AddBudget" component={AddBudgetScreen} />
+            <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
+            <Stack.Screen name="EditBudget" component={EditBudgetScreen} />
             <Stack.Screen name="SavingGoals" component={SavingGoalsScreen} />
             <Stack.Screen name="AddSavingGoal" component={AddSavingGoalScreen} />
             <Stack.Screen name="EditSavingGoal" component={EditSavingGoalScreen} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,15 +8,16 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography, BudgetCard } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { formatCurrency } from '../../../core/utils';
+import { formatCurrency, getCategoryIcon, getCategoryColor } from '../../../core/utils';
 import { useBudgetStore } from '../../../core/services/store/budgetStore';
 import { useAuthStore } from '../../../core/services/store/authStore';
 import { getCategories } from '../../../core/services/supabase/category.service';
 import { getBudgetSpending } from '../../../core/services/supabase/budget.service';
+import { Budget } from '../../../core/services/supabase/types';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useBudgetMonitor } from '../../../core/hooks/useBudgetMonitor';
@@ -47,7 +48,7 @@ export const BudgetScreen = () => {
   const [categoryMap, setCategoryMap] = useState<CategoryMap>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('weekly');
 
   // Responsive dimensions
   const {
@@ -61,7 +62,9 @@ export const BudgetScreen = () => {
   const { user } = useAuthStore();
   const { checkBudgetThresholds } = useBudgetMonitor();
 
-  // Fungsi untuk memuat kategori
+
+
+  // Fungsi untuk memuat kategori dengan enhanced mapping
   const loadCategories = async () => {
     try {
       const categories = await getCategories({ type: 'expense' });
@@ -70,19 +73,19 @@ export const BudgetScreen = () => {
       categories.forEach(category => {
         newCategoryMap[category.id] = {
           name: category.name,
-          icon: category.icon,
-          color: category.color,
+          icon: getCategoryIcon(category.name, category.icon),
+          color: getCategoryColor(category.name, category.color),
         };
       });
 
       setCategoryMap(newCategoryMap);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      // Error loading categories - handled silently
     }
   };
 
   // Fungsi untuk menghitung pengeluaran untuk setiap anggaran
-  const calculateSpending = async (budgetList: any[]) => {
+  const calculateSpending = useCallback(async (budgetList: Budget[]) => {
     if (!user?.id) return [];
 
     try {
@@ -156,13 +159,12 @@ export const BudgetScreen = () => {
 
       return displayBudgets;
     } catch (error) {
-      console.error('Error calculating spending:', error);
       return [];
     }
-  };
+  }, [user?.id, categoryMap, selectedPeriod]);
 
   // Fungsi untuk memuat anggaran
-  const loadBudgets = async () => {
+  const loadBudgets = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -173,39 +175,27 @@ export const BudgetScreen = () => {
 
       try {
         // Memuat anggaran dari Supabase
-        // Coba tanpa filter period dulu untuk mengatasi jika kolom period belum ada
         await fetchBudgets(user.id);
 
-        // Menghitung pengeluaran untuk setiap anggaran
-        let displayBudgets = await calculateSpending(supabaseBudgets);
-
-        // Filter secara manual berdasarkan period jika kolom period ada
-        if (displayBudgets.length > 0 && 'period' in displayBudgets[0]) {
-          displayBudgets = displayBudgets.filter(budget => budget.period === selectedPeriod);
-        }
-
-        setBudgets(displayBudgets);
+        // Tunggu sebentar untuk memastikan store ter-update
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Setelah memuat budget, cek threshold untuk notifikasi
-        if (displayBudgets.length > 0) {
-          checkBudgetThresholds();
-        }
-      } catch (error: any) {
-        // Jika error terkait kolom period, log ke console untuk developer
-        if (error.message && error.message.includes('period does not exist')) {
-          console.warn('Database schema update needed: period column missing in budgets table');
+        checkBudgetThresholds();
+      } catch (error: unknown) {
+        // Jika error terkait kolom period, handle gracefully
+        if (error instanceof Error && error.message && error.message.includes('period does not exist')) {
           setBudgets([]);
         } else {
           throw error;
         }
       }
     } catch (error) {
-      console.error('Error loading budgets:', error);
       setBudgets([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, fetchBudgets, checkBudgetThresholds]);
 
   // Fungsi untuk refresh data
   const handleRefresh = async () => {
@@ -217,7 +207,8 @@ export const BudgetScreen = () => {
   // Fungsi untuk menangani klik pada anggaran
   const handleBudgetPress = (id: string) => {
     // Navigasi ke halaman detail anggaran
-    console.log('Budget pressed:', id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigation as any).navigate('BudgetDetail', { id });
   };
 
   // Fungsi untuk menangani klik pada tombol tambah anggaran
@@ -236,18 +227,71 @@ export const BudgetScreen = () => {
   // Memuat anggaran saat komponen dimount atau periode berubah
   useEffect(() => {
     loadBudgets();
-  }, [selectedPeriod, user]);
+  }, [selectedPeriod, user, loadBudgets]);
 
-  // Render item untuk FlatList
-  const renderItem = ({ item }: { item: BudgetDisplay }) => (
-    <BudgetCard
-      id={item.id}
-      category={item.category}
-      amount={item.amount}
-      spent={item.spent}
-      onPress={handleBudgetPress}
-    />
+  // Refresh data saat screen focus (user kembali dari AddBudgetScreen)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        loadBudgets();
+      }
+    }, [user?.id, loadBudgets])
   );
+
+  // Listen untuk perubahan data budget dari store
+  useEffect(() => {
+    const processStoreBudgets = async () => {
+      if (supabaseBudgets.length > 0 && categoryMap && Object.keys(categoryMap).length > 0) {
+
+        // Menghitung pengeluaran untuk setiap anggaran
+        const displayBudgets = await calculateSpending(supabaseBudgets);
+
+        // Filter berdasarkan period yang dipilih
+        const filteredBudgets = displayBudgets.filter(budget => {
+          const budgetPeriod = budget.period || selectedPeriod;
+          return budgetPeriod === selectedPeriod;
+        });
+
+        // Tampilkan hanya budget yang sesuai dengan periode yang dipilih
+        if (filteredBudgets.length > 0) {
+          setBudgets(filteredBudgets);
+        } else {
+          setBudgets([]);
+        }
+      }
+    };
+
+    processStoreBudgets();
+  }, [supabaseBudgets, categoryMap, selectedPeriod, calculateSpending]);
+
+  // Render item untuk FlatList dengan enhanced category data
+  const renderItem = ({ item }: { item: BudgetDisplay }) => {
+    const categoryData = categoryMap[item.categoryId];
+
+    // Enhanced category data dengan fallback yang lebih baik
+    const enhancedCategoryData = {
+      icon: categoryData?.icon || getCategoryIcon(item.category),
+      color: categoryData?.color || '#6B7280',
+    };
+
+    return (
+      <BudgetCard
+        id={item.id}
+        category={item.category}
+        amount={item.amount}
+        spent={item.spent}
+        categoryIcon={enhancedCategoryData.icon}
+        categoryColor={enhancedCategoryData.color}
+        period={item.period}
+        onPress={handleBudgetPress}
+      />
+    );
+  };
+
+  // Fungsi untuk menghitung jumlah budget per periode
+  const getBudgetCountByPeriod = (period: string) => {
+    return supabaseBudgets.filter(budget => budget.period === period).length;
+  };
 
   // Render periode buttons dengan responsivitas dan perfect center alignment
   const renderPeriodButtons = () => {
@@ -265,6 +309,38 @@ export const BudgetScreen = () => {
       minWidth: responsiveSpacing(isSmallDevice ? 70 : 80), // Lebar minimum untuk konsistensi
       ...theme.elevation.xs,
     });
+
+    // Render badge untuk menunjukkan jumlah budget
+    const renderBadge = (count: number, isActive: boolean) => {
+      if (count === 0) return null;
+
+      return (
+        <View style={{
+          position: 'absolute',
+          top: -6,
+          right: -6,
+          backgroundColor: isActive ? theme.colors.white : theme.colors.primary[500],
+          borderRadius: 10,
+          minWidth: 20,
+          height: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 6,
+        }}>
+          <Typography
+            variant="caption"
+            weight="600"
+            color={isActive ? theme.colors.primary[500] : theme.colors.white}
+            style={{
+              fontSize: 10,
+              lineHeight: 12,
+            }}
+          >
+            {count}
+          </Typography>
+        </View>
+      );
+    };
 
     return (
       <View style={[styles.periodContainer, {
@@ -293,6 +369,7 @@ export const BudgetScreen = () => {
           >
             Harian
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('daily'), selectedPeriod === 'daily')}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -312,6 +389,7 @@ export const BudgetScreen = () => {
           >
             Mingguan
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('weekly'), selectedPeriod === 'weekly')}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -331,6 +409,7 @@ export const BudgetScreen = () => {
           >
             Bulanan
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('monthly'), selectedPeriod === 'monthly')}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -350,6 +429,7 @@ export const BudgetScreen = () => {
           >
             Tahunan
           </Typography>
+          {renderBadge(getBudgetCountByPeriod('yearly'), selectedPeriod === 'yearly')}
         </TouchableOpacity>
       </View>
     );

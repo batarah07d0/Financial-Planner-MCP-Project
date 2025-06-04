@@ -35,13 +35,9 @@ export const ForgotPasswordScreen = () => {
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
     width,
-    height,
-    breakpoint,
     isLandscape,
-    responsiveFontSize,
     responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -102,7 +98,7 @@ export const ForgotPasswordScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const onSubmit = async (data: FormData) => {
     await resetPassword(data.email);

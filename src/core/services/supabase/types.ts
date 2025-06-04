@@ -21,6 +21,10 @@ export interface Transaction {
     longitude: number;
     address?: string;
   };
+  // Enhanced fields for better budget tracking
+  budget_id?: string; // Optional link to specific budget
+  is_planned?: boolean; // Apakah ini pengeluaran yang direncanakan
+  tags?: string[]; // Tags untuk kategorisasi lebih detail
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +82,20 @@ export interface Reminder {
   updated_at: string;
 }
 
+// Tipe untuk data laporan
+export interface ReportData {
+  totalIncome?: number;
+  totalExpense?: number;
+  budgetUsage?: number;
+  goalProgress?: number;
+  categoryBreakdown?: Record<string, number>;
+  trends?: Array<{
+    date: string;
+    amount: number;
+  }>;
+  [key: string]: unknown;
+}
+
 // Tipe untuk laporan
 export interface Report {
   id: string;
@@ -86,7 +104,7 @@ export interface Report {
   period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   start_date: string;
   end_date: string;
-  data: any;
+  data: ReportData;
   created_at: string;
   updated_at: string;
 }
@@ -99,4 +117,46 @@ export interface Settings {
   notification_enabled: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// Tipe untuk response error dari Supabase
+export interface SupabaseError {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}
+
+// Tipe untuk response sukses dari Supabase
+export interface SupabaseResponse<T = unknown> {
+  data: T | null;
+  error: SupabaseError | null;
+}
+
+// Tipe untuk pagination
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  offset?: number;
+}
+
+// Tipe untuk filter transaksi
+export interface TransactionFilter {
+  type?: 'income' | 'expense';
+  category_id?: string;
+  start_date?: string;
+  end_date?: string;
+  min_amount?: number;
+  max_amount?: number;
+  limit?: number;
+  offset?: number;
+}
+
+// Tipe untuk statistik dashboard
+export interface DashboardStats {
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
+  budgetUsage: number;
+  savingsProgress: number;
 }

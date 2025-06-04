@@ -13,47 +13,42 @@ export const registerUser = async (
   password: string,
   name: string
 ): Promise<User> => {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name,
-        },
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name,
       },
-    });
-    
-    if (error) throw error;
-    
-    if (!data.user) {
-      throw new Error('Gagal mendaftarkan pengguna');
-    }
-    
-    // Buat profil pengguna di database
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert([
-        {
-          id: data.user.id,
-          email: data.user.email,
-          name,
-        },
-      ]);
-    
-    if (profileError) throw profileError;
-    
-    return {
-      id: data.user.id,
-      email: data.user.email || '',
-      name: data.user.user_metadata?.name,
-      created_at: data.user.created_at || new Date().toISOString(),
-      updated_at: data.user.updated_at || new Date().toISOString(),
-    };
-  } catch (error: any) {
-    console.error('Error registering user:', error.message);
-    throw error;
+    },
+  });
+
+  if (error) throw error;
+
+  if (!data.user) {
+    throw new Error('Gagal mendaftarkan pengguna');
   }
+
+  // Buat profil pengguna di database
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert([
+      {
+        id: data.user.id,
+        email: data.user.email,
+        name,
+      },
+    ]);
+
+  if (profileError) throw profileError;
+
+  return {
+    id: data.user.id,
+    email: data.user.email || '',
+    name: data.user.user_metadata?.name,
+    created_at: data.user.created_at || new Date().toISOString(),
+    updated_at: data.user.updated_at || new Date().toISOString(),
+  };
 };
 
 /**
@@ -66,29 +61,24 @@ export const loginUser = async (
   email: string,
   password: string
 ): Promise<User> => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) throw error;
-    
-    if (!data.user) {
-      throw new Error('Gagal login');
-    }
-    
-    return {
-      id: data.user.id,
-      email: data.user.email || '',
-      name: data.user.user_metadata?.name,
-      created_at: data.user.created_at || new Date().toISOString(),
-      updated_at: data.user.updated_at || new Date().toISOString(),
-    };
-  } catch (error: any) {
-    console.error('Error logging in:', error.message);
-    throw error;
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+
+  if (!data.user) {
+    throw new Error('Gagal login');
   }
+
+  return {
+    id: data.user.id,
+    email: data.user.email || '',
+    name: data.user.user_metadata?.name,
+    created_at: data.user.created_at || new Date().toISOString(),
+    updated_at: data.user.updated_at || new Date().toISOString(),
+  };
 };
 
 /**
@@ -96,13 +86,8 @@ export const loginUser = async (
  * @returns Promise yang menunjukkan keberhasilan operasi
  */
 export const logoutUser = async (): Promise<void> => {
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-  } catch (error: any) {
-    console.error('Error logging out:', error.message);
-    throw error;
-  }
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 };
 
 /**
@@ -111,13 +96,8 @@ export const logoutUser = async (): Promise<void> => {
  * @returns Promise yang menunjukkan keberhasilan operasi
  */
 export const resetPassword = async (email: string): Promise<void> => {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
-  } catch (error: any) {
-    console.error('Error resetting password:', error.message);
-    throw error;
-  }
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) throw error;
 };
 
 /**
@@ -127,13 +107,13 @@ export const resetPassword = async (email: string): Promise<void> => {
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const { data, error } = await supabase.auth.getUser();
-    
+
     if (error) throw error;
-    
+
     if (!data.user) {
       return null;
     }
-    
+
     return {
       id: data.user.id,
       email: data.user.email || '',
@@ -141,8 +121,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       created_at: data.user.created_at || new Date().toISOString(),
       updated_at: data.user.updated_at || new Date().toISOString(),
     };
-  } catch (error: any) {
-    console.error('Error getting current user:', error.message);
+  } catch (error: unknown) {
     return null;
   }
 };
@@ -157,33 +136,28 @@ export const updateUserProfile = async (
   userId: string,
   updates: Partial<User>
 ): Promise<User> => {
-  try {
-    // Update metadata pengguna
-    const { data: authData, error: authError } = await supabase.auth.updateUser({
-      data: {
-        name: updates.name,
-      },
-    });
-    
-    if (authError) throw authError;
-    
-    // Update profil pengguna di database
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    if (!data) {
-      throw new Error('Gagal memperbarui profil pengguna');
-    }
-    
-    return data as User;
-  } catch (error: any) {
-    console.error('Error updating user profile:', error.message);
-    throw error;
+  // Update metadata pengguna
+  const { error: authError } = await supabase.auth.updateUser({
+    data: {
+      name: updates.name,
+    },
+  });
+
+  if (authError) throw authError;
+
+  // Update profil pengguna di database
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  if (!data) {
+    throw new Error('Gagal memperbarui profil pengguna');
   }
+
+  return data as User;
 };

@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Animated,
   StatusBar,
@@ -43,7 +42,7 @@ export const TermsConditionsScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const HeaderCard = () => (
     <Card style={styles.headerCard}>
@@ -78,7 +77,7 @@ export const TermsConditionsScreen = () => {
     <Card style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionIcon}>
-          <Ionicons name={icon as any} size={20} color={theme.colors.primary[500]} />
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.primary[500]} />
         </View>
         <Typography variant="h6" weight="600" color={theme.colors.neutral[800]}>
           {title}

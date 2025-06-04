@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/mocks/**/*.js",
+    ".eslintrc.js",
+    "index.js",
+    "polyfill.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "node_modules/**/*",
+    "**/node_modules/**/*",
+    "node_modules/react-native-tcp/**/*"
+  ]
+}

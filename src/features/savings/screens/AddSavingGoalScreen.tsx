@@ -9,6 +9,7 @@ import {
   Dimensions,
   TextInput as RNTextInput,
   Text,
+  ViewStyle,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,7 +43,7 @@ interface OptimizedTextInputProps {
   leftIcon?: React.ReactNode;
   multiline?: boolean;
   numberOfLines?: number;
-  style?: any;
+  style?: ViewStyle;
 }
 
 const OptimizedTextInput = React.memo<OptimizedTextInputProps>(({
@@ -127,13 +128,16 @@ const OptimizedTextInput = React.memo<OptimizedTextInputProps>(({
   );
 });
 
+// Set display name untuk OptimizedTextInput
+OptimizedTextInput.displayName = 'OptimizedTextInput';
+
 // Superior Date Input Component
 interface DateInputProps {
   label: string;
   value: string;
   onPress: () => void;
   placeholder: string;
-  style?: any;
+  style?: ViewStyle;
 }
 
 const DateInput = React.memo<DateInputProps>(({
@@ -212,6 +216,9 @@ const DateInput = React.memo<DateInputProps>(({
     </View>
   );
 });
+
+// Set display name untuk DateInput
+DateInput.displayName = 'DateInput';
 
 const GOAL_ICONS = [
   { name: 'home', label: 'Rumah' },
@@ -306,7 +313,7 @@ export const AddSavingGoalScreen = () => {
     setShowDatePicker(true);
   }, [formData.targetDate]);
 
-  const handleDateChange = useCallback((_: any, date?: Date) => {
+  const handleDateChange = useCallback((_: unknown, date?: Date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
     }
@@ -384,7 +391,7 @@ export const AddSavingGoalScreen = () => {
         showError('Error', 'Gagal membuat tujuan tabungan');
       }
     } catch (error) {
-      console.error('Error creating saving goal:', error);
+      // Error creating saving goal - silently handled
       showError('Error', 'Gagal membuat tujuan tabungan');
     } finally {
       setIsLoading(false);
@@ -427,7 +434,7 @@ export const AddSavingGoalScreen = () => {
             >
               <View style={styles.previewContent}>
                 <View style={styles.previewIcon}>
-                  <Ionicons name={formData.icon as any} size={32} color={theme.colors.white} />
+                  <Ionicons name={formData.icon as keyof typeof Ionicons.glyphMap} size={32} color={theme.colors.white} />
                 </View>
                 <Typography variant="h6" weight="600" color={theme.colors.white} style={styles.previewTitle}>
                   {formData.name || 'Nama Tujuan Tabungan'}
@@ -523,7 +530,7 @@ export const AddSavingGoalScreen = () => {
                   >
                     <View style={styles.iconContent}>
                       <Ionicons
-                        name={item.name as any}
+                        name={item.name as keyof typeof Ionicons.glyphMap}
                         size={responsiveSpacing(24)}
                         color={isSelected ? theme.colors.white : theme.colors.neutral[600]}
                       />
@@ -643,14 +650,14 @@ const optimizedInputStyles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: responsiveFontSize(16),
-    fontWeight: '500' as any,
+    fontWeight: '500' as const,
     color: theme.colors.neutral[800],
     paddingVertical: responsiveSpacing(theme.spacing.md),
     paddingHorizontal: 0,
-    textAlignVertical: 'center' as any,
+    textAlignVertical: 'center' as const,
     // Prevent text jumping
     includeFontPadding: false,
-    textAlign: 'left' as any,
+    textAlign: 'left' as const,
   },
   inputWithLeftIcon: {
     paddingLeft: 0,
@@ -658,7 +665,7 @@ const optimizedInputStyles = StyleSheet.create({
   multilineInput: {
     minHeight: responsiveSpacing(80),
     paddingTop: responsiveSpacing(theme.spacing.md),
-    textAlignVertical: 'top' as any,
+    textAlignVertical: 'top' as const,
   },
   rightIconContainer: {
     width: responsiveSpacing(32),
@@ -669,13 +676,13 @@ const optimizedInputStyles = StyleSheet.create({
   },
   dateText: {
     fontSize: responsiveFontSize(16),
-    fontWeight: '500' as any,
+    fontWeight: '500' as const,
     color: theme.colors.neutral[800],
     includeFontPadding: false,
   },
   placeholderText: {
     color: theme.colors.neutral[400],
-    fontWeight: '400' as any,
+    fontWeight: '400' as const,
   },
   dateInputContent: {
     flex: 1,
@@ -737,11 +744,11 @@ const styles = StyleSheet.create({
     ...theme.elevation.sm,
   },
   previewTitle: {
-    textAlign: 'center' as any,
+    textAlign: 'center' as const,
     marginBottom: responsiveSpacing(theme.spacing.xs),
   },
   previewAmount: {
-    textAlign: 'center' as any,
+    textAlign: 'center' as const,
     opacity: 0.9,
   },
   formCard: {
@@ -802,9 +809,9 @@ const styles = StyleSheet.create({
   },
   iconLabel: {
     marginTop: responsiveSpacing(4),
-    textAlign: 'center' as any,
+    textAlign: 'center' as const,
     fontSize: responsiveFontSize(10),
-    fontWeight: '500' as any,
+    fontWeight: '500' as const,
   },
   colorGrid: {
     flexDirection: 'row',

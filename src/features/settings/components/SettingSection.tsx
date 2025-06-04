@@ -36,7 +36,7 @@ export const SettingSection: React.FC<SettingSectionProps> = ({
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [delay, fadeAnim, translateYAnim]);
   
   return (
     <Animated.View

@@ -21,14 +21,8 @@ export const BarcodeScannerScreen = () => {
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
     isLandscape,
-    responsiveFontSize,
-    responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
     isLargeDevice
   } = useAppDimensions();
 
@@ -99,7 +93,7 @@ export const BarcodeScannerScreen = () => {
         }
       }
     } catch (error) {
-      console.error('Error handling barcode scan:', error);
+      // Error handling barcode scan - silently handled
       Alert.alert(
         'Error',
         'Terjadi kesalahan saat memproses hasil pemindaian. Silakan coba lagi.'
@@ -128,7 +122,10 @@ export const BarcodeScannerScreen = () => {
             addedToTransaction: true,
           });
         } catch (historyError) {
-          console.error('Error adding to barcode history:', historyError);
+          if (__DEV__) {
+            // eslint-disable-next-line no-console
+            console.error('Error adding to barcode history:', historyError);
+          }
           // Lanjutkan meskipun ada error pada riwayat
         }
       }
@@ -152,7 +149,7 @@ export const BarcodeScannerScreen = () => {
         navigation.goBack();
       }, 300);
     } catch (error) {
-      console.error('Error adding to transaction:', error);
+      // Error adding to transaction - silently handled
       Alert.alert('Error', 'Gagal menambahkan ke transaksi');
     }
   };

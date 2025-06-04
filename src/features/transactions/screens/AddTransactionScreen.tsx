@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../../core/navigation/types';
 import { useForm, Controller } from 'react-hook-form';
-import { Button as PaperButton } from 'react-native-paper';
+// Removed unused import: Button as PaperButton
 import { Typography, Input, Card, LocationPicker, DatePicker, CategoryPicker, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
@@ -61,19 +61,14 @@ export const AddTransactionScreen = () => {
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    width,
-    height,
-    breakpoint,
-    isLandscape,
-    responsiveFontSize,
     responsiveSpacing,
     isSmallDevice,
-    isMediumDevice,
-    isLargeDevice
+    isLargeDevice,
+    isLandscape
   } = useAppDimensions();
 
   // Ambil parameter dari route
-  const { type: routeType } = route.params || {};
+  const { type: routeType, categoryId: routeCategoryId, budgetId: routeBudgetId } = route.params || {};
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -82,7 +77,7 @@ export const AddTransactionScreen = () => {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  const { checkSpecificBudget, updateGoalProgress } = useNotificationManager();
+  const { checkSpecificBudget } = useNotificationManager();
   const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
 
   // Responsive header height
@@ -124,7 +119,10 @@ export const AddTransactionScreen = () => {
         setCategories(data as Category[]);
       }
     } catch (error) {
-      console.error('Error loading categories:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error loading categories:', error);
+      }
     } finally {
       setIsLoadingCategories(false);
     }
@@ -141,8 +139,8 @@ export const AddTransactionScreen = () => {
     defaultValues: {
       amount: '',
       type: routeType || 'expense',
-      category: '',
-      description: '',
+      category: routeCategoryId || '',
+      description: routeBudgetId ? `Pengeluaran untuk anggaran` : '',
       date: new Date(),
       location: null,
     }
@@ -191,12 +189,18 @@ export const AddTransactionScreen = () => {
         location_name: data.location?.address || null,
       };
 
-      console.log('Submitting transaction to Supabase:', transactionData);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('Submitting transaction to Supabase:', transactionData);
+      }
 
       // Simpan ke Supabase menggunakan service
       const savedTransaction = await createTransaction(transactionData);
 
-      console.log('Transaction saved successfully:', savedTransaction);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('Transaction saved successfully:', savedTransaction);
+      }
 
       // Refresh transaction store untuk update data di halaman lain
       if (user) {
@@ -210,9 +214,25 @@ export const AddTransactionScreen = () => {
       }
 
       showSuccess('Sukses', 'Transaksi berhasil disimpan');
-      setTimeout(() => navigation.goBack(), 2000);
+
+      // Navigasi kembali dengan delay yang lebih pendek untuk UX yang lebih baik
+      setTimeout(() => {
+        // Jika ada budgetId di route params, kembali ke budget detail
+        if (routeBudgetId) {
+          navigation.goBack();
+        } else {
+          // Jika tidak, navigasi ke halaman transaksi untuk melihat data terbaru
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (navigation as any).navigate('Main', {
+            screen: 'Transactions'
+          });
+        }
+      }, 1500);
     } catch (error) {
-      console.error('Error submitting transaction:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error submitting transaction:', error);
+      }
       showError('Error', 'Terjadi kesalahan saat menyimpan transaksi');
     } finally {
       setIsSubmitting(false);

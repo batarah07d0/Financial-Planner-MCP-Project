@@ -3,87 +3,122 @@
  * Ini membantu mengatasi masalah kompatibilitas dengan library yang dibuat untuk web
  */
 
-// Deklarasi tipe untuk global
-// Kita tidak perlu mendeklarasikan tipe di sini karena TypeScript sudah memiliki definisi tipe untuk global
-// Jika ada tipe khusus yang perlu ditambahkan, gunakan augmentation yang tepat
+import { Buffer } from '@craftzdog/react-native-buffer';
+import { TextEncoder, TextDecoder } from 'util';
+import { URL } from 'url';
+import * as process from 'process';
+import * as ExpoCrypto from 'expo-crypto';
+
+// Interface untuk global object yang akan diperluas
+interface GlobalWithPolyfills {
+  self?: typeof globalThis;
+  process?: typeof import('process');
+  URL?: typeof import('url').URL;
+  Buffer?: typeof import('@craftzdog/react-native-buffer').Buffer;
+  TextEncoder?: typeof import('util').TextEncoder;
+  TextDecoder?: typeof import('util').TextDecoder;
+  RNMapsAirModule?: Record<string, unknown>;
+  _WORKLET?: boolean;
+  crypto?: typeof ExpoCrypto;
+  atob?: (data: string) => string;
+  btoa?: (data: string) => string;
+}
+
+// Cast global ke interface yang diperluas
+const globalWithPolyfills = global as unknown as GlobalWithPolyfills;
 
 // Polyfill untuk global
-if (typeof (global as any).self === 'undefined') {
-  (global as any).self = global;
+if (typeof globalWithPolyfills.self === 'undefined') {
+  globalWithPolyfills.self = global;
 }
 
 // Polyfill untuk proses
-if (typeof (global as any).process === 'undefined') {
-  (global as any).process = require('process');
+if (typeof globalWithPolyfills.process === 'undefined') {
+  globalWithPolyfills.process = process;
 }
 
 // Polyfill untuk URL
-if (typeof (global as any).URL === 'undefined') {
-  (global as any).URL = require('url').URL;
+if (typeof globalWithPolyfills.URL === 'undefined') {
+  globalWithPolyfills.URL = URL;
 }
 
 // Polyfill untuk Buffer
-if (typeof (global as any).Buffer === 'undefined') {
-  (global as any).Buffer = require('@craftzdog/react-native-buffer').Buffer;
+if (typeof globalWithPolyfills.Buffer === 'undefined') {
+  globalWithPolyfills.Buffer = Buffer;
 }
 
 // Polyfill untuk TextEncoder/TextDecoder
-if (typeof (global as any).TextEncoder === 'undefined') {
-  (global as any).TextEncoder = require('util').TextEncoder;
+if (typeof globalWithPolyfills.TextEncoder === 'undefined') {
+  globalWithPolyfills.TextEncoder = TextEncoder;
 }
 
-if (typeof (global as any).TextDecoder === 'undefined') {
-  (global as any).TextDecoder = require('util').TextDecoder;
+if (typeof globalWithPolyfills.TextDecoder === 'undefined') {
+  globalWithPolyfills.TextDecoder = TextDecoder;
 }
 
 // Polyfill untuk react-native-maps
 // Ini membantu mengatasi masalah "RNMapsAirModule could not be found"
-if (typeof (global as any).RNMapsAirModule === 'undefined') {
-  (global as any).RNMapsAirModule = require('./src/mocks/RNMapsAirModule');
+if (typeof globalWithPolyfills.RNMapsAirModule === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  globalWithPolyfills.RNMapsAirModule = require('./src/mocks/RNMapsAirModule') as Record<string, unknown>;
 }
 
 // Polyfill untuk react-native-reanimated
-if (typeof (global as any)._WORKLET === 'undefined') {
-  (global as any)._WORKLET = false;
+if (typeof globalWithPolyfills._WORKLET === 'undefined') {
+  globalWithPolyfills._WORKLET = false;
 }
 
 // Polyfill untuk crypto
-if (typeof (global as any).crypto === 'undefined') {
-  (global as any).crypto = require('expo-crypto');
+if (typeof globalWithPolyfills.crypto === 'undefined') {
+  globalWithPolyfills.crypto = ExpoCrypto;
 }
 
 // Polyfill untuk setTimeout/setInterval
 // Ini memastikan bahwa setTimeout dan setInterval berfungsi dengan benar
-const _setTimeout = (global as any).setTimeout;
-const _clearTimeout = (global as any).clearTimeout;
-const _setInterval = (global as any).setInterval;
-const _clearInterval = (global as any).clearInterval;
+type TimerCallback = (...args: unknown[]) => void;
+type TimerID = ReturnType<typeof setTimeout>;
 
-(global as any).setTimeout = (callback: Function, timeout?: number, ...args: any[]) => {
-  return _setTimeout(callback, timeout, ...args);
+const originalSetTimeout = global.setTimeout;
+const originalClearTimeout = global.clearTimeout;
+const originalSetInterval = global.setInterval;
+const originalClearInterval = global.clearInterval;
+
+// Extend global interface untuk timer functions
+interface GlobalWithTimers extends GlobalWithPolyfills {
+  setTimeout?: (callback: TimerCallback, timeout?: number, ...args: unknown[]) => TimerID;
+  clearTimeout?: (id: TimerID) => void;
+  setInterval?: (callback: TimerCallback, timeout?: number, ...args: unknown[]) => TimerID;
+  clearInterval?: (id: TimerID) => void;
+  console?: Console;
+}
+
+const globalWithTimers = global as unknown as GlobalWithTimers;
+
+globalWithTimers.setTimeout = (callback: TimerCallback, timeout?: number, ...args: unknown[]) => {
+  return originalSetTimeout(callback, timeout, ...args);
 };
 
-(global as any).clearTimeout = (id: number) => {
-  _clearTimeout(id);
+globalWithTimers.clearTimeout = (id: TimerID) => {
+  originalClearTimeout(id);
 };
 
-(global as any).setInterval = (callback: Function, timeout?: number, ...args: any[]) => {
-  return _setInterval(callback, timeout, ...args);
+globalWithTimers.setInterval = (callback: TimerCallback, timeout?: number, ...args: unknown[]) => {
+  return originalSetInterval(callback, timeout, ...args);
 };
 
-(global as any).clearInterval = (id: number) => {
-  _clearInterval(id);
+globalWithTimers.clearInterval = (id: TimerID) => {
+  originalClearInterval(id);
 };
 
 // Polyfill untuk console
-if (typeof (global as any).console === 'undefined') {
-  (global as any).console = {
-    log: () => { },
-    info: () => { },
-    warn: () => { },
-    error: () => { },
-    debug: () => { },
-  };
+if (typeof globalWithTimers.console === 'undefined') {
+  globalWithTimers.console = {
+    log: () => { /* noop */ },
+    info: () => { /* noop */ },
+    warn: () => { /* noop */ },
+    error: () => { /* noop */ },
+    debug: () => { /* noop */ },
+  } as Console;
 }
 
 // Polyfill untuk fetch
@@ -108,12 +143,12 @@ if (typeof (global as any).console === 'undefined') {
 // }
 
 // Polyfill untuk atob/btoa
-if (typeof (global as any).atob === 'undefined') {
-  (global as any).atob = (data: string) => Buffer.from(data, 'base64').toString('binary');
+if (typeof globalWithPolyfills.atob === 'undefined') {
+  globalWithPolyfills.atob = (data: string) => Buffer.from(data, 'base64').toString('binary');
 }
 
-if (typeof (global as any).btoa === 'undefined') {
-  (global as any).btoa = (data: string) => Buffer.from(data, 'binary').toString('base64');
+if (typeof globalWithPolyfills.btoa === 'undefined') {
+  globalWithPolyfills.btoa = (data: string) => Buffer.from(data, 'binary').toString('base64');
 }
 
 export { };

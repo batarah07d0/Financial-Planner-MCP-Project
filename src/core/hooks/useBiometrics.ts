@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Kunci untuk penyimpanan pengaturan biometrik
@@ -23,9 +22,9 @@ export const useBiometrics = (showErrorDialog?: (title: string, message: string)
       setIsAvailable(available);
 
       return available;
-    } catch (error: any) {
-      console.error('Error checking biometric availability:', error);
-      setError(error.message || 'Terjadi kesalahan saat memeriksa ketersediaan biometrik');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat memeriksa ketersediaan biometrik';
+      setError(errorMessage);
       return false;
     }
   };
@@ -37,9 +36,9 @@ export const useBiometrics = (showErrorDialog?: (title: string, message: string)
       const enabled = value === 'true';
       setIsEnabled(enabled);
       return enabled;
-    } catch (error: any) {
-      console.error('Error checking biometric enabled:', error);
-      setError(error.message || 'Terjadi kesalahan saat memeriksa pengaturan biometrik');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat memeriksa pengaturan biometrik';
+      setError(errorMessage);
       return false;
     }
   };
@@ -75,9 +74,9 @@ export const useBiometrics = (showErrorDialog?: (title: string, message: string)
       } else {
         return false;
       }
-    } catch (error: any) {
-      console.error('Error enabling biometrics:', error);
-      setError(error.message || 'Terjadi kesalahan saat mengaktifkan biometrik');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat mengaktifkan biometrik';
+      setError(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
@@ -103,9 +102,9 @@ export const useBiometrics = (showErrorDialog?: (title: string, message: string)
       } else {
         return false;
       }
-    } catch (error: any) {
-      console.error('Error disabling biometrics:', error);
-      setError(error.message || 'Terjadi kesalahan saat menonaktifkan biometrik');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat menonaktifkan biometrik';
+      setError(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
@@ -154,9 +153,9 @@ export const useBiometrics = (showErrorDialog?: (title: string, message: string)
       }
 
       return result.success;
-    } catch (error: any) {
-      console.error('Error authenticating:', error);
-      setError(error.message || 'Terjadi kesalahan saat autentikasi');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat autentikasi';
+      setError(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
@@ -184,8 +183,8 @@ export const useBiometrics = (showErrorDialog?: (title: string, message: string)
       const diffMinutes = (now - lastCheck) / (1000 * 60);
 
       return diffMinutes > timeoutMinutes;
-    } catch (error: any) {
-      console.error('Error checking reauthentication:', error);
+    } catch (error) {
+      // Error checking reauthentication - silently handled
       return true; // Jika terjadi kesalahan, lebih aman untuk melakukan autentikasi ulang
     }
   };
@@ -197,9 +196,10 @@ export const useBiometrics = (showErrorDialog?: (title: string, message: string)
         setIsLoading(true);
         await checkBiometricAvailability();
         await checkBiometricEnabled();
-      } catch (error: any) {
-        console.error('Error initializing biometrics:', error);
-        setError(error.message || 'Terjadi kesalahan saat menginisialisasi biometrik');
+      } catch (error: unknown) {
+        // Error initializing biometrics - silently handled
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat menginisialisasi biometrik';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }

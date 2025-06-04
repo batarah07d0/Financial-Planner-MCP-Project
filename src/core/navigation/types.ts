@@ -3,7 +3,11 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 // Tipe untuk navigasi tab
 export type TabParamList = {
   Dashboard: undefined;
-  Transactions: undefined;
+  Transactions: {
+    categoryId?: string;
+    type?: 'income' | 'expense';
+    budgetId?: string;
+  } | undefined;
   Budget: undefined;
   Analytics: undefined;
   More: undefined;
@@ -42,6 +46,8 @@ export type RootStackParamList = {
   Onboarding: undefined;
   AddTransaction: {
     type?: 'income' | 'expense';
+    categoryId?: string;
+    budgetId?: string;
     scannedData?: {
       amount?: number;
       date?: Date;

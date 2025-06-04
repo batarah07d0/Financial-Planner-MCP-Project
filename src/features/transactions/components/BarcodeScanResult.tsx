@@ -90,7 +90,10 @@ export const BarcodeScanResultView: React.FC<BarcodeScanResultProps> = ({
         category: result.category,
       });
     } catch (error) {
-      console.error('Error adding to transaction:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error adding to transaction:', error);
+      }
     } finally {
       setIsSubmitting(false);
     }

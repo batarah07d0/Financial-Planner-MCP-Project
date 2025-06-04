@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,7 +10,7 @@ import {
   Platform,
   Easing,
 } from 'react-native';
-import { CameraView, CameraType, FlashMode } from 'expo-camera';
+import { CameraView } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
@@ -63,41 +63,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [isScanBoxAnimating, setIsScanBoxAnimating] = useState(false);
   const [showTip, setShowTip] = useState(true);
 
-  // Efek untuk menampilkan/menyembunyikan tip secara otomatis
-  useEffect(() => {
-    const tipTimer = setTimeout(() => {
-      setShowTip(false);
-    }, 5000);
-
-    return () => clearTimeout(tipTimer);
-  }, []);
-
-  // Mulai pemindaian dan animasi saat komponen dimount
-  useEffect(() => {
-    if (hasPermission) {
-      startScanning();
-      startScanAnimations();
-
-      // Animasi fade in untuk UI
-      Animated.timing(fadeAnimation, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }).start();
-    }
-
-    // Sembunyikan status bar saat kamera aktif
-    StatusBar.setHidden(true);
-
-    return () => {
-      stopScanning();
-      StatusBar.setHidden(false);
-    };
-  }, [hasPermission]);
-
   // Fungsi untuk memulai semua animasi
-  const startScanAnimations = () => {
+  const startScanAnimations = useCallback(() => {
     if (isScanBoxAnimating) return;
     setIsScanBoxAnimating(true);
 
@@ -146,7 +113,40 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         }),
       ])
     ).start();
-  };
+  }, [isScanBoxAnimating, scanBoxAnimation, scanLineAnimation, pulseAnimation]);
+
+  // Efek untuk menampilkan/menyembunyikan tip secara otomatis
+  useEffect(() => {
+    const tipTimer = setTimeout(() => {
+      setShowTip(false);
+    }, 5000);
+
+    return () => clearTimeout(tipTimer);
+  }, []);
+
+  // Mulai pemindaian dan animasi saat komponen dimount
+  useEffect(() => {
+    if (hasPermission) {
+      startScanning();
+      startScanAnimations();
+
+      // Animasi fade in untuk UI
+      Animated.timing(fadeAnimation, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }).start();
+    }
+
+    // Sembunyikan status bar saat kamera aktif
+    StatusBar.setHidden(true);
+
+    return () => {
+      stopScanning();
+      StatusBar.setHidden(false);
+    };
+  }, [hasPermission, startScanning, stopScanning, fadeAnimation, startScanAnimations]);
 
   // Fungsi untuk menangani tombol ambil gambar
   const handleCapture = async () => {
@@ -168,7 +168,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       await takePicture();
       // Haptic feedback bisa ditambahkan di sini jika diperlukan
     } catch (error) {
-      console.error('Error taking picture:', error);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error taking picture:', error);
+      }
     }
   };
 
@@ -261,8 +264,12 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               ],
             }}
             onBarcodeScanned={isScanning ? handleBarCodeScanned : undefined}
-            onCameraReady={() => console.log('Camera ready')}
-            onMountError={(error: any) => console.error('Camera mount error:', error)}
+            onCameraReady={() => {
+              // Camera is ready for scanning
+            }}
+            onMountError={(_error) => {
+              // Handle camera mount error silently or log to crash reporting service
+            }}
           />
         )}
         <LinearGradient

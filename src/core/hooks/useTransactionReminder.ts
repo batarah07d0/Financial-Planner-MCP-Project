@@ -6,7 +6,7 @@ import { transactionReminderService } from '../services/transactionReminderServi
 export const useTransactionReminder = () => {
   const { user } = useAuthStore();
   const appState = useRef(AppState.currentState);
-  const reminderIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const reminderIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCheckRef = useRef<number>(0);
 
   // Check interval (every 2 hours)
@@ -20,7 +20,7 @@ export const useTransactionReminder = () => {
     try {
       return await transactionReminderService.setupDailyReminder(user.id);
     } catch (error) {
-      console.error('Error setting up daily reminder:', error);
+      // Error setting up daily reminder - silently handled
       return false;
     }
   }, [user]);
@@ -30,7 +30,7 @@ export const useTransactionReminder = () => {
     try {
       return await transactionReminderService.cancelReminder();
     } catch (error) {
-      console.error('Error cancelling reminder:', error);
+      // Error cancelling reminder - silently handled
       return false;
     }
   }, []);
@@ -50,10 +50,10 @@ export const useTransactionReminder = () => {
       lastCheckRef.current = now;
       return await transactionReminderService.sendSmartReminder(user.id);
     } catch (error) {
-      console.error('Error sending smart reminder:', error);
+      // Error sending smart reminder - silently handled
       return false;
     }
-  }, [user]);
+  }, [user, MIN_CHECK_INTERVAL]);
 
   // Check today's transactions
   const checkTodayTransactions = useCallback(async (): Promise<boolean> => {
@@ -62,7 +62,7 @@ export const useTransactionReminder = () => {
     try {
       return await transactionReminderService.checkTodayTransactions(user.id);
     } catch (error) {
-      console.error('Error checking today transactions:', error);
+      // Error checking today transactions - silently handled
       return false;
     }
   }, [user]);
@@ -74,7 +74,7 @@ export const useTransactionReminder = () => {
     try {
       return await transactionReminderService.sendWeeklySummary(user.id);
     } catch (error) {
-      console.error('Error sending weekly summary:', error);
+      // Error sending weekly summary - silently handled
       return false;
     }
   }, [user]);
@@ -86,7 +86,7 @@ export const useTransactionReminder = () => {
     try {
       return await transactionReminderService.setupWeeklySummary(user.id);
     } catch (error) {
-      console.error('Error setting up weekly summary:', error);
+      // Error setting up weekly summary - silently handled
       return false;
     }
   }, [user]);
@@ -104,7 +104,7 @@ export const useTransactionReminder = () => {
         }
       }
     } catch (error) {
-      console.error('Error in evening reminder check:', error);
+      // Error in evening reminder check - silently handled
     }
   }, [user]);
 
@@ -115,8 +115,8 @@ export const useTransactionReminder = () => {
     }
 
     if (user) {
-      console.log('Setting up transaction reminder monitoring...');
-      
+      // Setting up transaction reminder monitoring
+
       // Initial check
       checkEveningReminder();
 
@@ -125,7 +125,7 @@ export const useTransactionReminder = () => {
         checkEveningReminder();
       }, CHECK_INTERVAL);
     }
-  }, [user, checkEveningReminder]);
+  }, [user, checkEveningReminder, CHECK_INTERVAL]);
 
   // Cleanup interval
   const cleanupPeriodicCheck = useCallback(() => {
@@ -139,7 +139,6 @@ export const useTransactionReminder = () => {
   const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
     if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
       // App came to foreground, check if evening reminder needed
-      console.log('App became active, checking evening reminder...');
       checkEveningReminder();
     }
     appState.current = nextAppState;

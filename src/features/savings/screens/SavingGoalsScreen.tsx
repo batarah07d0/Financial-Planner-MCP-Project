@@ -88,7 +88,7 @@ const SavingGoalItem: React.FC<SavingGoalItemProps> = ({ goal, onPress, onEdit, 
                 }
               ]}>
                 <Ionicons
-                  name={isCompleted ? 'trophy' : (goal.icon as any || 'wallet')}
+                  name={isCompleted ? 'trophy' : ((goal.icon as keyof typeof Ionicons.glyphMap) || 'wallet')}
                   size={28}
                   color={theme.colors.white}
                 />
@@ -222,7 +222,7 @@ export const SavingGoalsScreen = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { dialogState, showError, showDelete, showSuccess, hideDialog } = useSuperiorDialog();
 
-  const loadSavingGoals = async () => {
+  const loadSavingGoals = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -232,12 +232,12 @@ export const SavingGoalsScreen = () => {
         setGoals(data);
       }
     } catch (error) {
-      console.error('Error loading saving goals:', error);
+      // Error loading saving goals - silently handled
       showError('Error', 'Gagal memuat data tujuan tabungan');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, showError]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -271,7 +271,7 @@ export const SavingGoalsScreen = () => {
             showError('Error', 'Gagal menghapus tujuan tabungan');
           }
         } catch (error) {
-          console.error('Error deleting goal:', error);
+          // Error deleting goal - silently handled
           showError('Error', 'Gagal menghapus tujuan tabungan');
         }
       }
@@ -281,7 +281,7 @@ export const SavingGoalsScreen = () => {
   useFocusEffect(
     useCallback(() => {
       loadSavingGoals();
-    }, [user])
+    }, [loadSavingGoals])
   );
 
   const renderGoalItem = ({ item }: { item: SavingGoal }) => (

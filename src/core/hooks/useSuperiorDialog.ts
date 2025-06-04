@@ -234,13 +234,14 @@ export const useSuperiorDialog = () => {
                     },
                   ],
                 }));
-              } catch (error: any) {
+              } catch (error: unknown) {
                 // Show error
+                const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui';
                 setDialogState(prev => ({
                   ...prev,
                   type: 'error',
                   title: errorTitle,
-                  message: error.message || 'Terjadi kesalahan yang tidak diketahui',
+                  message: errorMessage,
                   actions: [
                     {
                       text: 'OK',

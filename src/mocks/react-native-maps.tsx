@@ -3,21 +3,65 @@
  * Ini membantu mengatasi masalah "RNMapsAirModule could not be found"
  */
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ViewStyle } from 'react-native';
 
 // Konstanta untuk provider
 export const PROVIDER_GOOGLE = 'google';
 export const PROVIDER_DEFAULT = 'default';
 
+// Interface untuk props komponen
+interface MarkerProps {
+  children?: React.ReactNode;
+  coordinate?: {
+    latitude: number;
+    longitude: number;
+  };
+  title?: string;
+  description?: string;
+}
+
+interface CalloutProps {
+  children?: React.ReactNode;
+}
+
+interface MapViewProps {
+  children?: React.ReactNode;
+  style?: ViewStyle;
+  region?: Region;
+  initialRegion?: Region;
+  provider?: string;
+  onRegionChange?: (region: Region) => void;
+  onRegionChangeComplete?: (region: Region) => void;
+}
+
+// Interface untuk region
+interface Region {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
+
+// Interface untuk timing config
+interface TimingConfig {
+  duration?: number;
+  easing?: (value: number) => number;
+}
+
+// Interface untuk animation result
+interface AnimationResult {
+  start: (callback?: () => void) => void;
+}
+
 // Kelas untuk AnimatedRegion
 export class AnimatedRegion {
-  region: any;
+  region: Region;
 
-  constructor(region: any) {
+  constructor(region: Region) {
     this.region = region;
   }
 
-  timing(config: any) {
+  timing(_config: TimingConfig): AnimationResult {
     return {
       start: (callback?: () => void) => {
         if (callback) setTimeout(callback, 0);
@@ -25,59 +69,61 @@ export class AnimatedRegion {
     };
   }
 
-  stopAnimation(callback?: (region: any) => void) {
+  stopAnimation(callback?: (region: Region) => void) {
     if (callback) callback(this.region);
   }
 
-  addListener(callback: (region: any) => void) {
+  addListener(_callback: (region: Region) => void): string {
     return '1';
   }
 
-  removeListener(id: string) { }
+  removeListener(_id: string): void {
+    // Mock implementation - no actual listener to remove
+  }
 }
 
 // Komponen Marker
-export const Marker: React.FC<any> = ({ children }) => {
+export const Marker: React.FC<MarkerProps> = ({ children }) => {
   return <View>{children}</View>;
 };
 
 // Komponen Callout
-export const Callout: React.FC<any> = ({ children }) => {
+export const Callout: React.FC<CalloutProps> = ({ children }) => {
   return <View>{children}</View>;
 };
 
 // Komponen Polygon
-export const Polygon: React.FC<any> = () => {
+export const Polygon: React.FC<Record<string, never>> = () => {
   return null;
 };
 
 // Komponen Polyline
-export const Polyline: React.FC<any> = () => {
+export const Polyline: React.FC<Record<string, never>> = () => {
   return null;
 };
 
 // Komponen Circle
-export const Circle: React.FC<any> = () => {
+export const Circle: React.FC<Record<string, never>> = () => {
   return null;
 };
 
 // Komponen Overlay
-export const Overlay: React.FC<any> = () => {
+export const Overlay: React.FC<Record<string, never>> = () => {
   return null;
 };
 
 // Komponen Heatmap
-export const Heatmap: React.FC<any> = () => {
+export const Heatmap: React.FC<Record<string, never>> = () => {
   return null;
 };
 
 // Komponen Geojson
-export const Geojson: React.FC<any> = () => {
+export const Geojson: React.FC<Record<string, never>> = () => {
   return null;
 };
 
 // Komponen utama MapView
-const MapView: React.FC<any> & {
+const MapView: React.FC<MapViewProps> & {
   Marker: typeof Marker;
   Callout: typeof Callout;
   Polygon: typeof Polygon;
@@ -89,7 +135,7 @@ const MapView: React.FC<any> & {
   PROVIDER_GOOGLE: typeof PROVIDER_GOOGLE;
   PROVIDER_DEFAULT: typeof PROVIDER_DEFAULT;
   AnimatedRegion: typeof AnimatedRegion;
-} = ({ children, style, ...props }) => {
+} = ({ children, style }) => {
   return (
     <View style={[{ width: '100%', height: 300, backgroundColor: '#e0e0e0' }, style]}>
       <Text style={{ textAlign: 'center', marginTop: 20 }}>
