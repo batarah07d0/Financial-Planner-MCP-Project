@@ -175,15 +175,20 @@ export const ExpenseMapScreen = () => {
 
   // Fungsi untuk mendapatkan lokasi saat ini dan memindahkan peta
   const handleGetCurrentLocation = useCallback(async () => {
-    const currentLocation = await getCurrentLocation();
+    try {
+      const currentLocation = await getCurrentLocation();
 
-    if (currentLocation && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
+      if (currentLocation && mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      }
+    } catch (error) {
+      // Menghilangkan console.log untuk mengatasi ESLint error
+      Alert.alert('Error', 'Gagal mendapatkan lokasi saat ini');
     }
   }, [getCurrentLocation]);
 
@@ -240,11 +245,17 @@ export const ExpenseMapScreen = () => {
     return uniqueCats;
   }, [transactions]);
 
-  // Memuat transaksi saat komponen dimount
+  // Memuat transaksi saat komponen dimount dan ketika user berubah
   useEffect(() => {
-    loadTransactionsWithLocation();
+    if (user) {
+      loadTransactionsWithLocation();
+    }
+  }, [user, loadTransactionsWithLocation]);
+
+  // Get current location sekali saat mount
+  useEffect(() => {
     handleGetCurrentLocation();
-  }, [loadTransactionsWithLocation, handleGetCurrentLocation]);
+  }, [handleGetCurrentLocation]);
 
   // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
   useFocusEffect(

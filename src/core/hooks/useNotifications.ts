@@ -7,11 +7,10 @@ import Constants from 'expo-constants';
 // Konfigurasi notifikasi
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
     shouldShowBanner: true,
     shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
   }),
 });
 
@@ -287,6 +286,19 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
     };
   }, [requestPermission]);
 
+  // Helper function untuk format currency yang robust
+  const formatCurrencyForNotification = (amount: number): string => {
+    // Pastikan amount adalah number dan tidak NaN
+    const safeAmount = isNaN(amount) ? 0 : Math.max(0, amount);
+
+    // Format dengan pemisah ribuan Indonesia
+    return new Intl.NumberFormat('id-ID', {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(safeAmount);
+  };
+
   // Fungsi khusus untuk notifikasi budget alert
   const sendBudgetAlert = async (
     budgetName: string,
@@ -297,21 +309,28 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
       let title = '';
       let body = '';
 
-      if (percentageUsed >= 90) {
+      // Pastikan remainingAmount tidak negatif untuk notifikasi
+      const safeRemainingAmount = Math.max(0, remainingAmount);
+      const formattedAmount = formatCurrencyForNotification(safeRemainingAmount);
+
+      if (percentageUsed >= 100) {
+        title = '🚨 Anggaran Sudah Habis!';
+        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Anggaran telah terlampaui!`;
+      } else if (percentageUsed >= 90) {
         title = '🚨 Anggaran Hampir Habis!';
-        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Sisa Rp ${remainingAmount.toLocaleString('id-ID')}`;
+        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Sisa Rp ${formattedAmount}`;
       } else if (percentageUsed >= 75) {
         title = '⚠️ Peringatan Anggaran';
-        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Berhati-hatilah dengan pengeluaran.`;
+        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Sisa Rp ${formattedAmount}`;
       } else {
         title = '💰 Update Anggaran';
-        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Anggaran masih aman.`;
+        body = `${budgetName}: ${percentageUsed.toFixed(0)}% terpakai. Sisa Rp ${formattedAmount}`;
       }
 
       return await sendLocalNotification({
         title,
         body,
-        data: { type: 'budget_alert', budgetName, percentageUsed },
+        data: { type: 'budget_alert', budgetName, percentageUsed, remainingAmount: safeRemainingAmount },
       });
     } catch (error) {
       // Error sending budget alert - silently handled
@@ -361,24 +380,32 @@ export const useNotifications = (showErrorDialog?: (title: string, message: stri
       let title = '';
       let body = '';
 
+      const formattedTarget = formatCurrencyForNotification(targetAmount);
+      const formattedCurrent = formatCurrencyForNotification(currentAmount);
+      const remainingAmount = Math.max(0, targetAmount - currentAmount);
+      const formattedRemaining = formatCurrencyForNotification(remainingAmount);
+
       if (progressPercentage >= 100) {
         title = '🎉 Target Tabungan Tercapai!';
-        body = `Selamat! Anda telah mencapai target "${goalName}" sebesar Rp ${targetAmount.toLocaleString('id-ID')}`;
+        body = `Selamat! Anda telah mencapai target "${goalName}" sebesar Rp ${formattedTarget}`;
       } else if (progressPercentage >= 75) {
         title = '🌟 Hampir Mencapai Target!';
-        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai. Sisa Rp ${(targetAmount - currentAmount).toLocaleString('id-ID')} lagi!`;
+        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai. Sisa Rp ${formattedRemaining} lagi!`;
       } else if (progressPercentage >= 50) {
         title = '💪 Setengah Perjalanan!';
-        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai. Tetap konsisten menabung!`;
+        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai (Rp ${formattedCurrent}). Tetap konsisten menabung!`;
+      } else if (progressPercentage >= 25) {
+        title = '🎯 Seperempat Jalan Tercapai!';
+        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai (Rp ${formattedCurrent}). Terus tingkatkan!`;
       } else {
         title = '📈 Progress Tabungan';
-        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai. Terus tingkatkan!`;
+        body = `"${goalName}": ${progressPercentage.toFixed(0)}% tercapai (Rp ${formattedCurrent}). Terus tingkatkan!`;
       }
 
       return await sendLocalNotification({
         title,
         body,
-        data: { type: 'saving_goal', goalName, progressPercentage },
+        data: { type: 'saving_goal', goalName, progressPercentage, currentAmount, targetAmount },
       });
     } catch (error) {
       // Error sending saving goal progress - silently handled

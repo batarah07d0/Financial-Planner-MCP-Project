@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,10 +6,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Animated,
-  Easing,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -35,51 +33,34 @@ interface BudgetFormData {
 
 export const AddBudgetScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
 
   // Store hooks
   const { addBudget } = useBudgetStore();
   const { user } = useAuthStore();
 
-  // Animasi untuk kategori picker
-  const categoryPickerAnimation = useRef(new Animated.Value(0)).current;
-  const categoryPickerHeight = categoryPickerAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 250]
-  });
+
 
   // Efek untuk memuat kategori saat komponen dimount
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        setIsLoadingCategories(true);
         const expenseCategories = await getCategories({ type: 'expense' });
         setCategories(expenseCategories);
       } catch (error) {
         showError('Error', 'Gagal memuat kategori. Silakan coba lagi.');
-      } finally {
-        setIsLoadingCategories(false);
       }
     };
 
     loadCategories();
   }, [showError]);
 
-  // Efek untuk animasi kategori picker
-  useEffect(() => {
-    Animated.timing(categoryPickerAnimation, {
-      toValue: showCategoryPicker ? 1 : 0,
-      duration: 300,
-      easing: Easing.bezier(0.4, 0, 0.2, 1),
-      useNativeDriver: false
-    }).start();
-  }, [showCategoryPicker, categoryPickerAnimation]);
+
 
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<BudgetFormData>({
     defaultValues: {
@@ -179,9 +160,17 @@ export const AddBudgetScreen = () => {
   };
 
   // Fungsi untuk menangani pemilihan kategori
-  const handleCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = (categoryId: string, _categoryName: string) => {
     setValue('category', categoryId);
-    setShowCategoryPicker(false);
+  };
+
+  // Fungsi untuk membuka category picker screen
+  const openCategoryPicker = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigation as any).navigate('CategoryPicker', {
+      selectedCategoryId: selectedCategory,
+      onCategorySelect: handleCategorySelect,
+    });
   };
 
   // Mendapatkan nama kategori berdasarkan ID
@@ -255,58 +244,7 @@ export const AddBudgetScreen = () => {
     </View>
   );
 
-  // Render kategori picker
-  const renderCategoryPicker = () => {
-    return (
-      <Animated.View
-        style={[
-          styles.categoryPickerContainer,
-          { maxHeight: categoryPickerHeight }
-        ]}
-      >
-        <Typography variant="body1" style={styles.pickerTitle} weight="600">
-          Pilih Kategori
-        </Typography>
 
-        {isLoadingCategories ? (
-          <View style={styles.categoryLoadingContainer}>
-            <Typography variant="body2" color={theme.colors.neutral[600]}>
-              Memuat kategori...
-            </Typography>
-          </View>
-        ) : (
-          <View style={styles.categoryGrid}>
-            {categories.map(category => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryItem,
-                  selectedCategory === category.id && styles.selectedCategoryItem,
-                ]}
-                onPress={() => handleCategorySelect(category.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.categoryIconContainer}>
-                  <Ionicons
-                    name={category.icon as keyof typeof Ionicons.glyphMap}
-                    size={20}
-                    color={selectedCategory === category.id ? theme.colors.white : category.color}
-                  />
-                </View>
-                <Typography
-                  variant="body2"
-                  weight={selectedCategory === category.id ? "600" : "400"}
-                  color={selectedCategory === category.id ? theme.colors.white : theme.colors.neutral[700]}
-                >
-                  {category.name}
-                </Typography>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </Animated.View>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -383,7 +321,7 @@ export const AddBudgetScreen = () => {
               <View style={styles.sectionContent}>
                 <TouchableOpacity
                   style={styles.pickerButton}
-                  onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+                  onPress={openCategoryPicker}
                   activeOpacity={0.7}
                 >
                   <View>
@@ -421,8 +359,6 @@ export const AddBudgetScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-
-            {showCategoryPicker && renderCategoryPicker()}
 
             <View style={styles.sectionContainer}>
               <View style={styles.sectionIconContainer}>
@@ -511,19 +447,17 @@ export const AddBudgetScreen = () => {
           </Card>
         </ScrollView>
 
-        <View style={styles.footer}>
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Simpan"
-              onPress={handleSubmit(onSubmit)}
-              loading={isSubmitting}
-              fullWidth
-              variant="gradient"
-              size="large"
-              leftIcon={<Ionicons name="save-outline" size={24} color={theme.colors.white} />}
-              style={styles.saveButton}
-            />
-          </View>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) }]}>
+          <Button
+            title="Simpan"
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+            fullWidth
+            variant="gradient"
+            size="large"
+            leftIcon={<Ionicons name="save-outline" size={24} color={theme.colors.white} />}
+            style={styles.saveButton}
+          />
         </View>
 
         {/* Superior Dialog */}
@@ -576,19 +510,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: theme.spacing.layout.sm,
-    paddingBottom: theme.spacing.layout.xl, // Meningkatkan padding bawah untuk memberikan ruang lebih
+    paddingBottom: theme.spacing.md,
   },
   card: {
-    padding: theme.spacing.layout.md, // Meningkatkan padding dari md ke layout.md
-    paddingVertical: theme.spacing.layout.md, // Memastikan padding vertikal juga lebih besar
+    padding: theme.spacing.layout.md,
+    paddingVertical: theme.spacing.layout.md,
     borderRadius: theme.borderRadius.lg,
     ...theme.elevation.md,
-    marginBottom: theme.spacing.layout.md, // Menambahkan margin bawah untuk memberikan ruang lebih
+    marginBottom: theme.spacing.md,
   },
   sectionContainer: {
     flexDirection: 'row',
-    marginBottom: theme.spacing.layout.sm, // Meningkatkan margin bawah dari md ke layout.sm
-    paddingVertical: theme.spacing.sm, // Menambahkan padding vertikal
+    marginBottom: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
   },
   sectionIconContainer: {
     width: 40,
@@ -631,8 +565,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md, // Meningkatkan padding vertikal dari sm ke md
-    marginVertical: theme.spacing.sm, // Menambahkan margin vertikal
+    paddingVertical: theme.spacing.sm,
+    marginVertical: theme.spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[300],
   },
@@ -650,59 +584,18 @@ const styles = StyleSheet.create({
   selectedCategoryIcon: {
     marginRight: theme.spacing.xs,
   },
-  categoryPickerContainer: {
-    marginBottom: theme.spacing.md,
-    backgroundColor: theme.colors.neutral[100],
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginTop: theme.spacing.sm,
-    overflow: 'hidden',
-    ...theme.elevation.sm,
-  },
-  pickerTitle: {
-    marginBottom: theme.spacing.md,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    margin: theme.spacing.xs,
-    ...theme.elevation.xs,
-  },
-  selectedCategoryItem: {
-    backgroundColor: theme.colors.primary[500],
-  },
-  categoryIconContainer: {
-    marginRight: theme.spacing.xs,
-  },
-  categoryLoadingContainer: {
-    padding: theme.spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 60,
-  },
+
   footer: {
-    padding: theme.spacing.layout.md, // Meningkatkan padding dari layout.sm ke layout.md
-    paddingVertical: theme.spacing.layout.md, // Memastikan padding vertikal juga lebih besar
+    paddingHorizontal: theme.spacing.layout.sm,
+    paddingTop: theme.spacing.md,
     backgroundColor: theme.colors.white,
-    ...theme.elevation.lg, // Meningkatkan elevasi dari md ke lg
     borderTopWidth: 1,
     borderTopColor: theme.colors.neutral[200],
-  },
-  buttonContainer: {
-    paddingHorizontal: theme.spacing.layout.sm, // Memberikan ruang di sisi kiri dan kanan
-    paddingVertical: theme.spacing.md, // Memberikan ruang di atas dan bawah
+    ...theme.elevation.lg,
   },
   saveButton: {
-    height: 56, // Meningkatkan tinggi tombol untuk membuatnya lebih mudah ditekan
-    borderRadius: theme.borderRadius.lg, // Meningkatkan border radius
-    ...theme.elevation.md, // Menambahkan elevasi untuk efek visual
+    height: 56,
+    borderRadius: theme.borderRadius.lg,
+    ...theme.elevation.md,
   },
 });

@@ -8,16 +8,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography, Card, TransactionCard } from '../../../core/components';
+import { Typography, Card, TransactionCard, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../../../core/services/store';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
+import { useSuperiorDialog } from '../../../core/hooks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../../config/supabase';
-import { formatCurrency } from '../../../core/utils';
+import { formatCardCurrency, needsExplanation, getCurrencyExplanation } from '../../../core/utils';
 import { Transaction } from '../../../core/services/supabase/types';
 
 export const DashboardScreen = () => {
@@ -30,8 +31,10 @@ export const DashboardScreen = () => {
   const [monthlyExpense, setMonthlyExpense] = useState(0);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
+  const [userDisplayName, setUserDisplayName] = useState('');
   const navigation = useNavigation();
   const { user } = useAuthStore();
+  const { dialogState, showDialog, hideDialog } = useSuperiorDialog();
 
   // Refs untuk mencegah infinite re-render dan throttling
   const lastFocusTime = useRef<number>(0);
@@ -46,6 +49,42 @@ export const DashboardScreen = () => {
     isSmallDevice,
     isLargeDevice
   } = useAppDimensions();
+
+  // Fungsi untuk memuat profil pengguna dan membatasi nama
+  const loadUserProfile = useCallback(async () => {
+    try {
+      if (!user) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, name')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        // Jika error, gunakan nama dari auth store sebagai fallback
+        const fallbackName = user?.name || 'Pengguna';
+        const limitedName = fallbackName.split(' ').slice(0, 2).join(' ');
+        setUserDisplayName(limitedName);
+        return;
+      }
+
+      if (data) {
+        // Prioritas: full_name > name > fallback
+        const fullName = data.full_name || data.name || user?.name || 'Pengguna';
+        // Batasi nama menjadi 2 kata pertama
+        const limitedName = fullName.split(' ').slice(0, 2).join(' ');
+        setUserDisplayName(limitedName);
+      }
+    } catch (error) {
+      // Error handling, gunakan fallback
+      const fallbackName = user?.name || 'Pengguna';
+      const limitedName = fallbackName.split(' ').slice(0, 2).join(' ');
+      setUserDisplayName(limitedName);
+    }
+  }, [user]);
 
   // Fungsi untuk memuat kategori
   const loadCategories = useCallback(async () => {
@@ -78,8 +117,11 @@ export const DashboardScreen = () => {
     try {
       setIsLoading(true);
 
-      // Memuat kategori terlebih dahulu
-      await loadCategories();
+      // Memuat profil pengguna dan kategori secara paralel
+      await Promise.all([
+        loadUserProfile(),
+        loadCategories()
+      ]);
 
       // Mendapatkan tanggal awal dan akhir bulan ini
       const now = new Date();
@@ -114,7 +156,8 @@ export const DashboardScreen = () => {
         ?.filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
-      setCurrentBalance(totalIncome - totalExpense);
+      const balance = totalIncome - totalExpense;
+      setCurrentBalance(balance);
 
       // Hitung ringkasan bulan ini
       const monthlyIncomeTotal = monthlyTransactions
@@ -138,11 +181,11 @@ export const DashboardScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, loadCategories]);
+  }, [user, loadCategories, loadUserProfile]);
 
   // Memoized greeting messages untuk mencegah re-render
   const greetingMessages = useMemo(() => {
-    const userName = user?.name || 'Pengguna';
+    const userName = userDisplayName || 'Pengguna';
     return {
       morning: [
         `Selamat Pagi, ${userName}!`,
@@ -167,7 +210,7 @@ export const DashboardScreen = () => {
         `Welcome back, ${userName}!`,
       ],
     };
-  }, [user?.name]);
+  }, [userDisplayName]);
 
   // Fungsi untuk mendapatkan greeting message yang stabil
   const getGreetingMessage = useCallback(() => {
@@ -186,8 +229,9 @@ export const DashboardScreen = () => {
         timeBasedMessages = greetingMessages.evening;
       }
 
-      // Pilih pesan berdasarkan visit count dan gunakan index yang konsisten
-      const messagesToUse = visitCount > 2 ? greetingMessages.returnVisit : timeBasedMessages;
+      // Gunakan time-based messages sebagai prioritas utama
+      // Return visit messages hanya untuk kunjungan yang sangat sering (lebih dari 10 kali)
+      const messagesToUse = visitCount > 10 ? greetingMessages.returnVisit : timeBasedMessages;
 
       // Gunakan user ID untuk konsistensi random index (tidak berubah-ubah)
       const userIdHash = user?.id ? user.id.charCodeAt(0) + user.id.charCodeAt(user.id.length - 1) : 0;
@@ -196,7 +240,7 @@ export const DashboardScreen = () => {
       greetingInitialized.current = true;
     }
 
-    const messagesToUse = visitCount > 2 ? greetingMessages.returnVisit :
+    const messagesToUse = visitCount > 10 ? greetingMessages.returnVisit :
       (currentHour.current >= 5 && currentHour.current < 12) ? greetingMessages.morning :
       (currentHour.current >= 12 && currentHour.current < 18) ? greetingMessages.afternoon :
       greetingMessages.evening;
@@ -214,20 +258,16 @@ export const DashboardScreen = () => {
 
         setVisitCount(newCount);
         await AsyncStorage.setItem('dashboard_visit_count', newCount.toString());
-
-        // Update greeting message setelah visit count di-set
-        setGreetingMessage(getGreetingMessage());
       } catch (error) {
         // Error handling tanpa console.error untuk menghindari ESLint warning
         setVisitCount(1);
-        setGreetingMessage(getGreetingMessage());
       }
     };
 
     if (user && !greetingInitialized.current) {
       loadVisitCount();
     }
-  }, [user, getGreetingMessage]);
+  }, [user]);
 
   // Effect terpisah untuk load dashboard data
   useEffect(() => {
@@ -235,6 +275,15 @@ export const DashboardScreen = () => {
       loadDashboardData();
     }
   }, [user, loadDashboardData]);
+
+  // Effect untuk update greeting message ketika userDisplayName berubah
+  useEffect(() => {
+    if (userDisplayName && visitCount > 0) {
+      const newMessage = getGreetingMessage();
+      setGreetingMessage(newMessage);
+      greetingInitialized.current = true;
+    }
+  }, [userDisplayName, visitCount, getGreetingMessage]);
 
   // Effect untuk update greeting message berdasarkan perubahan waktu
   useEffect(() => {
@@ -262,9 +311,12 @@ export const DashboardScreen = () => {
         if (now - lastFocusTime.current > 3000) {
           lastFocusTime.current = now;
           loadDashboardData();
+        } else {
+          // Selalu refresh profil untuk memastikan nama terbaru
+          loadUserProfile();
         }
       }
-    }, [user, loadDashboardData])
+    }, [user, loadDashboardData, loadUserProfile])
   );
 
   // Fungsi navigasi
@@ -292,6 +344,30 @@ export const DashboardScreen = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('AddTransaction');
   }, [navigation]);
+
+  // Function untuk navigasi ke detail transaksi
+  const handleTransactionPress = useCallback((transactionId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigation as any).navigate('TransactionDetail', { id: transactionId });
+  }, [navigation]);
+
+  // Function untuk menampilkan detail saldo
+  const handleBalancePress = useCallback(() => {
+    if (needsExplanation(currentBalance)) {
+      showDialog({
+        type: 'info',
+        title: '💰 Detail Saldo',
+        message: getCurrencyExplanation(currentBalance),
+        actions: [
+          {
+            text: 'Tutup',
+            onPress: hideDialog,
+            style: 'default',
+          },
+        ],
+      });
+    }
+  }, [currentBalance, showDialog, hideDialog]);
 
   // Efek animasi untuk header dengan responsivitas
   const getResponsiveHeaderHeight = () => {
@@ -394,18 +470,28 @@ export const DashboardScreen = () => {
           <View style={[styles.balanceHeader, {
             marginBottom: responsiveSpacing(theme.spacing.md)
           }]}>
-            <View>
+            <TouchableOpacity onPress={handleBalancePress} activeOpacity={0.7}>
               <Typography variant="body2" color={theme.colors.neutral[600]}>
                 Saldo Saat Ini
               </Typography>
               {isLoading ? (
                 <ActivityIndicator size="small" color={theme.colors.primary[500]} />
               ) : (
-                <Typography variant="h3" color={theme.colors.primary[500]} weight="700">
-                  {formatCurrency(currentBalance)}
-                </Typography>
+                <View style={styles.balanceAmountContainer}>
+                  <Typography variant="h3" color={theme.colors.primary[500]} weight="700">
+                    {formatCardCurrency(currentBalance)}
+                  </Typography>
+                  {needsExplanation(currentBalance) && (
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={20}
+                      color={theme.colors.primary[400]}
+                      style={styles.balanceInfoIcon}
+                    />
+                  )}
+                </View>
               )}
-            </View>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.addButton, {
               width: responsiveSpacing(48),
               height: responsiveSpacing(48),
@@ -588,7 +674,7 @@ export const DashboardScreen = () => {
                 <ActivityIndicator size="small" color={theme.colors.success[500]} />
               ) : (
                 <Typography variant="h5" color={theme.colors.success[500]} weight="600">
-                  {formatCurrency(monthlyIncome)}
+                  {formatCardCurrency(monthlyIncome)}
                 </Typography>
               )}
             </Card>
@@ -622,7 +708,7 @@ export const DashboardScreen = () => {
                 <ActivityIndicator size="small" color={theme.colors.danger[500]} />
               ) : (
                 <Typography variant="h5" color={theme.colors.danger[500]} weight="600">
-                  {formatCurrency(monthlyExpense)}
+                  {formatCardCurrency(monthlyExpense)}
                 </Typography>
               )}
             </Card>
@@ -681,7 +767,7 @@ export const DashboardScreen = () => {
                   category={categoryMap[transaction.category_id] || 'Lainnya'}
                   description={transaction.description}
                   date={transaction.date}
-                  onPress={() => {}}
+                  onPress={handleTransactionPress}
                 />
               ))}
             </View>
@@ -772,6 +858,17 @@ export const DashboardScreen = () => {
           </Card>
         </View>
       </Animated.ScrollView>
+
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };
@@ -851,6 +948,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing.md,
+  },
+  balanceAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+  },
+  balanceInfoIcon: {
+    marginLeft: theme.spacing.sm,
   },
   addButton: {
     width: 48,

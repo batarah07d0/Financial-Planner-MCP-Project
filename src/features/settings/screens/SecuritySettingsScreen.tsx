@@ -49,6 +49,10 @@ export const SecuritySettingsScreen = () => {
     notification_enabled: true,
     biometric_enabled: false,
     budget_alert_threshold: 80,
+    daily_reminder_enabled: true,
+    weekly_summary_enabled: true,
+    saving_goal_alerts: true,
+    transaction_reminders: true,
   });
 
 

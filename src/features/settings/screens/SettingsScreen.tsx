@@ -320,6 +320,8 @@ export const SettingsScreen = () => {
           />
         </SettingSection>
 
+
+
         <SettingSection title="Tentang" delay={800}>
           <SettingItem
             title="Tentang Aplikasi"

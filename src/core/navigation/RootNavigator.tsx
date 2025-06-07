@@ -23,6 +23,7 @@ import {
   AddBudgetScreen,
   BudgetDetailScreen,
   EditBudgetScreen,
+  CategoryPickerScreen,
 } from '../../features/budget/screens';
 import {
   SavingGoalsScreen,
@@ -40,7 +41,7 @@ import {
   PrivacyPolicyScreen,
   TermsConditionsScreen
 } from '../../features/settings/screens';
-import { ChallengesScreen, AddChallengeScreen } from '../../features/challenges/screens';
+import { ChallengesScreen, AddChallengeScreen, ChallengeDetailScreen } from '../../features/challenges/screens';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -50,17 +51,46 @@ export const RootNavigator = () => {
   // Cek status autentikasi dan onboarding saat aplikasi dimulai
   useEffect(() => {
     const initializeApp = async () => {
-     
-      // await initializeOnboardingStatus();
+      try {
+        // Initialize onboarding status
+        await initializeOnboardingStatus();
 
-      // Cek session autentikasi
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        // Implementasi lengkap akan ditambahkan nanti
+        // Cek session autentikasi dengan error handling
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          // Jika ada error dengan session (seperti invalid refresh token), clear session
+          await supabase.auth.signOut();
+        } else if (data.session) {
+          // Session valid, implementasi lengkap akan ditambahkan nanti
+        }
+      } catch (error) {
+        // Handle any other errors
+        // Clear any invalid session
+        await supabase.auth.signOut();
       }
     };
 
     initializeApp();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        // Handle sign out or token refresh
+        if (!session) {
+          // User signed out, clear any cached data if needed
+        }
+      }
+
+      if (event === 'SIGNED_IN' && session) {
+        // User signed in
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [initializeOnboardingStatus]);
 
   return (
@@ -83,6 +113,14 @@ export const RootNavigator = () => {
             <Stack.Screen name="AddBudget" component={AddBudgetScreen} />
             <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
             <Stack.Screen name="EditBudget" component={EditBudgetScreen} />
+            <Stack.Screen
+              name="CategoryPicker"
+              component={CategoryPickerScreen}
+              options={{
+                presentation: 'modal',
+                headerShown: false,
+              }}
+            />
             <Stack.Screen name="SavingGoals" component={SavingGoalsScreen} />
             <Stack.Screen name="AddSavingGoal" component={AddSavingGoalScreen} />
             <Stack.Screen name="EditSavingGoal" component={EditSavingGoalScreen} />
@@ -97,6 +135,7 @@ export const RootNavigator = () => {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Challenges" component={ChallengesScreen} />
             <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
+            <Stack.Screen name="ChallengeDetail" component={ChallengeDetailScreen} />
             <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />
             <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
             <Stack.Screen name="AboutApp" component={AboutAppScreen} />

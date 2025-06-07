@@ -68,8 +68,9 @@ export class BudgetMonitorService {
           endDate
         );
 
-        const percentage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
-        const remainingAmount = budget.amount - spent;
+        const budgetAmount = Number(budget.amount) || 0;
+        const percentage = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
+        const remainingAmount = budgetAmount - spent;
         const isOverThreshold = percentage >= threshold;
         
         // Cek apakah perlu mengirim alert (belum pernah alert atau sudah lewat cooldown)
@@ -79,7 +80,7 @@ export class BudgetMonitorService {
         const budgetStatus: BudgetStatus = {
           id: budget.id,
           categoryName: categoryMap.get(budget.category_id) || 'Kategori',
-          amount: budget.amount,
+          amount: budgetAmount,
           spent,
           percentage,
           remainingAmount,
@@ -202,13 +203,14 @@ export class BudgetMonitorService {
           endDate
         );
 
-        const percentage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
-        const remainingAmount = budget.amount - spent;
+        const budgetAmount = Number(budget.amount) || 0;
+        const percentage = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
+        const remainingAmount = budgetAmount - spent;
 
         budgetStatuses.push({
           id: budget.id,
           categoryName: categoryMap.get(budget.category_id) || 'Kategori',
-          amount: budget.amount,
+          amount: budgetAmount,
           spent,
           percentage,
           remainingAmount,

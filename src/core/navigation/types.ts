@@ -60,6 +60,10 @@ export type RootStackParamList = {
   AddBudget: undefined;
   EditBudget: { id: string };
   BudgetDetail: { id: string };
+  CategoryPicker: {
+    selectedCategoryId?: string;
+    onCategorySelect: (categoryId: string, categoryName: string) => void;
+  };
   AddProduct: {
     barcode?: string;
   };

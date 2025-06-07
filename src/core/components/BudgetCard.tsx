@@ -18,7 +18,7 @@ interface BudgetCardProps {
   onPress?: (id: string) => void;
 }
 
-export const BudgetCard: React.FC<BudgetCardProps> = ({
+export const BudgetCard: React.FC<BudgetCardProps> = React.memo(({
   id,
   category,
   amount,
@@ -372,7 +372,9 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
       </TouchableOpacity>
     </Animated.View>
   );
-};
+});
+
+BudgetCard.displayName = 'BudgetCard';
 
 const styles = StyleSheet.create({
   cardContainer: {

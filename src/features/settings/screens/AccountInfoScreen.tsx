@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Animated,
   KeyboardAvoidingView,
@@ -17,13 +16,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, Card, Input, Button } from '../../../core/components';
+import { Typography, Card, Input, Button, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 export const AccountInfoScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuthStore();
+  const { dialogState, showSuccess, showError, showConfirm, hideDialog } = useSuperiorDialog();
 
   // State untuk form
   const [fullName, setFullName] = useState('');
@@ -89,7 +90,7 @@ export const AccountInfoScreen = () => {
 
       // Validasi input
       if (!fullName.trim()) {
-        Alert.alert('Error', 'Nama lengkap tidak boleh kosong');
+        showError('Error', 'Nama lengkap tidak boleh kosong');
         return;
       }
 
@@ -108,10 +109,21 @@ export const AccountInfoScreen = () => {
         throw error;
       }
 
-      Alert.alert('Sukses', 'Informasi akun berhasil diperbarui');
-      setIsEditing(false);
+      // Tampilkan success dialog dengan navigasi
+      showSuccess(
+        '✅ Berhasil!',
+        'Informasi akun berhasil diperbarui dengan sempurna',
+        1500 // Auto close after 1.5 seconds
+      );
+
+      // Set timeout untuk navigasi setelah dialog tertutup
+      setTimeout(() => {
+        setIsEditing(false);
+        navigation.navigate('Main' as never);
+      }, 1600);
+
     } catch (error) {
-      Alert.alert('Error', 'Gagal memperbarui informasi akun');
+      showError('❌ Gagal', 'Terjadi kesalahan saat memperbarui informasi akun. Silakan coba lagi.');
     } finally {
       setIsSaving(false);
     }
@@ -120,22 +132,15 @@ export const AccountInfoScreen = () => {
   const toggleEditMode = () => {
     if (isEditing) {
       // Jika sedang dalam mode edit, konfirmasi batal
-      Alert.alert(
-        'Konfirmasi',
-        'Apakah Anda yakin ingin membatalkan perubahan?',
-        [
-          {
-            text: 'Tidak',
-            style: 'cancel',
-          },
-          {
-            text: 'Ya',
-            onPress: () => {
-              fetchProfile(); // Reset data
-              setIsEditing(false);
-            },
-          },
-        ]
+      showConfirm(
+        '⚠️ Konfirmasi',
+        'Apakah Anda yakin ingin membatalkan perubahan yang telah dibuat?',
+        () => {
+          fetchProfile(); // Reset data
+          setIsEditing(false);
+        },
+        'Ya, Batalkan',
+        'Tidak'
       );
     } else {
       // Masuk ke mode edit
@@ -248,6 +253,18 @@ export const AccountInfoScreen = () => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Superior Dialog */}
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };

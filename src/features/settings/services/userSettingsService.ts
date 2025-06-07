@@ -4,6 +4,10 @@ export interface UserSettings {
   notification_enabled: boolean;
   biometric_enabled: boolean;
   budget_alert_threshold: number;
+  daily_reminder_enabled: boolean;
+  weekly_summary_enabled: boolean;
+  saving_goal_alerts: boolean;
+  transaction_reminders: boolean;
 }
 
 export interface SecuritySettings {
@@ -58,6 +62,10 @@ export const getUserSettings = async (userId: string): Promise<UserSettings | nu
           notification_enabled: true,
           biometric_enabled: false,
           budget_alert_threshold: 80,
+          daily_reminder_enabled: true,
+          weekly_summary_enabled: true,
+          saving_goal_alerts: true,
+          transaction_reminders: true,
         };
 
         await createUserSettings(userId, defaultSettings);

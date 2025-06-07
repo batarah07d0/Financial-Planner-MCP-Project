@@ -12,6 +12,7 @@ interface BudgetState {
   addBudget: (budget: Omit<Budget, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateBudget: (id: string, updates: Partial<Budget>) => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
+  clearBudgets: () => void;
   clearError: () => void;
 }
 
@@ -29,12 +30,14 @@ export const useBudgetStore = create<BudgetState>((set) => ({
       set({
         budgets,
         isLoading: false,
+        error: null,
       });
     } catch (error: unknown) {
       const errorObj = error as Error;
       set({
         error: errorObj.message || 'Gagal memuat anggaran. Silakan coba lagi.',
         isLoading: false,
+        budgets: [], // Clear budgets on error
       });
     }
   },
@@ -83,11 +86,14 @@ export const useBudgetStore = create<BudgetState>((set) => ({
     try {
       set({ isLoading: true, error: null });
 
+      // Hapus dari database
       await deleteBudget(id);
 
+      // Update store dengan filter yang lebih robust
       set(state => ({
         budgets: state.budgets.filter(budget => budget.id !== id),
         isLoading: false,
+        error: null,
       }));
     } catch (error: unknown) {
       const errorObj = error as Error;
@@ -95,9 +101,14 @@ export const useBudgetStore = create<BudgetState>((set) => ({
         error: errorObj.message || 'Gagal menghapus anggaran. Silakan coba lagi.',
         isLoading: false,
       });
+      throw error; // Re-throw untuk handling di component
     }
   },
   
+  clearBudgets: () => {
+    set({ budgets: [], error: null });
+  },
+
   clearError: () => {
     set({ error: null });
   },

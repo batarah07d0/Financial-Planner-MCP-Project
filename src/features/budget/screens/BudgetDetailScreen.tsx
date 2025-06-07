@@ -163,10 +163,21 @@ export const BudgetDetailScreen = () => {
       async () => {
         try {
           setIsDeleting(true);
+
+          // Hapus dari database terlebih dahulu
           await deleteBudget(budgetId);
+
+          // Hapus dari store
           await deleteBudgetFromStore(budgetId);
+
+          // Tampilkan pesan sukses
           showSuccess('Berhasil', 'Anggaran berhasil dihapus');
-          setTimeout(() => navigation.goBack(), 1500);
+
+          // Navigasi kembali dengan delay yang lebih pendek
+          setTimeout(() => {
+            navigation.goBack();
+          }, 1000);
+
         } catch (error) {
           showError('Error', 'Gagal menghapus anggaran');
         } finally {

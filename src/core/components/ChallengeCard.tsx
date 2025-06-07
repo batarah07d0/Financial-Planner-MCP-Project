@@ -10,7 +10,7 @@ import { Typography } from './Typography';
 import { Card } from './Card';
 import { theme } from '../theme';
 import { formatCurrency, formatDate } from '../utils';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export interface ChallengeProps {
@@ -29,6 +29,9 @@ export interface ChallengeProps {
   participants?: number;
   isCompleted?: boolean;
   image?: string;
+  icon?: string;
+  iconType?: 'MaterialCommunityIcons' | 'FontAwesome5' | 'Ionicons';
+  color?: string;
 }
 
 interface ChallengeCardProps {
@@ -47,9 +50,9 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     target,
     current,
     endDate,
-    reward,
-    participants,
     isCompleted,
+    icon,
+    color,
   } = challenge;
 
   // Animasi untuk efek press dan progress bar
@@ -69,22 +72,70 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     }).start();
   }, [progress, progressAnim]);
 
-  // Mendapatkan ikon berdasarkan tipe tantangan
-  const getChallengeIcon = () => {
-    switch (type) {
-      case 'saving':
-        return 'piggy-bank-outline';
-      case 'spending':
-        return 'wallet-outline';
-      case 'tracking':
-        return 'analytics-outline';
-      default:
-        return 'trophy-outline';
+  // Mendapatkan ikon dengan fallback yang robust
+  const getIconComponent = () => {
+    const iconSize = 22;
+    const iconColor = theme.colors.white;
+
+    // Icon mapping dengan fallback
+    const iconMap: { [key: string]: { type: 'Ionicons' | 'MaterialCommunityIcons' | 'FontAwesome5'; name: string } } = {
+      // Travel & Transportation
+      'airplane': { type: 'Ionicons', name: 'airplane' },
+      'car': { type: 'Ionicons', name: 'car' },
+      'train': { type: 'Ionicons', name: 'train' },
+
+      // Technology
+      'phone-portrait': { type: 'Ionicons', name: 'phone-portrait' },
+      'laptop': { type: 'Ionicons', name: 'laptop' },
+      'desktop': { type: 'Ionicons', name: 'desktop' },
+      'tablet-portrait': { type: 'Ionicons', name: 'tablet-portrait' },
+
+      // Security & Finance
+      'shield-checkmark': { type: 'Ionicons', name: 'shield-checkmark' },
+      'shield': { type: 'Ionicons', name: 'shield' },
+      'wallet': { type: 'FontAwesome5', name: 'wallet' },
+      'money-bill': { type: 'FontAwesome5', name: 'money-bill' },
+
+      // Savings & Goals
+      'home': { type: 'Ionicons', name: 'home' },
+      'school': { type: 'Ionicons', name: 'school' },
+      'medical': { type: 'Ionicons', name: 'medical' },
+      'fitness': { type: 'Ionicons', name: 'fitness' },
+      'restaurant': { type: 'Ionicons', name: 'restaurant' },
+
+      // Default fallbacks
+      'star': { type: 'Ionicons', name: 'star' },
+      'heart': { type: 'Ionicons', name: 'heart' },
+      'trophy': { type: 'Ionicons', name: 'trophy' },
+    };
+
+    // Cari ikon yang sesuai atau gunakan fallback
+    const iconName = icon || 'star';
+    const iconConfig = iconMap[iconName] || { type: 'Ionicons', name: 'star' };
+
+    try {
+      switch (iconConfig.type) {
+        case 'FontAwesome5':
+          return <FontAwesome5 name={iconConfig.name as keyof typeof FontAwesome5.glyphMap} size={iconSize} color={iconColor} />;
+        case 'MaterialCommunityIcons':
+          return <MaterialCommunityIcons name={iconConfig.name as keyof typeof MaterialCommunityIcons.glyphMap} size={iconSize} color={iconColor} />;
+        default:
+          return <Ionicons name={iconConfig.name as keyof typeof Ionicons.glyphMap} size={iconSize} color={iconColor} />;
+      }
+    } catch (error) {
+      // Fallback jika ikon tidak ditemukan
+      return <Ionicons name="star" size={iconSize} color={iconColor} />;
     }
   };
 
-  // Mendapatkan warna berdasarkan tipe tantangan
+  // Mendapatkan warna berdasarkan data dari database atau fallback ke tipe tantangan
   const getChallengeColor = () => {
+    // Jika ada warna dari database, gunakan itu
+    if (color) {
+      return color;
+    }
+
+    // Fallback ke warna berdasarkan tipe tantangan
     switch (type) {
       case 'saving':
         return theme.colors.success[500];
@@ -97,8 +148,35 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
     }
   };
 
-  // Mendapatkan gradient colors berdasarkan tipe tantangan
+  // Helper function untuk mengubah hex color menjadi lebih terang
+  const lightenColor = (hex: string, percent: number): string => {
+    // Remove # if present
+    const cleanHex = hex.replace('#', '');
+
+    // Parse RGB values
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+
+    // Lighten each component
+    const newR = Math.min(255, Math.floor(r + (255 - r) * percent));
+    const newG = Math.min(255, Math.floor(g + (255 - g) * percent));
+    const newB = Math.min(255, Math.floor(b + (255 - b) * percent));
+
+    // Convert back to hex
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  };
+
+  // Mendapatkan gradient colors berdasarkan warna dari database atau tipe tantangan
   const getGradientColors = (): [string, string] => {
+    // Jika ada warna dari database, buat gradient dari warna tersebut
+    if (color) {
+      // Buat gradient dengan warna yang lebih terang dan warna asli
+      const lighterColor = lightenColor(color, 0.3);
+      return [lighterColor, color];
+    }
+
+    // Fallback ke gradient berdasarkan tipe tantangan
     switch (type) {
       case 'saving':
         return [theme.colors.success[400], theme.colors.success[600]];
@@ -177,11 +255,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 end={{ x: 1, y: 1 }}
                 style={styles.iconContainer}
               >
-                <Ionicons
-                  name={getChallengeIcon() as keyof typeof Ionicons.glyphMap}
-                  size={20}
-                  color={theme.colors.white}
-                />
+                {getIconComponent()}
               </LinearGradient>
               <View style={styles.titleContent}>
                 <Typography variant="body1" weight="600">
@@ -284,49 +358,44 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             </View>
           </View>
 
+          {/* Status Footer */}
           <View style={styles.footer}>
-            <View style={styles.reward}>
-              <LinearGradient
-                colors={[theme.colors.warning[400], theme.colors.warning[600]]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.rewardBadge}
-              >
-                <Ionicons
-                  name="star"
-                  size={12}
-                  color={theme.colors.white}
-                />
-              </LinearGradient>
+            <View style={styles.statusIndicator}>
+              <View style={[styles.statusDot, {
+                backgroundColor: isCompleted
+                  ? theme.colors.success[500]
+                  : current > 0
+                  ? theme.colors.primary[500]
+                  : theme.colors.neutral[400]
+              }]} />
               <Typography
                 variant="caption"
                 weight="600"
                 color={theme.colors.neutral[700]}
-                style={styles.rewardText}
+                style={styles.statusText}
               >
-                {reward.points} poin
+                {isCompleted
+                  ? 'Selesai'
+                  : current > 0
+                  ? 'Sedang Berjalan'
+                  : 'Belum Dimulai'}
               </Typography>
             </View>
 
-            {participants && (
-              <View style={styles.participants}>
-                <View style={styles.participantsBadge}>
-                  <Ionicons
-                    name="people"
-                    size={12}
-                    color={theme.colors.neutral[600]}
-                  />
-                </View>
-                <Typography
-                  variant="caption"
-                  weight="600"
-                  color={theme.colors.neutral[700]}
-                  style={styles.participantsText}
-                >
-                  {participants} peserta
-                </Typography>
-              </View>
-            )}
+            <View style={styles.timeInfo}>
+              <Ionicons
+                name="time-outline"
+                size={12}
+                color={theme.colors.neutral[500]}
+              />
+              <Typography
+                variant="caption"
+                color={theme.colors.neutral[600]}
+                style={styles.timeText}
+              >
+                {formatDate(endDate, { format: 'short' })}
+              </Typography>
+            </View>
           </View>
         </TouchableOpacity>
       </Card>
@@ -343,6 +412,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     overflow: 'hidden',
     backgroundColor: theme.colors.white,
+    // Tambahkan border subtle untuk efek premium
+    borderWidth: 1,
+    borderColor: theme.colors.neutral[100],
   },
   content: {
     padding: theme.spacing.lg,
@@ -359,12 +431,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
+    // Tambahkan shadow untuk efek superior
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   titleContent: {
     flex: 1,
@@ -390,11 +471,20 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 10,
-    backgroundColor: theme.colors.neutral[200],
+    height: 12,
+    backgroundColor: theme.colors.neutral[100],
     borderRadius: theme.borderRadius.round,
     marginRight: theme.spacing.sm,
     overflow: 'hidden',
+    // Tambahkan shadow untuk depth
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   progressFill: {
     height: '100%',
@@ -428,33 +518,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.neutral[200],
   },
-  reward: {
+  statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  rewardBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: theme.spacing.xs,
   },
-  rewardText: {
-    marginLeft: theme.spacing.sm,
+  statusText: {
+    marginLeft: theme.spacing.xs,
   },
-  participants: {
+  timeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  participantsBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.neutral[200],
-  },
-  participantsText: {
-    marginLeft: theme.spacing.sm,
+  timeText: {
+    marginLeft: theme.spacing.xs,
   },
 });
