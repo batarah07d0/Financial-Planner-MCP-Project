@@ -236,7 +236,7 @@ export const MoreScreen = () => {
       <Animated.View style={[styles.headerContainer, { opacity: headerOpacity }]}>
         <View style={styles.header}>
           <Typography
-            variant="h3"
+            variant="h5"
             color={theme.colors.primary[500]}
             weight="700"
             style={styles.headerTitle}
@@ -275,15 +275,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: theme.spacing.layout.sm,
     paddingTop: theme.spacing.layout.xs,
     paddingBottom: theme.spacing.layout.sm,
   },
   headerTitle: {
-    textAlign: 'left',
-    paddingLeft: theme.spacing.sm,
-    fontSize: 28,
-    lineHeight: 34,
+    textAlign: 'center',
+    fontSize: 20,
+    lineHeight: 24,
   },
   scrollView: {
     flex: 1,

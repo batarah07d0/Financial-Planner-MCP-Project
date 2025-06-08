@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../core/navigation/types';
 import { Typography, EmptyState, Button } from '../../../core/components';
@@ -140,10 +140,7 @@ export const BarcodeScanHistoryScreen = () => {
   // Fungsi untuk menangani pemindaian barcode baru
   const handleScanBarcode = () => {
     navigation.navigate('BarcodeScanner', {
-      onScanComplete: () => {
-        // Refresh riwayat setelah pemindaian berhasil
-        loadHistory();
-      },
+      returnTo: 'BarcodeScanHistory',
     });
   };
 
@@ -188,6 +185,14 @@ export const BarcodeScanHistoryScreen = () => {
       StatusBar.setBarStyle('dark-content');
     };
   }, []);
+
+  // Effect untuk refresh history ketika kembali dari barcode scanner
+  useFocusEffect(
+    React.useCallback(() => {
+      // Refresh history setiap kali screen difocus (kembali dari barcode scanner)
+      loadHistory();
+    }, [])
+  );
 
   // Render item riwayat
   const renderHistoryItem = ({ item, index }: { item: BarcodeHistoryItem, index: number }) => {

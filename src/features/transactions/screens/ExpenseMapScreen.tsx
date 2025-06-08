@@ -8,11 +8,15 @@ import {
   Animated,
   ScrollView,
   Platform,
+  Easing,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-// Import dari mock untuk Expo Go
-import MapView, { Marker, Callout, PROVIDER_GOOGLE, Circle } from 'react-native-maps';
+import { BlurView } from 'expo-blur';
+// Import Beautiful Map Components
+import MapView, { Circle } from 'react-native-maps';
+import { EnhancedMapView } from '../../../core/components/EnhancedMapView';
+import { EnhancedMarker } from '../../../core/components/EnhancedMarker';
 import { Typography, EmptyState } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
@@ -23,7 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { useAuthStore } from '../../../core/services/store';
 
-// Tipe data untuk transaksi dengan lokasi dari Supabase
+// Enhanced interfaces for superior map visualization
 interface TransactionWithLocation {
   id: string;
   amount: number;
@@ -41,6 +45,20 @@ interface TransactionWithLocation {
   color?: string;
 }
 
+interface MapFilters {
+  dateRange: {
+    start: Date | null;
+    end: Date | null;
+  };
+  amountRange: {
+    min: number;
+    max: number;
+  };
+  selectedCategories: string[];
+  mapStyle: 'standard' | 'satellite' | 'hybrid' | 'dark';
+  viewMode: 'markers' | 'heatmap' | 'clusters';
+}
+
 
 
 // Konstanta untuk animasi
@@ -49,41 +67,44 @@ const ANIMATION_DURATION = 300;
 export const ExpenseMapScreen = () => {
   const navigation = useNavigation();
   const mapRef = useRef<MapView>(null);
+  const insets = useSafeAreaInsets();
+
+  // Core data state
   const [transactions, setTransactions] = useState<TransactionWithLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithLocation | null>(null);
-  const [mapType, setMapType] = useState<'standard' | 'heatmap'>('standard');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // UI state
   const [showFilters, setShowFilters] = useState(false);
+  const [showDetailCard, setShowDetailCard] = useState(false);
+
+  // Filter state
+  const [filters, setFilters] = useState<MapFilters>({
+    dateRange: { start: null, end: null },
+    amountRange: { min: 0, max: 10000000 },
+    selectedCategories: [],
+    mapStyle: 'standard',
+    viewMode: 'markers'
+  });
+
+  // Animation refs
+  const headerAnimation = useRef(new Animated.Value(0)).current;
+  const filterAnimation = useRef(new Animated.Value(0)).current;
+  const detailCardAnimation = useRef(new Animated.Value(0)).current;
+  const fabAnimation = useRef(new Animated.Value(1)).current;
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
-    responsiveSpacing,
     isSmallDevice,
     isLargeDevice
   } = useAppDimensions();
 
-  // Animasi
-  const headerAnimation = useRef(new Animated.Value(0)).current;
-  const cardAnimation = useRef(new Animated.Value(0)).current;
-  const filterAnimation = useRef(new Animated.Value(0)).current;
+
 
   const { getCurrentLocation } = useLocation();
   const { user } = useAuthStore();
 
-  // Responsive map control button size
-  const getMapControlButtonSize = () => {
-    if (isSmallDevice) return 40;
-    if (isLargeDevice) return 52;
-    return 44; // medium device
-  };
 
-  // Responsive marker size
-  const getMarkerSize = () => {
-    if (isSmallDevice) return 14;
-    if (isLargeDevice) return 18;
-    return 16; // medium device
-  };
 
 
 
@@ -128,8 +149,8 @@ export const ExpenseMapScreen = () => {
             description: t.description || '',
             date: t.date,
             location: {
-              latitude: t.location_lat,
-              longitude: t.location_lng,
+              latitude: parseFloat(t.location_lat), // Pastikan parsing ke number
+              longitude: parseFloat(t.location_lng), // Pastikan parsing ke number
               address: t.location_name || undefined
             },
             icon: category ? category.icon : 'pricetag-outline',
@@ -138,37 +159,59 @@ export const ExpenseMapScreen = () => {
         });
 
         setTransactions(formattedTransactions);
+
+        // Auto zoom ke lokasi transaksi pertama jika ada data
+        if (formattedTransactions.length > 0 && mapRef.current) {
+          const firstTransaction = formattedTransactions[0];
+          mapRef.current.animateToRegion({
+            latitude: firstTransaction.location.latitude,
+            longitude: firstTransaction.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }, 1000);
+        }
       } else {
         // Jika tidak ada data, set array kosong
         setTransactions([]);
       }
 
-      // Animasi header setelah data dimuat
-      Animated.timing(headerAnimation, {
-        toValue: 1,
-        duration: ANIMATION_DURATION,
-        useNativeDriver: true,
-      }).start();
+      // Animasi superior entrance
+      Animated.parallel([
+        Animated.timing(headerAnimation, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabAnimation, {
+          toValue: 1,
+          duration: 800,
+          delay: 300,
+          easing: Easing.elastic(1.2),
+          useNativeDriver: true,
+        })
+      ]).start();
     } catch (error) {
       Alert.alert('Error', 'Gagal memuat data transaksi');
     } finally {
       setIsLoading(false);
     }
-  }, [user, headerAnimation]);
+  }, [user, headerAnimation, fabAnimation]);
 
   // Fungsi untuk menangani klik pada marker
   const handleMarkerPress = (transaction: TransactionWithLocation) => {
     // Reset animasi card
-    cardAnimation.setValue(0);
+    detailCardAnimation.setValue(0);
 
     // Set transaksi yang dipilih
     setSelectedTransaction(transaction);
+    setShowDetailCard(true);
 
-    // Animasi card
-    Animated.spring(cardAnimation, {
+    // Animasi superior detail card
+    Animated.timing(detailCardAnimation, {
       toValue: 1,
-      friction: 8,
-      tension: 40,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
   };
@@ -194,7 +237,18 @@ export const ExpenseMapScreen = () => {
 
   // Fungsi untuk mengubah tipe peta
   const toggleMapType = () => {
-    setMapType(prev => (prev === 'standard' ? 'heatmap' : 'standard'));
+    setFilters(prev => ({
+      ...prev,
+      mapStyle: prev.mapStyle === 'standard' ? 'satellite' : 'standard'
+    }));
+  };
+
+  // Fungsi untuk toggle view mode
+  const toggleViewMode = () => {
+    setFilters(prev => ({
+      ...prev,
+      viewMode: prev.viewMode === 'markers' ? 'heatmap' : 'markers'
+    }));
   };
 
   // Fungsi untuk toggle filter kategori
@@ -212,14 +266,38 @@ export const ExpenseMapScreen = () => {
 
   // Fungsi untuk memilih kategori
   const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategory(prev => prev === categoryId ? null : categoryId);
+    setFilters(prev => ({
+      ...prev,
+      selectedCategories: prev.selectedCategories.includes(categoryId)
+        ? prev.selectedCategories.filter(id => id !== categoryId)
+        : [...prev.selectedCategories, categoryId]
+    }));
   };
 
-  // Mendapatkan transaksi yang difilter berdasarkan kategori
+  // Mendapatkan transaksi yang difilter berdasarkan kategori dan filter lainnya
   const filteredTransactions = useMemo(() => {
-    if (!selectedCategory) return transactions;
-    return transactions.filter(t => t.category_id === selectedCategory);
-  }, [transactions, selectedCategory]);
+    let filtered = transactions;
+
+    // Filter by categories
+    if (filters.selectedCategories.length > 0) {
+      filtered = filtered.filter(t => filters.selectedCategories.includes(t.category_id));
+    }
+
+    // Filter by amount range
+    filtered = filtered.filter(t =>
+      t.amount >= filters.amountRange.min && t.amount <= filters.amountRange.max
+    );
+
+    // Filter by date range
+    if (filters.dateRange.start && filters.dateRange.end) {
+      filtered = filtered.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate >= filters.dateRange.start! && transactionDate <= filters.dateRange.end!;
+      });
+    }
+
+    return filtered;
+  }, [transactions, filters]);
 
   // Fungsi untuk mendapatkan ikon dan warna kategori tidak diperlukan lagi
   // karena data tersebut sudah ada di objek transaksi
@@ -268,86 +346,26 @@ export const ExpenseMapScreen = () => {
 
   // Render marker untuk setiap transaksi
   const renderMarkers = () => {
-    return filteredTransactions.map(transaction => (
-      <Marker
+    return filteredTransactions.map((transaction, index) => (
+      <EnhancedMarker
         key={transaction.id}
         coordinate={{
           latitude: transaction.location.latitude,
           longitude: transaction.location.longitude,
         }}
+        type="expense"
+        size="medium"
+        gradientColors={[
+          transaction.color || theme.colors.danger[400],
+          transaction.color ? `${transaction.color}CC` : theme.colors.danger[600]
+        ]}
+        icon={(transaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
+        amount={transaction.amount}
+        showAnimation={true}
+        showGlow={index < 3} // Show glow for top 3 transactions
+        animationDelay={index * 100}
         onPress={() => handleMarkerPress(transaction)}
-      >
-        <View style={styles.customMarker}>
-          <View
-            style={[
-              styles.markerIconContainer,
-              { backgroundColor: transaction.color || theme.colors.neutral[500] }
-            ]}
-          >
-            <Ionicons
-              name={(transaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
-              size={getMarkerSize()}
-              color={theme.colors.white}
-            />
-          </View>
-          <View style={styles.markerAmountContainer}>
-            <Typography
-              variant="caption"
-              color={theme.colors.white}
-              weight="600"
-              style={styles.markerAmount}
-            >
-              {formatCurrency(transaction.amount, { showSymbol: false })}
-            </Typography>
-          </View>
-        </View>
-
-        <Callout tooltip>
-          <View style={styles.callout}>
-            <View style={styles.calloutHeader}>
-              <View style={[
-                styles.calloutIcon,
-                { backgroundColor: transaction.color || theme.colors.neutral[500] }
-              ]}>
-                <Ionicons
-                  name={(transaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
-                  size={20}
-                  color={theme.colors.white}
-                />
-              </View>
-              <View style={styles.calloutHeaderText}>
-                <Typography variant="body1" weight="600">
-                  {transaction.category}
-                </Typography>
-                {transaction.description && (
-                  <Typography variant="caption" color={theme.colors.neutral[600]}>
-                    {transaction.description}
-                  </Typography>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.calloutBody}>
-              <Typography variant="h5" color={theme.colors.danger[500]} style={styles.calloutAmount}>
-                - {formatCurrency(transaction.amount)}
-              </Typography>
-              <Typography variant="caption" color={theme.colors.neutral[500]}>
-                {formatDate(transaction.date, { format: 'medium' })}
-              </Typography>
-              {transaction.location.address && (
-                <View style={styles.calloutAddress}>
-                  <Ionicons name="location-outline" size={14} color={theme.colors.neutral[500]} />
-                  <Typography variant="caption" color={theme.colors.neutral[500]} style={styles.addressText}>
-                    {transaction.location.address}
-                  </Typography>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.calloutArrow} />
-          </View>
-        </Callout>
-      </Marker>
+      />
     ));
   };
 
@@ -367,12 +385,14 @@ export const ExpenseMapScreen = () => {
           strokeWidth={1}
         />
         {/* Marker transparan untuk menangani onPress */}
-        <Marker
+        <EnhancedMarker
           coordinate={{
             latitude: transaction.location.latitude,
             longitude: transaction.location.longitude,
           }}
-          opacity={0}
+          type="custom"
+          size="small"
+          gradientColors={['transparent', 'transparent']}
           onPress={() => handleMarkerPress(transaction)}
         />
       </React.Fragment>
@@ -408,7 +428,7 @@ export const ExpenseMapScreen = () => {
               key={category.id}
               style={[
                 styles.categoryFilter,
-                selectedCategory === category.id && styles.selectedCategoryFilter,
+                filters.selectedCategories.includes(category.id) && styles.selectedCategoryFilter,
                 { borderColor: category.color }
               ]}
               onPress={() => handleCategorySelect(category.id)}
@@ -427,8 +447,8 @@ export const ExpenseMapScreen = () => {
               </View>
               <Typography
                 variant="caption"
-                color={selectedCategory === category.id ? category.color : theme.colors.neutral[700]}
-                weight={selectedCategory === category.id ? "600" : "400"}
+                color={filters.selectedCategories.includes(category.id) ? category.color : theme.colors.neutral[700]}
+                weight={filters.selectedCategories.includes(category.id) ? "600" : "400"}
               >
                 {category.name}
               </Typography>
@@ -441,7 +461,7 @@ export const ExpenseMapScreen = () => {
 
   // Render legenda untuk heatmap
   const renderHeatmapLegend = () => {
-    if (mapType !== 'heatmap') return null;
+    if (filters.viewMode !== 'heatmap') return null;
 
     return (
       <View style={styles.heatmapLegend}>
@@ -469,6 +489,170 @@ export const ExpenseMapScreen = () => {
           </View>
         </View>
       </View>
+    );
+  };
+
+  // Render superior floating action buttons
+  const renderFloatingActionButtons = () => (
+    <Animated.View
+      style={[
+        styles.fabContainer,
+        {
+          transform: [{ scale: fabAnimation }],
+          bottom: insets.bottom + 20
+        }
+      ]}
+    >
+      {/* Current Location */}
+      <TouchableOpacity
+        style={[styles.fab, styles.fabSecondary]}
+        onPress={handleGetCurrentLocation}
+        activeOpacity={0.8}
+      >
+        <BlurView intensity={80} style={styles.fabBlur}>
+          <Ionicons
+            name="locate"
+            size={isSmallDevice ? 18 : isLargeDevice ? 24 : 20}
+            color={theme.colors.primary[500]}
+          />
+        </BlurView>
+      </TouchableOpacity>
+
+      {/* Map Style Toggle */}
+      <TouchableOpacity
+        style={[styles.fab, styles.fabSecondary]}
+        onPress={toggleMapType}
+        activeOpacity={0.8}
+      >
+        <BlurView intensity={80} style={styles.fabBlur}>
+          <Ionicons
+            name="map-outline"
+            size={isSmallDevice ? 18 : isLargeDevice ? 24 : 20}
+            color={theme.colors.primary[500]}
+          />
+        </BlurView>
+      </TouchableOpacity>
+
+      {/* View Mode Toggle */}
+      <TouchableOpacity
+        style={[styles.fab, styles.fabSecondary]}
+        onPress={toggleViewMode}
+        activeOpacity={0.8}
+      >
+        <BlurView intensity={80} style={styles.fabBlur}>
+          <Ionicons
+            name={filters.viewMode === 'markers' ? "thermometer-outline" : "map-outline"}
+            size={isSmallDevice ? 18 : isLargeDevice ? 24 : 20}
+            color={theme.colors.primary[500]}
+          />
+        </BlurView>
+      </TouchableOpacity>
+
+      {/* Filter Toggle */}
+      <TouchableOpacity
+        style={[styles.fab, styles.fabPrimary]}
+        onPress={toggleFilters}
+        activeOpacity={0.8}
+      >
+        <BlurView intensity={80} style={styles.fabBlur}>
+          <Ionicons
+            name="options-outline"
+            size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+            color={theme.colors.white}
+          />
+        </BlurView>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+
+  // Render superior expense detail card
+  const renderExpenseDetailCard = () => {
+    if (!selectedTransaction || !showDetailCard) return null;
+
+    return (
+      <Animated.View
+        style={[
+          styles.detailCard,
+          {
+            transform: [
+              {
+                translateY: detailCardAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [300, 0],
+                }),
+              },
+            ],
+            bottom: insets.bottom + 20
+          }
+        ]}
+      >
+        <BlurView intensity={95} style={styles.detailCardBlur}>
+          <View style={styles.detailCardHeader}>
+            <View style={styles.detailCardHandle} />
+            <TouchableOpacity
+              style={styles.detailCardClose}
+              onPress={() => {
+                Animated.timing(detailCardAnimation, {
+                  toValue: 0,
+                  duration: 300,
+                  useNativeDriver: true,
+                }).start(() => {
+                  setSelectedTransaction(null);
+                  setShowDetailCard(false);
+                });
+              }}
+            >
+              <Ionicons name="close" size={20} color={theme.colors.neutral[600]} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.detailCardContent}>
+            <View style={styles.expenseHeader}>
+              <View style={[styles.expenseIcon, { backgroundColor: selectedTransaction.color }]}>
+                <Ionicons
+                  name={(selectedTransaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
+                  size={24}
+                  color={theme.colors.white}
+                />
+              </View>
+              <View style={styles.expenseInfo}>
+                <Typography variant="h5" weight="700" color={theme.colors.neutral[900]}>
+                  {formatCurrency(selectedTransaction.amount)}
+                </Typography>
+                <Typography variant="body2" color={theme.colors.neutral[600]}>
+                  {selectedTransaction.category}
+                </Typography>
+              </View>
+            </View>
+
+            {selectedTransaction.description && (
+              <View style={styles.expenseDescription}>
+                <Typography variant="body1" color={theme.colors.neutral[800]}>
+                  {selectedTransaction.description}
+                </Typography>
+              </View>
+            )}
+
+            <View style={styles.expenseDetails}>
+              <View style={styles.detailRow}>
+                <Ionicons name="calendar-outline" size={16} color={theme.colors.neutral[500]} />
+                <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.detailText}>
+                  {formatDate(selectedTransaction.date)}
+                </Typography>
+              </View>
+
+              {selectedTransaction.location.address && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={16} color={theme.colors.neutral[500]} />
+                  <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.detailText}>
+                    {selectedTransaction.location.address}
+                  </Typography>
+                </View>
+              )}
+            </View>
+          </View>
+        </BlurView>
+      </Animated.View>
     );
   };
 
@@ -544,173 +728,48 @@ export const ExpenseMapScreen = () => {
         </View>
       ) : (
         <View style={styles.mapContainer}>
-          <MapView
+          <EnhancedMapView
             ref={mapRef}
             style={styles.map}
-            provider={PROVIDER_GOOGLE}
             initialRegion={{
               latitude: -6.2088,
               longitude: 106.8456,
               latitudeDelta: 0.0922,
               longitudeDelta: 0.0421,
             }}
-            showsUserLocation
-            showsMyLocationButton={false}
+            showsUserLocation={true}
             showsCompass={true}
+            showsScale={true}
+            showsBuildings={true}
             rotateEnabled={true}
             zoomEnabled={true}
             scrollEnabled={true}
             pitchEnabled={true}
+            mapType="standard"
+            customMapStyle="auto"
+            enhancedVisuals={true}
           >
-            {mapType === 'standard' ? renderMarkers() : renderHeatmap()}
-          </MapView>
+            {filters.viewMode === 'markers' ? renderMarkers() : renderHeatmap()}
+          </EnhancedMapView>
 
-          {/* Map controls */}
-          <View style={[
-            styles.mapControls,
-            {
-              top: responsiveSpacing(theme.spacing.layout.sm),
-              right: responsiveSpacing(theme.spacing.layout.sm),
-            }
-          ]}>
-            <TouchableOpacity
-              style={[
-                styles.mapControlButton,
-                {
-                  width: getMapControlButtonSize(),
-                  height: getMapControlButtonSize(),
-                  borderRadius: getMapControlButtonSize() / 2,
-                }
-              ]}
-              onPress={handleGetCurrentLocation}
-            >
-              <Ionicons
-                name="locate"
-                size={isSmallDevice ? 18 : isLargeDevice ? 26 : 22}
-                color={theme.colors.primary[500]}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.mapControlButton,
-                {
-                  width: getMapControlButtonSize(),
-                  height: getMapControlButtonSize(),
-                  borderRadius: getMapControlButtonSize() / 2,
-                }
-              ]}
-              onPress={toggleMapType}
-            >
-              <Ionicons
-                name={mapType === 'standard' ? "thermometer-outline" : "map-outline"}
-                size={isSmallDevice ? 18 : isLargeDevice ? 26 : 22}
-                color={theme.colors.primary[500]}
-              />
-            </TouchableOpacity>
-          </View>
+          {/* Superior Floating Action Buttons */}
+          {renderFloatingActionButtons()}
 
           {/* Heatmap legend */}
           {renderHeatmapLegend()}
         </View>
       )}
 
-      {/* Detail transaksi dengan animasi */}
-      {selectedTransaction && (
-        <Animated.View
-          style={[
-            styles.selectedTransactionContainer,
-            {
-              transform: [
-                {
-                  translateY: cardAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [200, 0]
-                  })
-                }
-              ],
-              opacity: cardAnimation
-            }
-          ]}
-        >
-          <LinearGradient
-            colors={[
-              (selectedTransaction.color || theme.colors.neutral[500]) + '20',
-              (selectedTransaction.color || theme.colors.neutral[500]) + '10'
-            ]}
-            style={styles.transactionCardGradient}
-          >
-            <View style={styles.transactionCardHeader}>
-              <View style={styles.transactionCardTitle}>
-                <View
-                  style={[
-                    styles.transactionCategoryIcon,
-                    { backgroundColor: selectedTransaction.color || theme.colors.neutral[500] }
-                  ]}
-                >
-                  <Ionicons
-                    name={(selectedTransaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
-                    size={24}
-                    color={theme.colors.white}
-                  />
-                </View>
-                <View style={styles.transactionTitleText}>
-                  <Typography variant="h5" weight="600">
-                    {selectedTransaction.category}
-                  </Typography>
-                  {selectedTransaction.description && (
-                    <Typography variant="body2" color={theme.colors.neutral[600]}>
-                      {selectedTransaction.description}
-                    </Typography>
-                  )}
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setSelectedTransaction(null)}
-              >
-                <Ionicons name="close" size={24} color={theme.colors.neutral[500]} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.transactionCardBody} showsVerticalScrollIndicator={false}>
-              <Typography variant="h3" color={theme.colors.danger[500]} style={styles.amount}>
-                - {formatCurrency(selectedTransaction.amount)}
-              </Typography>
-
-              <View style={styles.transactionDetails}>
-                <View style={styles.detailItem}>
-                  <Ionicons name="calendar-outline" size={18} color={theme.colors.neutral[500]} />
-                  <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.detailText}>
-                    {formatDate(selectedTransaction.date, { format: 'long' })}
-                  </Typography>
-                </View>
-
-                {selectedTransaction.location.address && (
-                  <View style={styles.detailItem}>
-                    <Ionicons name="location-outline" size={18} color={theme.colors.neutral[500]} />
-                    <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.detailText}>
-                      {selectedTransaction.location.address}
-                    </Typography>
-                  </View>
-                )}
-              </View>
-
-              {/* Tambahkan padding bawah untuk memastikan konten bisa di-scroll */}
-              <View style={{ paddingBottom: 20 }} />
-            </ScrollView>
-          </LinearGradient>
-        </Animated.View>
-      )}
+      {/* Superior Expense Detail Card */}
+      {renderExpenseDetailCard()}
 
       {/* Tampilkan pesan jika tidak ada transaksi */}
       {!isLoading && filteredTransactions.length === 0 && (
         <View style={styles.emptyStateContainer}>
           <EmptyState
             title="Tidak ada data"
-            description={selectedCategory
-              ? `Tidak ada transaksi untuk kategori ${selectedCategory}`
+            description={filters.selectedCategories.length > 0
+              ? `Tidak ada transaksi untuk kategori yang dipilih`
               : "Tidak ada transaksi dengan data lokasi"
             }
             icon="location-outline"
@@ -1003,6 +1062,116 @@ const styles = StyleSheet.create({
   detailText: {
     marginLeft: theme.spacing.sm,
     flex: 1,
+  },
+
+  // Superior Floating Action Button styles
+  fabContainer: {
+    position: 'absolute',
+    right: 20,
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 12,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.elevation.lg,
+  },
+  fabPrimary: {
+    backgroundColor: theme.colors.primary[500],
+  },
+  fabSecondary: {
+    backgroundColor: theme.colors.white,
+  },
+  fabBlur: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+
+  // Superior Detail Card styles
+  detailCard: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    maxHeight: '60%',
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
+    ...theme.elevation.xl,
+  },
+  detailCardBlur: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  detailCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.neutral[100],
+  },
+  detailCardHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: theme.colors.neutral[300],
+    borderRadius: 2,
+    alignSelf: 'center',
+  },
+  detailCardClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.neutral[100],
+  },
+  detailCardContent: {
+    padding: 20,
+  },
+  expenseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  expenseIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  expenseInfo: {
+    flex: 1,
+  },
+  expenseDescription: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: theme.colors.neutral[50],
+    borderRadius: theme.borderRadius.md,
+  },
+  expenseDetails: {
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  // Enhanced Heatmap Legend styles
+  legendBlur: {
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    overflow: 'hidden',
   },
 
   // Empty state styles

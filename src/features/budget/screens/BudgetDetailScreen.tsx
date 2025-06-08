@@ -412,10 +412,9 @@ export const BudgetDetailScreen = () => {
           <Typography
             variant="h5"
             weight="700"
-            color={theme.colors.neutral[800]}
+            color={theme.colors.primary[500]}
             style={{
-              fontSize: responsiveFontSize(isSmallDevice ? 18 : 20),
-              lineHeight: responsiveFontSize(isSmallDevice ? 24 : 28),
+              fontSize: 20,
               textAlign: 'center',
             }}
           >

@@ -16,15 +16,22 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../../../core/services/store';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { useSuperiorDialog } from '../../../core/hooks';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { supabase } from '../../../config/supabase';
+import { DailyVisitService } from '../../../core/services/dailyVisitService';
 import { formatCardCurrency, needsExplanation, getCurrencyExplanation } from '../../../core/utils';
+import {
+  getLocalTimeInfo,
+  getGreetingType,
+  getConsistentMessageIndex,
+  shouldUpdateGreeting
+} from '../../../core/utils/timeUtils';
 import { Transaction } from '../../../core/services/supabase/types';
 
 export const DashboardScreen = () => {
   const [scrollY] = useState(new Animated.Value(0));
   const [greetingMessage, setGreetingMessage] = useState('');
-  const [visitCount, setVisitCount] = useState(0);
+  const [dailyVisitCount, setDailyVisitCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
@@ -39,8 +46,8 @@ export const DashboardScreen = () => {
   // Refs untuk mencegah infinite re-render dan throttling
   const lastFocusTime = useRef<number>(0);
   const greetingInitialized = useRef<boolean>(false);
-  const currentHour = useRef<number>(new Date().getHours());
-  const selectedGreetingIndex = useRef<number>(0);
+  const lastGreetingUpdate = useRef<number>(0);
+  const currentGreetingType = useRef<string>('');
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
@@ -212,60 +219,59 @@ export const DashboardScreen = () => {
     };
   }, [userDisplayName]);
 
-  // Fungsi untuk mendapatkan greeting message yang stabil
+  // Fungsi untuk mendapatkan greeting message yang konsisten dan akurat
   const getGreetingMessage = useCallback(() => {
-    const hour = new Date().getHours();
+    const timeInfo = getLocalTimeInfo();
+    const { hour, timeKey, timestamp, dateKey } = timeInfo;
 
-    // Hanya update jika jam berubah atau belum diinisialisasi
-    if (!greetingInitialized.current || currentHour.current !== hour) {
-      currentHour.current = hour;
+    // Cek apakah perlu update greeting (setiap 30 menit atau pertama kali)
+    const shouldUpdate = !greetingInitialized.current ||
+                        shouldUpdateGreeting(lastGreetingUpdate.current, timestamp) ||
+                        currentGreetingType.current !== timeKey;
 
-      let timeBasedMessages;
-      if (hour >= 5 && hour < 12) {
-        timeBasedMessages = greetingMessages.morning;
-      } else if (hour >= 12 && hour < 18) {
-        timeBasedMessages = greetingMessages.afternoon;
-      } else {
-        timeBasedMessages = greetingMessages.evening;
-      }
-
-      // Gunakan time-based messages sebagai prioritas utama
-      // Return visit messages hanya untuk kunjungan yang sangat sering (lebih dari 10 kali)
-      const messagesToUse = visitCount > 10 ? greetingMessages.returnVisit : timeBasedMessages;
-
-      // Gunakan user ID untuk konsistensi random index (tidak berubah-ubah)
-      const userIdHash = user?.id ? user.id.charCodeAt(0) + user.id.charCodeAt(user.id.length - 1) : 0;
-      selectedGreetingIndex.current = userIdHash % messagesToUse.length;
-
+    if (shouldUpdate) {
+      // Update refs untuk tracking
+      currentGreetingType.current = timeKey;
+      lastGreetingUpdate.current = timestamp;
       greetingInitialized.current = true;
+
+
     }
 
-    const messagesToUse = visitCount > 10 ? greetingMessages.returnVisit :
-      (currentHour.current >= 5 && currentHour.current < 12) ? greetingMessages.morning :
-      (currentHour.current >= 12 && currentHour.current < 18) ? greetingMessages.afternoon :
-      greetingMessages.evening;
+    // Tentukan tipe greeting berdasarkan daily visit count dan waktu
+    const greetingType = getGreetingType(dailyVisitCount, hour);
 
-    return messagesToUse[selectedGreetingIndex.current];
-  }, [greetingMessages, visitCount, user?.id]);
+    // Pilih messages berdasarkan tipe greeting
+    const messagesToUse = greetingMessages[greetingType];
 
-  // Effect untuk load dan update visit count - hanya sekali saat mount
+    // Gunakan utility function untuk mendapatkan index yang konsisten
+    const messageIndex = getConsistentMessageIndex(user?.id, dateKey, messagesToUse.length);
+
+    return messagesToUse[messageIndex];
+  }, [greetingMessages, dailyVisitCount, user?.id]);
+
+  // Effect untuk load dan update daily visit count - hanya sekali saat mount
   useEffect(() => {
-    const loadVisitCount = async () => {
-      try {
-        const storedCount = await AsyncStorage.getItem('dashboard_visit_count');
-        const currentCount = storedCount ? parseInt(storedCount, 10) : 0;
-        const newCount = currentCount + 1;
+    const loadDailyVisitCount = async () => {
+      if (!user?.id) return;
 
-        setVisitCount(newCount);
-        await AsyncStorage.setItem('dashboard_visit_count', newCount.toString());
+      try {
+        // Load dan update daily visit count
+        const newDailyCount = await DailyVisitService.incrementDailyVisitCount(user.id);
+        setDailyVisitCount(newDailyCount);
+
+        // Cleanup old data setiap 10 kunjungan harian
+        if (newDailyCount % 10 === 0) {
+          await DailyVisitService.cleanupOldVisitData(user.id);
+        }
       } catch (error) {
         // Error handling tanpa console.error untuk menghindari ESLint warning
-        setVisitCount(1);
+        setDailyVisitCount(1);
       }
     };
 
     if (user && !greetingInitialized.current) {
-      loadVisitCount();
+      loadDailyVisitCount();
     }
   }, [user]);
 
@@ -278,29 +284,29 @@ export const DashboardScreen = () => {
 
   // Effect untuk update greeting message ketika userDisplayName berubah
   useEffect(() => {
-    if (userDisplayName && visitCount > 0) {
+    if (userDisplayName && dailyVisitCount > 0) {
       const newMessage = getGreetingMessage();
       setGreetingMessage(newMessage);
-      greetingInitialized.current = true;
     }
-  }, [userDisplayName, visitCount, getGreetingMessage]);
+  }, [userDisplayName, dailyVisitCount, getGreetingMessage]);
 
-  // Effect untuk update greeting message berdasarkan perubahan waktu
+  // Effect untuk update greeting message berdasarkan perubahan waktu (setiap 30 menit)
   useEffect(() => {
-    if (!user || !greetingInitialized.current) return;
+    if (!user || !userDisplayName) return;
 
     const updateGreeting = () => {
       const newMessage = getGreetingMessage();
-      if (newMessage !== greetingMessage) {
-        setGreetingMessage(newMessage);
-      }
+      setGreetingMessage(newMessage);
     };
 
-    // Update greeting setiap jam
-    const interval = setInterval(updateGreeting, 60 * 60 * 1000); // 1 jam
+    // Update greeting pertama kali
+    updateGreeting();
+
+    // Update greeting setiap 30 menit untuk responsivitas yang lebih baik
+    const interval = setInterval(updateGreeting, 30 * 60 * 1000); // 30 menit
 
     return () => clearInterval(interval);
-  }, [user, getGreetingMessage, greetingMessage]);
+  }, [user, userDisplayName, getGreetingMessage]);
 
   // Refresh data ketika halaman difokuskan dengan throttling
   useFocusEffect(

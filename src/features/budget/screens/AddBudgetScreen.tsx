@@ -6,12 +6,13 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Typography, Input, Button, Card, SuperiorDialog } from '../../../core/components';
+import { Typography, Input, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,8 +61,6 @@ export const AddBudgetScreen = () => {
     loadCategories();
   }, [showError]);
 
-
-
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<BudgetFormData>({
     defaultValues: {
       amount: '',
@@ -75,6 +74,25 @@ export const AddBudgetScreen = () => {
   const selectedEndDate = watch('endDate');
   const selectedCategory = watch('category');
   const selectedPeriod = watch('period');
+
+  // Menangani hasil dari CategoryPicker menggunakan navigation state
+  useFocusEffect(
+    React.useCallback(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const state = (navigation as any).getState();
+      const currentRoute = state.routes[state.index];
+
+      // Cek apakah ada parameter selectedCategoryId dari CategoryPicker
+      if (currentRoute.params?.selectedCategoryFromPicker) {
+        const categoryId = currentRoute.params.selectedCategoryFromPicker;
+        setValue('category', categoryId);
+
+        // Bersihkan parameter setelah digunakan
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigation as any).setParams({ selectedCategoryFromPicker: undefined });
+      }
+    }, [navigation, setValue])
+  );
 
   // Fungsi untuk menangani submit form
   const onSubmit = async (data: BudgetFormData) => {
@@ -159,17 +177,11 @@ export const AddBudgetScreen = () => {
     setValue('period', period);
   };
 
-  // Fungsi untuk menangani pemilihan kategori
-  const handleCategorySelect = (categoryId: string, _categoryName: string) => {
-    setValue('category', categoryId);
-  };
-
   // Fungsi untuk membuka category picker screen
   const openCategoryPicker = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('CategoryPicker', {
       selectedCategoryId: selectedCategory,
-      onCategorySelect: handleCategorySelect,
     });
   };
 
@@ -264,14 +276,16 @@ export const AddBudgetScreen = () => {
             >
               <Ionicons name="arrow-back" size={22} color={theme.colors.primary[500]} />
             </TouchableOpacity>
-            <Typography
-              variant="h4"
-              color={theme.colors.primary[700]}
-              weight="600"
-              style={styles.headerTitle}
-            >
-              Tambah Anggaran
-            </Typography>
+            <View style={styles.headerTitleContainer}>
+              <Typography
+                variant="h5"
+                color={theme.colors.primary[500]}
+                weight="700"
+                style={{ fontSize: 20, textAlign: 'center' }}
+              >
+                Tambah Anggaran
+              </Typography>
+            </View>
             <View style={styles.headerRight} />
           </View>
         </LinearGradient>
@@ -448,16 +462,28 @@ export const AddBudgetScreen = () => {
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) }]}>
-          <Button
-            title="Simpan"
-            onPress={handleSubmit(onSubmit)}
-            loading={isSubmitting}
-            fullWidth
-            variant="gradient"
-            size="large"
-            leftIcon={<Ionicons name="save-outline" size={24} color={theme.colors.white} />}
+          <TouchableOpacity
             style={styles.saveButton}
-          />
+            onPress={handleSubmit(onSubmit)}
+            activeOpacity={0.8}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={theme.colors.white} size="small" />
+            ) : (
+              <View style={styles.saveButtonContent}>
+                <Ionicons
+                  name="save"
+                  size={20}
+                  color={theme.colors.white}
+                  style={{ marginRight: 8 }}
+                />
+                <Typography variant="body1" weight="700" color={theme.colors.white}>
+                  SIMPAN
+                </Typography>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Superior Dialog */}
@@ -491,19 +517,25 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.layout.sm,
     paddingBottom: theme.spacing.md,
+    position: 'relative',
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: theme.spacing.xs,
+    position: 'absolute',
+    left: theme.spacing.layout.sm,
+    zIndex: 1,
   },
-  headerTitle: {
-    textAlign: 'center',
-    marginLeft: -40, // Kompensasi untuk tombol kembali
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 60, // Space for buttons on both sides
   },
   headerRight: {
     width: 40,
@@ -594,8 +626,17 @@ const styles = StyleSheet.create({
     ...theme.elevation.lg,
   },
   saveButton: {
+    backgroundColor: '#2196F3',
     height: 56,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
     ...theme.elevation.md,
+  },
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

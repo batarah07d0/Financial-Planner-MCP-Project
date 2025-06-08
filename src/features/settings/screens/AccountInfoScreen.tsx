@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, Card, Input, Button, SuperiorDialog } from '../../../core/components';
+import { Typography, Card, Input, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
 import { useSuperiorDialog } from '../../../core/hooks';
@@ -162,7 +162,7 @@ export const AccountInfoScreen = () => {
           >
             <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
           </TouchableOpacity>
-          <Typography variant="h4" weight="600">Informasi Akun</Typography>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>Informasi Akun</Typography>
           <TouchableOpacity
             style={styles.editButton}
             onPress={toggleEditMode}
@@ -234,17 +234,28 @@ export const AccountInfoScreen = () => {
 
                   {isEditing && (
                     <View style={styles.buttonContainer}>
-                      <Button
-                        title="SIMPAN PERUBAHAN"
-                        variant="primary"
-                        size="large"
-                        fullWidth
-                        loading={isSaving}
-                        onPress={handleSave}
-                        leftIcon={<Ionicons name="save-outline" size={22} color={theme.colors.white} />}
+                      <TouchableOpacity
                         style={styles.saveButton}
-                        textStyle={styles.saveButtonText}
-                      />
+                        onPress={handleSave}
+                        activeOpacity={0.8}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <ActivityIndicator color={theme.colors.white} size="small" />
+                        ) : (
+                          <View style={styles.saveButtonContent}>
+                            <Ionicons
+                              name="save"
+                              size={20}
+                              color={theme.colors.white}
+                              style={{ marginRight: 8 }}
+                            />
+                            <Typography variant="body1" weight="700" color={theme.colors.white}>
+                              SIMPAN PERUBAHAN
+                            </Typography>
+                          </View>
+                        )}
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -279,7 +290,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.layout.sm,
@@ -287,18 +298,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
     ...theme.elevation.sm,
+    position: 'relative',
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'absolute',
+    left: theme.spacing.layout.sm,
+    zIndex: 1,
   },
   editButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'absolute',
+    right: theme.spacing.layout.sm,
+    zIndex: 1,
   },
   scrollContent: {
     paddingHorizontal: theme.spacing.layout.sm,
@@ -357,15 +375,17 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.neutral[200],
   },
   saveButton: {
-    backgroundColor: theme.colors.primary[500],
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#2196F3',
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
     ...theme.elevation.md,
   },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    color: theme.colors.white,
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

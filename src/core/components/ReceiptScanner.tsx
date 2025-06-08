@@ -9,6 +9,7 @@ import {
   Alert,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from './Typography';
 import { Button } from './Button';
 import { Card } from './Card';
@@ -47,6 +48,9 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     isSmallDevice,
     isLargeDevice
   } = useAppDimensions();
+
+  // Safe area insets untuk handling navigation bar
+  const insets = useSafeAreaInsets();
 
   const {
     takePicture,
@@ -192,6 +196,14 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               </View>
             </LinearGradient>
 
+            <ScrollView
+              contentContainerStyle={[
+                styles.captureScrollContent,
+                { paddingBottom: Math.max(insets.bottom + 20, 60) }
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
+
             <View style={styles.illustrationContainer}>
               <Ionicons name="receipt-outline" size={120} color={theme.colors.primary[300]} style={styles.receiptIcon} />
               <View style={styles.scanLineContainer}>
@@ -281,11 +293,12 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               </TouchableOpacity>
             </View>
 
-            {cameraError && (
-              <Typography variant="body2" color={theme.colors.danger[500]} align="center" style={styles.error}>
-                {cameraError}
-              </Typography>
-            )}
+              {cameraError && (
+                <Typography variant="body2" color={theme.colors.danger[500]} align="center" style={styles.error}>
+                  {cameraError}
+                </Typography>
+              )}
+            </ScrollView>
           </View>
         );
 
@@ -332,48 +345,56 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               </View>
             </LinearGradient>
 
-            <View style={styles.previewImageContainer}>
-              {capturedImage && (
-                <Image
-                  source={{ uri: capturedImage.uri }}
-                  style={styles.previewImage}
-                  resizeMode="contain"
+            <ScrollView
+              contentContainerStyle={[
+                styles.previewScrollContent,
+                { paddingBottom: Math.max(insets.bottom + 20, 60) }
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.previewImageContainer}>
+                {capturedImage && (
+                  <Image
+                    source={{ uri: capturedImage.uri }}
+                    style={styles.previewImage}
+                    resizeMode="contain"
+                  />
+                )}
+
+                <View style={styles.previewOverlay}>
+                  <View style={styles.previewCorner} />
+                  <View style={styles.previewCorner} />
+                  <View style={styles.previewCorner} />
+                  <View style={styles.previewCorner} />
+                </View>
+              </View>
+
+              <Card style={styles.infoCard}>
+                <View style={styles.infoCardContent}>
+                  <Ionicons name="checkmark-circle-outline" size={24} color={theme.colors.secondary[500]} />
+                  <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.infoText}>
+                    Pastikan struk terlihat jelas, tidak terpotong, dan semua teks dapat terbaca dengan baik.
+                  </Typography>
+                </View>
+              </Card>
+
+              <View style={styles.previewButtonContainer}>
+                <Button
+                  title="Proses Struk"
+                  variant="gradient"
+                  leftIcon={<Ionicons name="scan-outline" size={20} color={theme.colors.white} />}
+                  onPress={handleProcessImage}
+                  style={styles.processButton}
                 />
-              )}
-
-              <View style={styles.previewOverlay}>
-                <View style={styles.previewCorner} />
-                <View style={styles.previewCorner} />
-                <View style={styles.previewCorner} />
-                <View style={styles.previewCorner} />
+                <Button
+                  title="Ambil Ulang"
+                  variant="outline"
+                  leftIcon={<Ionicons name="camera-outline" size={20} color={theme.colors.primary[500]} />}
+                  onPress={handleRetake}
+                  style={styles.retakeButton}
+                />
               </View>
-            </View>
-
-            <Card style={styles.infoCard}>
-              <View style={styles.infoCardContent}>
-                <Ionicons name="checkmark-circle-outline" size={24} color={theme.colors.secondary[500]} />
-                <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.infoText}>
-                  Pastikan struk terlihat jelas, tidak terpotong, dan semua teks dapat terbaca dengan baik.
-                </Typography>
-              </View>
-            </Card>
-
-            <View style={styles.previewButtonContainer}>
-              <Button
-                title="Proses Struk"
-                variant="gradient"
-                leftIcon={<Ionicons name="scan-outline" size={20} color={theme.colors.white} />}
-                onPress={handleProcessImage}
-                style={styles.processButton}
-              />
-              <Button
-                title="Ambil Ulang"
-                variant="outline"
-                leftIcon={<Ionicons name="camera-outline" size={20} color={theme.colors.primary[500]} />}
-                onPress={handleRetake}
-                style={styles.retakeButton}
-              />
-            </View>
+            </ScrollView>
           </View>
         );
 
@@ -569,7 +590,10 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
             </LinearGradient>
 
             <ScrollView
-              contentContainerStyle={styles.resultContainer}
+              contentContainerStyle={[
+                styles.resultContainer,
+                { paddingBottom: Math.max(insets.bottom + 20, 60) } // Pastikan ada space untuk navigation bar
+              ]}
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.resultSuccessContainer}>
@@ -791,6 +815,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.white,
   },
+  captureScrollContent: {
+    flexGrow: 1,
+    padding: 20,
+  },
   illustrationContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -870,6 +898,10 @@ const styles = StyleSheet.create({
   previewContainer: {
     flex: 1,
     backgroundColor: theme.colors.white,
+  },
+  previewScrollContent: {
+    flexGrow: 1,
+    padding: 20,
   },
   previewImageContainer: {
     margin: 20,
@@ -1021,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   resultContainer: {
     padding: 20,
-    paddingBottom: 40,
+    // paddingBottom akan ditangani secara dinamis dengan safe area
   },
   resultSuccessContainer: {
     alignItems: 'center',

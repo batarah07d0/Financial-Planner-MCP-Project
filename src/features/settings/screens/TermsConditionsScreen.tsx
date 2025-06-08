@@ -99,7 +99,7 @@ export const TermsConditionsScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600">Syarat & Ketentuan</Typography>
+        <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>Syarat & Ketentuan</Typography>
         <View style={styles.headerRight} />
       </View>
 

@@ -270,16 +270,16 @@ export const TransactionDetailScreen = () => {
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <View style={styles.backButtonContainer}>
-              <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[700]} />
+              <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
             </View>
           </TouchableOpacity>
 
           <View style={styles.titleContainer}>
             <Typography
-              variant="h4"
+              variant="h5"
               weight="700"
-              color={theme.colors.neutral[800]}
-              style={styles.headerTitle}
+              color={theme.colors.primary[500]}
+              style={{ fontSize: 20, textAlign: 'center' }}
             >
               Detail Transaksi
             </Typography>

@@ -267,10 +267,9 @@ export const EditBudgetScreen = () => {
           <Typography
             variant="h5"
             weight="700"
-            color={theme.colors.neutral[800]}
+            color={theme.colors.primary[500]}
             style={{
-              fontSize: responsiveFontSize(isSmallDevice ? 18 : 20),
-              lineHeight: responsiveFontSize(isSmallDevice ? 24 : 28),
+              fontSize: 20,
               textAlign: 'center',
             }}
           >
@@ -589,60 +588,26 @@ export const EditBudgetScreen = () => {
 
         {/* Submit Button */}
         <TouchableOpacity
-          style={[
-            styles.submitButton,
-            {
-              backgroundColor: isSubmitting
-                ? theme.colors.neutral[300]
-                : theme.colors.primary[500],
-              borderRadius: theme.borderRadius.lg,
-              paddingVertical: responsiveSpacing(isSmallDevice ? theme.spacing.md : theme.spacing.lg),
-              marginBottom: responsiveSpacing(theme.spacing.xl),
-            },
-          ]}
+          style={styles.saveButton}
           onPress={handleSubmit}
+          activeOpacity={0.8}
           disabled={isSubmitting}
         >
-          <LinearGradient
-            colors={
-              isSubmitting
-                ? [theme.colors.neutral[300], theme.colors.neutral[400]]
-                : [theme.colors.primary[500], theme.colors.primary[600]]
-            }
-            style={[styles.submitGradient, {
-              borderRadius: theme.borderRadius.lg,
-              paddingVertical: responsiveSpacing(isSmallDevice ? theme.spacing.md : theme.spacing.lg),
-            }]}
-          >
-            {isSubmitting ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="white" />
-                <Typography
-                  variant="body1"
-                  weight="600"
-                  color="white"
-                  style={{
-                    fontSize: responsiveFontSize(isSmallDevice ? 15 : 17),
-                    marginLeft: responsiveSpacing(theme.spacing.sm),
-                  }}
-                >
-                  Menyimpan...
-                </Typography>
-              </View>
-            ) : (
-              <Typography
-                variant="body1"
-                weight="700"
-                color="white"
-                style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 15 : 17),
-                  textAlign: 'center',
-                }}
-              >
-                Simpan Perubahan
+          {isSubmitting ? (
+            <ActivityIndicator color={theme.colors.white} size="small" />
+          ) : (
+            <View style={styles.saveButtonContent}>
+              <Ionicons
+                name="save"
+                size={20}
+                color={theme.colors.white}
+                style={{ marginRight: 8 }}
+              />
+              <Typography variant="body1" weight="700" color={theme.colors.white}>
+                SIMPAN PERUBAHAN
               </Typography>
-            )}
-          </LinearGradient>
+            </View>
+          )}
         </TouchableOpacity>
       </ScrollView>
 
@@ -774,20 +739,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  submitButton: {
-    overflow: 'hidden',
-    ...theme.elevation.md,
-    shadowColor: theme.colors.primary[600],
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  submitGradient: {
+  saveButton: {
+    backgroundColor: '#2196F3',
+    height: 56,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    marginBottom: theme.spacing.xl,
+    ...theme.elevation.md,
+  },
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

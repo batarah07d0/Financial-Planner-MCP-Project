@@ -437,13 +437,7 @@ export const ChallengesScreen = () => {
           </Animated.View>
 
           <View style={styles.titleContainer}>
-            <Ionicons
-              name="trophy"
-              size={24}
-              color={theme.colors.primary[500]}
-              style={styles.headerIcon}
-            />
-            <Typography variant="h4" style={styles.headerTitle}>Tantangan</Typography>
+            <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>Tantangan</Typography>
           </View>
 
           {/* Tombol tambah di header dihapus */}
@@ -574,11 +568,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  headerIcon: {
-    marginRight: theme.spacing.sm,
-  },
   headerTitle: {
-    color: theme.colors.neutral[800],
+    textAlign: 'center',
+    fontSize: 20,
+    lineHeight: 24,
   },
   // Style untuk tombol tambah di header telah dihapus karena tidak digunakan lagi
   filterContainer: {

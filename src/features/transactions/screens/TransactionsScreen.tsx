@@ -217,21 +217,7 @@ export const TransactionsScreen = () => {
   const handleScanBarcode = () => {
     // Navigasi ke halaman pemindai barcode
     navigateTo(navigation, 'BarcodeScanner', {
-      onScanComplete: (data: {
-        productName: string;
-        amount: number;
-        category: string;
-        barcode: string;
-      }) => {
-        // Navigasi ke halaman tambah transaksi dengan data dari pemindaian
-        navigateTo(navigation, 'AddTransaction', {
-          scannedData: {
-            description: data.productName,
-            amount: data.amount,
-            // Catatan: category tidak ada dalam tipe scannedData, jadi kita tidak menyertakannya
-          },
-        });
-      },
+      returnTo: 'Transactions',
     });
 
     // Navigation handled by navigateTo function
@@ -396,7 +382,7 @@ export const TransactionsScreen = () => {
       <View style={styles.headerContainer}>
         {/* Header Title and Add Button */}
         <View style={styles.header}>
-          <Typography variant="h4" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>
             Transaksi
           </Typography>
         </View>
@@ -571,13 +557,14 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.layout.sm,
     marginBottom: theme.spacing.md,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 20,
+    textAlign: 'center',
   },
 
   headerActions: {

@@ -43,7 +43,7 @@ export const ReceiptScannerScreen = () => {
   };
   
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ReceiptScanner
         onScanComplete={handleScanComplete}
         onCancel={handleCancel}

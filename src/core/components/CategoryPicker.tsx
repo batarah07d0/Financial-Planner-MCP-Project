@@ -155,7 +155,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
 
             <View style={styles.headerTitleContainer}>
               <Typography
-                variant="h3"
+                variant="h5"
                 color={theme.colors.white}
                 weight="600"
               >
@@ -164,7 +164,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
               <Typography
                 variant="body2"
                 color={theme.colors.white}
-                style={{ opacity: 0.9 }}
+                style={{ opacity: 0.9, textAlign: 'center' }}
               >
                 {transactionType === 'expense' ? 'Kategori Pengeluaran' : 'Kategori Pemasukan'}
               </Typography>
@@ -429,14 +429,14 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   headerGradient: {
-    paddingTop: 0,
+    paddingTop: theme.spacing.sm, // Tambah padding top agar tidak terlalu dekat dengan status bar
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg, // Perbesar padding vertical
+    position: 'relative',
   },
   closeButton: {
     width: 40,
@@ -445,11 +445,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    left: theme.spacing.lg,
+    zIndex: 1,
   },
   headerTitleContainer: {
     flex: 1,
     alignItems: 'center',
-    marginHorizontal: theme.spacing.md,
+    justifyContent: 'center',
+    paddingHorizontal: 60, // Space for buttons on both sides
   },
   searchButton: {
     width: 40,
@@ -458,13 +462,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    right: theme.spacing.lg,
+    zIndex: 1,
   },
 
   // Search Styles
   searchContainer: {
     backgroundColor: theme.colors.white,
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg, // Perbesar padding vertical
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
     ...theme.elevation.xs,
@@ -475,7 +482,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.neutral[100],
     borderRadius: theme.borderRadius.xl,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md, // Perbesar padding untuk field yang lebih besar
+    marginHorizontal: 0, // Pastikan sejajar dengan card di bawah
   },
   searchIcon: {
     marginRight: theme.spacing.sm,
@@ -498,7 +506,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoriesContent: {
-    padding: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg, // Sejajar dengan search container
+    paddingVertical: theme.spacing.lg,
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -506,7 +515,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   categoryCard: {
-    width: (width - theme.spacing.lg * 3) / 2,
+    width: (width - theme.spacing.lg * 3) / 2, // Sejajar dengan search field
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.lg,
@@ -601,7 +610,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
     marginHorizontal: theme.spacing.xs,
-    minHeight: 50,
+    height: 50, // Fixed height instead of minHeight
   },
   cancelButton: {
     backgroundColor: theme.colors.neutral[100],
@@ -619,7 +628,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
-    minHeight: 50,
+    height: 50, // Fixed height instead of minHeight
   },
   disabledButton: {
     opacity: 0.6,

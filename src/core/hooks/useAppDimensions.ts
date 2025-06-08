@@ -1,5 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 
 // Breakpoints untuk responsive design
 const BREAKPOINTS = {
@@ -28,18 +28,18 @@ export const useAppDimensions = () => {
   }, [width, height]);
   
   // Menghitung ukuran font yang responsif
-  const responsiveFontSize = (size: number) => {
+  const responsiveFontSize = useCallback((size: number) => {
     const baseWidth = 375; // Base width (iPhone X)
     const scaleFactor = Math.min(width / baseWidth, 1.2); // Limit scaling
     return size * scaleFactor;
-  };
-  
+  }, [width]);
+
   // Menghitung ukuran spacing yang responsif
-  const responsiveSpacing = (size: number) => {
+  const responsiveSpacing = useCallback((size: number) => {
     const baseWidth = 375; // Base width (iPhone X)
     const scaleFactor = Math.min(width / baseWidth, 1.3); // Limit scaling
     return size * scaleFactor;
-  };
+  }, [width]);
   
   return {
     width,

@@ -584,13 +584,13 @@ export const BudgetScreen = () => {
             paddingBottom: responsiveSpacing(6),
           }]}>
             <Typography
-              variant="h4"
+              variant="h5"
+              weight="700"
+              color={theme.colors.primary[500]}
               style={{
-                fontSize: responsiveFontSize(isSmallDevice ? 22 : 26),
-                color: theme.colors.primary[500],
-                fontWeight: '700',
-                letterSpacing: -0.5,
-                lineHeight: responsiveSpacing(isSmallDevice ? 28 : 32),
+                fontSize: 20,
+                textAlign: 'center',
+                lineHeight: 24,
               }}
             >
               Anggaran
@@ -761,13 +761,14 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     // Responsive values will be applied inline
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     // Responsive values will be applied inline
   },
   featureButtonsContainer: {

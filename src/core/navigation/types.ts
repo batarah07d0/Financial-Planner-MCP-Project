@@ -54,26 +54,28 @@ export type RootStackParamList = {
       description?: string;
       receiptImageUri?: string;
     };
+    barcodeData?: {
+      productName: string;
+      amount: number;
+      category: string;
+      barcode: string;
+    };
   };
   EditTransaction: { id: string };
   TransactionDetail: { id: string };
-  AddBudget: undefined;
+  AddBudget: {
+    selectedCategoryFromPicker?: string;
+  };
   EditBudget: { id: string };
   BudgetDetail: { id: string };
   CategoryPicker: {
     selectedCategoryId?: string;
-    onCategorySelect: (categoryId: string, categoryName: string) => void;
   };
   AddProduct: {
     barcode?: string;
   };
   BarcodeScanner: {
-    onScanComplete?: (data: {
-      productName: string;
-      amount: number;
-      category: string;
-      barcode: string;
-    }) => void;
+    returnTo?: 'Transactions' | 'BarcodeScanHistory';
   };
   BarcodeScanHistory: undefined;
   ReceiptScanner: undefined;

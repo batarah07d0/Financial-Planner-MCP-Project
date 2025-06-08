@@ -17,7 +17,7 @@ type BarcodeScannerScreenRouteProp = RouteProp<RootStackParamList, 'BarcodeScann
 export const BarcodeScannerScreen = () => {
   const navigation = useNavigation<BarcodeScannerScreenNavigationProp>();
   const route = useRoute<BarcodeScannerScreenRouteProp>();
-  const { onScanComplete } = route.params || {};
+  const { returnTo } = route.params || {};
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
@@ -27,7 +27,7 @@ export const BarcodeScannerScreen = () => {
   } = useAppDimensions();
 
   // State untuk menyimpan hasil pemindaian (tidak digunakan langsung di UI)
-  const setScanResult = useState<BarcodeScanResult | null>(null)[1];
+  const [, setScanResult] = useState<BarcodeScanResult | null>(null);
   const [searchResult, setSearchResult] = useState<BarcodeSearchResult | null>(null);
   const [isResultModalVisible, setIsResultModalVisible] = useState(false);
 
@@ -130,8 +130,8 @@ export const BarcodeScannerScreen = () => {
         }
       }
 
-      // Siapkan data untuk callback
-      const callbackData = {
+      // Siapkan data untuk navigasi
+      const barcodeData = {
         productName: data.productName,
         amount: data.price,
         category: data.category,
@@ -140,13 +140,16 @@ export const BarcodeScannerScreen = () => {
 
       // Gunakan setTimeout untuk memastikan UI telah diperbarui sebelum navigasi
       setTimeout(() => {
-        // Panggil callback jika ada
-        if (onScanComplete) {
-          onScanComplete(callbackData);
+        // Navigasi berdasarkan returnTo parameter atau default ke AddTransaction
+        if (returnTo === 'BarcodeScanHistory') {
+          // Kembali ke BarcodeScanHistory
+          navigation.goBack();
+        } else {
+          // Default: navigasi ke AddTransaction dengan data barcode
+          navigation.navigate('AddTransaction', {
+            barcodeData,
+          });
         }
-
-        // Kembali ke layar sebelumnya
-        navigation.goBack();
       }, 300);
     } catch (error) {
       // Error adding to transaction - silently handled

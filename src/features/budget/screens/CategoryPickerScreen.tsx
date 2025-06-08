@@ -17,19 +17,10 @@ import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { getCategories } from '../../../core/services/supabase/category.service';
 import { Category } from '../../../core/services/supabase/types';
 
-interface CategoryPickerScreenProps {
-  route: {
-    params: {
-      selectedCategoryId?: string;
-      onCategorySelect: (categoryId: string, categoryName: string) => void;
-    };
-  };
-}
-
 export const CategoryPickerScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { selectedCategoryId, onCategorySelect } = route.params as CategoryPickerScreenProps['route']['params'];
+  const { selectedCategoryId } = route.params as { selectedCategoryId?: string };
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
@@ -79,8 +70,13 @@ export const CategoryPickerScreen = () => {
   }, [searchQuery, categories]);
 
   const handleCategorySelect = (category: Category) => {
-    onCategorySelect(category.id, category.name);
-    navigation.goBack();
+    // Kirim hasil kembali ke screen sebelumnya menggunakan navigation params
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigation as any).navigate({
+      name: 'AddBudget',
+      params: { selectedCategoryFromPicker: category.id },
+      merge: true,
+    });
   };
 
   const handleCancel = () => {
@@ -163,7 +159,10 @@ export const CategoryPickerScreen = () => {
           minHeight: responsiveSpacing(isSmallDevice ? 100 : 110),
         }]}
       >
-        <View style={styles.headerTop}>
+        <View style={[styles.headerTop, {
+          paddingTop: responsiveSpacing(theme.spacing.md), // Tambah jarak dari status bar
+          paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+        }]}>
           <TouchableOpacity
             style={[styles.closeButton, {
               width: responsiveSpacing(isSmallDevice ? 32 : 36),
@@ -179,7 +178,7 @@ export const CategoryPickerScreen = () => {
               color={theme.colors.white}
             />
           </TouchableOpacity>
-          
+
           <Typography
             variant="h5"
             weight="700"
@@ -188,11 +187,12 @@ export const CategoryPickerScreen = () => {
               fontSize: responsiveFontSize(isSmallDevice ? 18 : 20),
               textAlign: 'center',
               flex: 1,
+              marginHorizontal: responsiveSpacing(theme.spacing.sm), // Jarak dari tombol
             }}
           >
             Pilih Kategori Pengeluaran
           </Typography>
-          
+
           <TouchableOpacity
             style={[styles.searchButton, {
               width: responsiveSpacing(isSmallDevice ? 32 : 36),
@@ -208,7 +208,7 @@ export const CategoryPickerScreen = () => {
             />
           </TouchableOpacity>
         </View>
-        
+
         <Typography
           variant="body2"
           color={theme.colors.white}
@@ -216,7 +216,8 @@ export const CategoryPickerScreen = () => {
             fontSize: responsiveFontSize(isSmallDevice ? 13 : 15),
             textAlign: 'center',
             opacity: 0.9,
-            marginTop: responsiveSpacing(4),
+            marginTop: responsiveSpacing(theme.spacing.sm), // Tambah jarak
+            paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
           }}
         >
           Kategori Pengeluaran
@@ -225,7 +226,7 @@ export const CategoryPickerScreen = () => {
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, {
-        marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+        marginHorizontal: responsiveSpacing(theme.spacing.sm), // Sejajar dengan card
         marginVertical: responsiveSpacing(theme.spacing.md),
       }]}>
         <View style={[styles.searchInputContainer, {

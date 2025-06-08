@@ -100,7 +100,7 @@ export const PrivacyPolicyScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600">Kebijakan Privasi</Typography>
+        <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>Kebijakan Privasi</Typography>
         <View style={styles.headerRight} />
       </View>
 

@@ -350,7 +350,7 @@ export const SecuritySettingsScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600">Pengaturan Keamanan</Typography>
+        <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>Pengaturan Keamanan</Typography>
         <View style={styles.headerRight} />
       </View>
 
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.layout.sm,
@@ -382,12 +382,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
     ...theme.elevation.sm,
+    position: 'relative',
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'absolute',
+    left: theme.spacing.layout.sm,
+    zIndex: 1,
   },
   headerRight: {
     width: 40,

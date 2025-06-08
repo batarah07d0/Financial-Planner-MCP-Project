@@ -461,7 +461,7 @@ const AddChallengeScreenComponent = () => {
             <Ionicons name="chevron-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
 
-          <Typography variant="h5" style={styles.headerTitle}>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>
             Tambah Tantangan
           </Typography>
 
@@ -756,16 +756,28 @@ const AddChallengeScreenComponent = () => {
 
             {/* Tombol Simpan */}
             <View style={styles.saveButtonContainer}>
-              <Button
-                title="Simpan"
-                variant="primary"
-                loading={isLoading}
+              <TouchableOpacity
+                style={styles.saveButton}
                 onPress={handleSave}
-                style={styles.saveButtonLarge}
-                textStyle={styles.saveButtonText}
-                leftIcon={<MaterialCommunityIcons name="piggy-bank" size={22} color={theme.colors.white} />}
-                fullWidth
-              />
+                activeOpacity={0.8}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={theme.colors.white} size="small" />
+                ) : (
+                  <View style={styles.saveButtonContent}>
+                    <Ionicons
+                      name="save"
+                      size={20}
+                      color={theme.colors.white}
+                      style={{ marginRight: 8 }}
+                    />
+                    <Typography variant="body1" weight="700" color={theme.colors.white}>
+                      SIMPAN
+                    </Typography>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </ScrollView>
@@ -1161,16 +1173,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0, // Menghapus padding horizontal agar sejajar dengan card-card
     marginHorizontal: theme.spacing.layout.sm, // Menggunakan margin yang sama dengan scrollViewContent
   },
-  saveButtonLarge: {
-    paddingVertical: theme.spacing.sm,
-    height: 48, // Ukuran standar tombol untuk mobile (48dp)
-    backgroundColor: theme.colors.success[500],
-    borderColor: theme.colors.success[600],
+  saveButton: {
+    backgroundColor: '#2196F3',
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
     ...theme.elevation.md,
   },
-  saveButtonText: {
-    fontSize: 16, // Ukuran font standar untuk tombol
-    fontWeight: '600',
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

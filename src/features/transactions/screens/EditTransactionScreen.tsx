@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import * as Haptics from 'expo-haptics';
 
-import { Typography, Button, TextInput, SuperiorDialog } from '../../../core/components';
+import { Typography, TextInput, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
 import { Category } from '../../../core/services/supabase/types';
@@ -244,22 +244,22 @@ export const EditTransactionScreen = () => {
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
         
-        <Typography variant="h6" weight="600" color={theme.colors.neutral[800]}>
+        <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>
           Edit Transaksi
         </Typography>
         
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
-          paddingBottom: responsiveSpacing(theme.spacing.layout.lg)
+          paddingBottom: responsiveSpacing(120) // Memberikan ruang yang cukup untuk tombol simpan
         }}
       >
         {/* Amount Card */}
@@ -502,18 +502,29 @@ export const EditTransactionScreen = () => {
       </ScrollView>
 
       {/* Submit Button */}
-      <View style={{
-        ...styles.submitContainer,
-        paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
-        paddingBottom: responsiveSpacing(theme.spacing.lg)
-      }}>
-        <Button
-          title="Simpan Perubahan"
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.saveButton}
           onPress={handleSubmit(onSubmit)}
-          loading={isSubmitting}
+          activeOpacity={0.8}
           disabled={isSubmitting}
-          style={styles.submitButton}
-        />
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color={theme.colors.white} size="small" />
+          ) : (
+            <View style={styles.saveButtonContent}>
+              <Ionicons
+                name="save"
+                size={20}
+                color={theme.colors.white}
+                style={{ marginRight: 8 }}
+              />
+              <Typography variant="body1" weight="700" color={theme.colors.white}>
+                SIMPAN PERUBAHAN
+              </Typography>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <SuperiorDialog
@@ -564,13 +575,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    position: 'relative',
   },
   backButton: {
     padding: theme.spacing.xs,
+    position: 'absolute',
+    left: 0,
+    zIndex: 1,
   },
   content: {
     flex: 1,
@@ -607,14 +622,32 @@ const styles = StyleSheet.create({
   typeText: {
     marginLeft: theme.spacing.sm,
   },
-  submitContainer: {
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: theme.colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: theme.colors.neutral[200],
-    paddingTop: theme.spacing.md,
+    ...theme.elevation.lg,
   },
-  submitButton: {
+  saveButton: {
+    backgroundColor: '#2196F3',
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     width: '100%',
+    ...theme.elevation.md,
+  },
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryGrid: {
     flexDirection: 'row',
