@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
@@ -259,7 +258,7 @@ export const EditBudgetScreen = () => {
           <Ionicons
             name="arrow-back"
             size={responsiveSpacing(isSmallDevice ? 20 : 24)}
-            color={theme.colors.neutral[700]}
+            color={theme.colors.primary[500]}
           />
         </TouchableOpacity>
 
@@ -269,8 +268,9 @@ export const EditBudgetScreen = () => {
             weight="700"
             color={theme.colors.primary[500]}
             style={{
-              fontSize: 20,
+              fontSize: 18,
               textAlign: 'center',
+              lineHeight: 22,
             }}
           >
             Edit Anggaran
@@ -417,7 +417,17 @@ export const EditBudgetScreen = () => {
           </View>
 
           <View style={styles.categoryGrid}>
-            {categories.map((category) => (
+            {categories
+              .sort((a, b) => {
+                // Urutkan kategori: "Lainnya" atau "Other" di paling bawah
+                const aIsOther = a.name.toLowerCase().includes('lain') || a.name.toLowerCase().includes('other');
+                const bIsOther = b.name.toLowerCase().includes('lain') || b.name.toLowerCase().includes('other');
+
+                if (aIsOther && !bIsOther) return 1;
+                if (!aIsOther && bIsOther) return -1;
+                return a.name.localeCompare(b.name);
+              })
+              .map((category) => (
               <TouchableOpacity
                 key={category.id}
                 style={[
@@ -663,6 +673,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    minHeight: 64, // Tambahkan minimum height
     ...theme.elevation.xs,
   },
   backButton: {

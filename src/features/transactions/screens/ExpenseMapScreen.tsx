@@ -13,21 +13,17 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
-// Import Beautiful Map Components
-import MapView, { Circle } from 'react-native-maps';
-import { EnhancedMapView } from '../../../core/components/EnhancedMapView';
-import { EnhancedMarker } from '../../../core/components/EnhancedMarker';
-import { Typography, EmptyState } from '../../../core/components';
+import { Typography, EmptyState, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
-import { useLocation } from '../../../core/hooks';
+import { useSuperiorDialog } from '../../../core/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { useAuthStore } from '../../../core/services/store';
 
-// Enhanced interfaces for superior map visualization
+// Enhanced interfaces for superior dashboard visualization
 interface TransactionWithLocation {
   id: string;
   amount: number;
@@ -45,7 +41,7 @@ interface TransactionWithLocation {
   color?: string;
 }
 
-interface MapFilters {
+interface DashboardFilters {
   dateRange: {
     start: Date | null;
     end: Date | null;
@@ -55,9 +51,29 @@ interface MapFilters {
     max: number;
   };
   selectedCategories: string[];
-  mapStyle: 'standard' | 'satellite' | 'hybrid' | 'dark';
-  viewMode: 'markers' | 'heatmap' | 'clusters';
+  viewMode: 'overview' | 'locations' | 'categories' | 'trends';
+  groupBy: 'area' | 'exact_location' | 'category';
 }
+
+// Chart data interfaces
+interface LocationSpendingData {
+  location: string;
+  amount: number;
+  count: number;
+  color: string;
+  coordinates?: { latitude: number; longitude: number };
+}
+
+interface CategoryLocationData {
+  category: string;
+  categoryId: string;
+  locations: { location: string; amount: number; color: string }[];
+  totalAmount: number;
+  icon: string;
+  color: string;
+}
+
+
 
 
 
@@ -66,7 +82,6 @@ const ANIMATION_DURATION = 300;
 
 export const ExpenseMapScreen = () => {
   const navigation = useNavigation();
-  const mapRef = useRef<MapView>(null);
   const insets = useSafeAreaInsets();
 
   // Core data state
@@ -79,13 +94,17 @@ export const ExpenseMapScreen = () => {
   const [showDetailCard, setShowDetailCard] = useState(false);
 
   // Filter state
-  const [filters, setFilters] = useState<MapFilters>({
+  const [filters, setFilters] = useState<DashboardFilters>({
     dateRange: { start: null, end: null },
     amountRange: { min: 0, max: 10000000 },
     selectedCategories: [],
-    mapStyle: 'standard',
-    viewMode: 'markers'
+    viewMode: 'overview',
+    groupBy: 'area'
   });
+
+  // Chart data state
+  const [locationSpendingData, setLocationSpendingData] = useState<LocationSpendingData[]>([]);
+  const [categoryLocationData, setCategoryLocationData] = useState<CategoryLocationData[]>([]);
 
   // Animation refs
   const headerAnimation = useRef(new Animated.Value(0)).current;
@@ -99,17 +118,85 @@ export const ExpenseMapScreen = () => {
     isLargeDevice
   } = useAppDimensions();
 
-
-
-  const { getCurrentLocation } = useLocation();
   const { user } = useAuthStore();
+  const { dialogState, showDialog, hideDialog } = useSuperiorDialog();
 
 
 
 
 
-  // Fungsi untuk memuat kategori dari Supabase (tidak digunakan lagi)
-  // Kategori sekarang diambil langsung dari relasi transaksi
+  // Fungsi untuk memproses data menjadi format chart
+  const processChartData = useCallback((transactionsData: TransactionWithLocation[]) => {
+    // 1. Process Location Spending Data
+    const locationMap = new Map<string, { amount: number; count: number; color: string; coordinates?: { latitude: number; longitude: number } }>();
+
+    transactionsData.forEach(transaction => {
+      const locationKey = transaction.location.address || `${transaction.location.latitude.toFixed(4)}, ${transaction.location.longitude.toFixed(4)}`;
+      const existing = locationMap.get(locationKey);
+
+      if (existing) {
+        existing.amount += transaction.amount;
+        existing.count += 1;
+      } else {
+        locationMap.set(locationKey, {
+          amount: transaction.amount,
+          count: 1,
+          color: transaction.color || theme.colors.primary[500],
+          coordinates: transaction.location
+        });
+      }
+    });
+
+    const locationData: LocationSpendingData[] = Array.from(locationMap.entries()).map(([location, data]) => ({
+      location,
+      amount: data.amount,
+      count: data.count,
+      color: data.color,
+      coordinates: data.coordinates
+    })).sort((a, b) => b.amount - a.amount);
+
+    // 2. Process Category Location Data
+    const categoryMap = new Map<string, { locations: Map<string, number>; totalAmount: number; icon: string; color: string }>();
+
+    transactionsData.forEach(transaction => {
+      const categoryKey = transaction.category_id;
+      const locationKey = transaction.location.address || `${transaction.location.latitude.toFixed(4)}, ${transaction.location.longitude.toFixed(4)}`;
+
+      if (!categoryMap.has(categoryKey)) {
+        categoryMap.set(categoryKey, {
+          locations: new Map(),
+          totalAmount: 0,
+          icon: transaction.icon || 'pricetag-outline',
+          color: transaction.color || theme.colors.primary[500]
+        });
+      }
+
+      const categoryData = categoryMap.get(categoryKey)!;
+      const existingLocationAmount = categoryData.locations.get(locationKey) || 0;
+      categoryData.locations.set(locationKey, existingLocationAmount + transaction.amount);
+      categoryData.totalAmount += transaction.amount;
+    });
+
+    const categoryData: CategoryLocationData[] = Array.from(categoryMap.entries()).map(([categoryId, data]) => {
+      const transaction = transactionsData.find(t => t.category_id === categoryId);
+      return {
+        category: transaction?.category || 'Unknown',
+        categoryId: categoryId, // Tambahkan categoryId
+        locations: Array.from(data.locations.entries()).map(([location, amount]) => ({
+          location,
+          amount,
+          color: data.color
+        })),
+        totalAmount: data.totalAmount,
+        icon: data.icon,
+        color: data.color
+      };
+    }).sort((a, b) => b.totalAmount - a.totalAmount);
+
+    // Update state
+    setLocationSpendingData(locationData);
+    setCategoryLocationData(categoryData);
+  }, []);
 
   // Fungsi untuk memuat transaksi dengan lokasi dari Supabase
   const loadTransactionsWithLocation = useCallback(async () => {
@@ -160,16 +247,8 @@ export const ExpenseMapScreen = () => {
 
         setTransactions(formattedTransactions);
 
-        // Auto zoom ke lokasi transaksi pertama jika ada data
-        if (formattedTransactions.length > 0 && mapRef.current) {
-          const firstTransaction = formattedTransactions[0];
-          mapRef.current.animateToRegion({
-            latitude: firstTransaction.location.latitude,
-            longitude: firstTransaction.location.longitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }, 1000);
-        }
+        // Process data untuk dashboard charts
+        processChartData(formattedTransactions);
       } else {
         // Jika tidak ada data, set array kosong
         setTransactions([]);
@@ -196,60 +275,23 @@ export const ExpenseMapScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, headerAnimation, fabAnimation]);
+  }, [user, headerAnimation, fabAnimation, processChartData]);
 
-  // Fungsi untuk menangani klik pada marker
-  const handleMarkerPress = (transaction: TransactionWithLocation) => {
-    // Reset animasi card
-    detailCardAnimation.setValue(0);
-
-    // Set transaksi yang dipilih
-    setSelectedTransaction(transaction);
-    setShowDetailCard(true);
-
-    // Animasi superior detail card
-    Animated.timing(detailCardAnimation, {
-      toValue: 1,
-      duration: 300,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  };
-
-  // Fungsi untuk mendapatkan lokasi saat ini dan memindahkan peta
-  const handleGetCurrentLocation = useCallback(async () => {
-    try {
-      const currentLocation = await getCurrentLocation();
-
-      if (currentLocation && mapRef.current) {
-        mapRef.current.animateToRegion({
-          latitude: currentLocation.latitude,
-          longitude: currentLocation.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-      }
-    } catch (error) {
-      // Menghilangkan console.log untuk mengatasi ESLint error
-      Alert.alert('Error', 'Gagal mendapatkan lokasi saat ini');
-    }
-  }, [getCurrentLocation]);
-
-  // Fungsi untuk mengubah tipe peta
-  const toggleMapType = () => {
-    setFilters(prev => ({
-      ...prev,
-      mapStyle: prev.mapStyle === 'standard' ? 'satellite' : 'standard'
-    }));
-  };
-
-  // Fungsi untuk toggle view mode
+  // Fungsi untuk toggle view mode dashboard
   const toggleViewMode = () => {
-    setFilters(prev => ({
-      ...prev,
-      viewMode: prev.viewMode === 'markers' ? 'heatmap' : 'markers'
-    }));
+    setFilters(prev => {
+      const modes: Array<'overview' | 'locations' | 'categories' | 'trends'> = ['overview', 'locations', 'categories', 'trends'];
+      const currentIndex = modes.indexOf(prev.viewMode);
+      const nextIndex = (currentIndex + 1) % modes.length;
+
+      return {
+        ...prev,
+        viewMode: modes[nextIndex]
+      };
+    });
   };
+
+
 
   // Fungsi untuk toggle filter kategori
   const toggleFilters = () => {
@@ -330,11 +372,6 @@ export const ExpenseMapScreen = () => {
     }
   }, [user, loadTransactionsWithLocation]);
 
-  // Get current location sekali saat mount
-  useEffect(() => {
-    handleGetCurrentLocation();
-  }, [handleGetCurrentLocation]);
-
   // Refresh data ketika halaman difokuskan (misalnya setelah menambah transaksi)
   useFocusEffect(
     React.useCallback(() => {
@@ -343,61 +380,6 @@ export const ExpenseMapScreen = () => {
       }
     }, [user, loadTransactionsWithLocation])
   );
-
-  // Render marker untuk setiap transaksi
-  const renderMarkers = () => {
-    return filteredTransactions.map((transaction, index) => (
-      <EnhancedMarker
-        key={transaction.id}
-        coordinate={{
-          latitude: transaction.location.latitude,
-          longitude: transaction.location.longitude,
-        }}
-        type="expense"
-        size="medium"
-        gradientColors={[
-          transaction.color || theme.colors.danger[400],
-          transaction.color ? `${transaction.color}CC` : theme.colors.danger[600]
-        ]}
-        icon={(transaction.icon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap}
-        amount={transaction.amount}
-        showAnimation={true}
-        showGlow={index < 3} // Show glow for top 3 transactions
-        animationDelay={index * 100}
-        onPress={() => handleMarkerPress(transaction)}
-      />
-    ));
-  };
-
-  // Render circles untuk heatmap
-  const renderHeatmap = () => {
-    return filteredTransactions.map(transaction => (
-      <React.Fragment key={transaction.id}>
-        {/* Circle untuk heatmap */}
-        <Circle
-          center={{
-            latitude: transaction.location.latitude,
-            longitude: transaction.location.longitude,
-          }}
-          radius={transaction.amount / 1000 * 50} // Radius berdasarkan jumlah pengeluaran
-          fillColor={`${transaction.color || theme.colors.neutral[500]}80`} // 50% opacity
-          strokeColor={transaction.color || theme.colors.neutral[500]}
-          strokeWidth={1}
-        />
-        {/* Marker transparan untuk menangani onPress */}
-        <EnhancedMarker
-          coordinate={{
-            latitude: transaction.location.latitude,
-            longitude: transaction.location.longitude,
-          }}
-          type="custom"
-          size="small"
-          gradientColors={['transparent', 'transparent']}
-          onPress={() => handleMarkerPress(transaction)}
-        />
-      </React.Fragment>
-    ));
-  };
 
   // Render kategori filter
   const renderCategoryFilters = () => {
@@ -459,32 +441,303 @@ export const ExpenseMapScreen = () => {
     );
   };
 
-  // Render legenda untuk heatmap
-  const renderHeatmapLegend = () => {
-    if (filters.viewMode !== 'heatmap') return null;
+  // Render Top Spending Locations Chart
+  const renderTopLocationsChart = () => {
+    // Filter data berdasarkan kategori yang dipilih
+    const filteredLocationData = filters.selectedCategories.length > 0
+      ? locationSpendingData.filter(item => {
+          // Cek apakah ada transaksi dari kategori yang dipilih di lokasi ini
+          return filteredTransactions.some(t =>
+            (t.location.address || `${t.location.latitude.toFixed(4)}, ${t.location.longitude.toFixed(4)}`) === item.location
+          );
+        })
+      : locationSpendingData;
+
+    if (filteredLocationData.length === 0) return null;
+
+    const chartData = filteredLocationData.slice(0, 5).map(item => ({
+      name: item.location.length > 20 ? `${item.location.substring(0, 20)}...` : item.location,
+      amount: item.amount,
+      color: item.color,
+      count: item.count
+    }));
 
     return (
-      <View style={styles.heatmapLegend}>
-        <Typography variant="caption" color={theme.colors.neutral[700]} weight="600">
-          Legenda Heatmap
-        </Typography>
-        <View style={styles.legendItems}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: theme.colors.danger[300] }]} />
-            <Typography variant="caption" color={theme.colors.neutral[600]}>
-              &lt; Rp 100rb
+      <View style={styles.chartContainer}>
+        <View style={styles.chartHeader}>
+          <Typography variant="h5" weight="700" color={theme.colors.neutral[900]}>
+            📍 Top Lokasi Pengeluaran
+          </Typography>
+          <Typography variant="body2" color={theme.colors.neutral[600]}>
+            {filters.selectedCategories.length > 0
+              ? `Difilter berdasarkan ${filters.selectedCategories.length} kategori`
+              : "5 lokasi dengan pengeluaran terbesar"
+            }
+          </Typography>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.barChartContainer}>
+            {chartData.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.barItem}
+                onPress={() => {
+                  // Handle bar press - show detail
+                  Alert.alert(
+                    item.name,
+                    `Total: ${formatCurrency(item.amount)}\nJumlah transaksi: ${item.count}`
+                  );
+                }}
+              >
+                <View style={styles.barContainer}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: (item.amount / chartData[0].amount) * 120,
+                        backgroundColor: item.color
+                      }
+                    ]}
+                  />
+                  <Typography variant="caption" color={theme.colors.neutral[700]} style={styles.barAmount}>
+                    {formatCurrency(item.amount)}
+                  </Typography>
+                </View>
+                <Typography variant="caption" color={theme.colors.neutral[600]} style={styles.barLabel}>
+                  {item.name}
+                </Typography>
+                <Typography variant="caption" color={theme.colors.neutral[500]} style={styles.barCount}>
+                  {item.count} transaksi
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Render Category Distribution Chart
+  const renderCategoryDistributionChart = () => {
+    // Filter data berdasarkan kategori yang dipilih
+    const filteredCategoryData = filters.selectedCategories.length > 0
+      ? categoryLocationData.filter(item => filters.selectedCategories.includes(item.categoryId))
+      : categoryLocationData;
+
+    if (filteredCategoryData.length === 0) return null;
+
+    const chartData = filteredCategoryData.slice(0, 6);
+
+    return (
+      <View style={styles.chartContainer}>
+        <View style={styles.chartHeader}>
+          <Typography variant="h5" weight="700" color={theme.colors.neutral[900]}>
+            🏷️ Kategori per Lokasi
+          </Typography>
+          <Typography variant="body2" color={theme.colors.neutral[600]}>
+            {filters.selectedCategories.length > 0
+              ? `Menampilkan ${filteredCategoryData.length} kategori yang dipilih`
+              : "Distribusi pengeluaran berdasarkan kategori"
+            }
+          </Typography>
+        </View>
+
+        <View style={styles.categoryGrid}>
+          {chartData.map((category, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.categoryCard}
+              onPress={() => {
+                Alert.alert(
+                  category.category,
+                  `Total: ${formatCurrency(category.totalAmount)}\nLokasi: ${category.locations.length}`
+                );
+              }}
+            >
+              <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
+                <Ionicons
+                  name={category.icon as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={theme.colors.white}
+                />
+              </View>
+              <Typography variant="body2" weight="600" color={theme.colors.neutral[800]}>
+                {category.category}
+              </Typography>
+              <Typography variant="h6" weight="700" color={category.color}>
+                {formatCurrency(category.totalAmount)}
+              </Typography>
+              <Typography variant="caption" color={theme.colors.neutral[500]}>
+                {category.locations.length} lokasi
+              </Typography>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // Render Trend Chart
+  const renderTrendChart = () => {
+    // Group transactions by month
+    const monthlyData = new Map<string, { total: number; count: number; locations: Set<string> }>();
+
+    filteredTransactions.forEach(transaction => {
+      const date = new Date(transaction.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const locationKey = transaction.location.address || 'Lokasi tidak diketahui';
+
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, {
+          total: 0,
+          count: 0,
+          locations: new Set()
+        });
+      }
+
+      const monthData = monthlyData.get(monthKey)!;
+      monthData.total += transaction.amount;
+      monthData.count += 1;
+      monthData.locations.add(locationKey);
+    });
+
+    const trendData = Array.from(monthlyData.entries())
+      .map(([month, data]) => ({
+        month,
+        total: data.total,
+        count: data.count,
+        locationCount: data.locations.size,
+        avgPerTransaction: data.total / data.count
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-6); // Last 6 months
+
+    if (trendData.length === 0) {
+      return (
+        <View style={styles.chartContainer}>
+          <View style={styles.chartHeader}>
+            <Typography variant="h5" weight="700" color={theme.colors.neutral[900]}>
+              📈 Tren Pengeluaran
+            </Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Belum ada data untuk ditampilkan
             </Typography>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: theme.colors.danger[500] }]} />
-            <Typography variant="caption" color={theme.colors.neutral[600]}>
-              Rp 100rb - 200rb
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.chartContainer}>
+        <View style={styles.chartHeader}>
+          <Typography variant="h5" weight="700" color={theme.colors.neutral[900]}>
+            📈 Tren Pengeluaran
+          </Typography>
+          <Typography variant="body2" color={theme.colors.neutral[600]}>
+            {filters.selectedCategories.length > 0
+              ? `Tren untuk ${filters.selectedCategories.length} kategori terpilih`
+              : `Perkembangan ${trendData.length} bulan terakhir`
+            }
+          </Typography>
+        </View>
+
+        {/* Monthly Trend Cards */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.trendContainer}>
+            {trendData.map((item, index) => {
+              const monthName = new Date(item.month + '-01').toLocaleDateString('id-ID', {
+                month: 'short',
+                year: '2-digit'
+              });
+              const isHighest = item.total === Math.max(...trendData.map(d => d.total));
+
+              return (
+                <TouchableOpacity
+                  key={item.month}
+                  style={[
+                    styles.trendCard,
+                    isHighest && styles.trendCardHighest
+                  ]}
+                  onPress={() => {
+                    showDialog({
+                      type: 'info',
+                      title: `Detail ${monthName}`,
+                      message: `Total Pengeluaran: ${formatCurrency(item.total)}\nJumlah Transaksi: ${item.count}\nLokasi Berbeda: ${item.locationCount}\nRata-rata per Transaksi: ${formatCurrency(item.avgPerTransaction)}`,
+                      actions: [
+                        {
+                          text: 'Tutup',
+                          onPress: hideDialog,
+                          style: 'primary'
+                        }
+                      ]
+                    });
+                  }}
+                >
+                  <View style={styles.trendCardHeader}>
+                    <Typography variant="caption" weight="600" color={theme.colors.neutral[600]}>
+                      {monthName}
+                    </Typography>
+                    {isHighest && (
+                      <View style={styles.highestBadge}>
+                        <Typography variant="caption" color={theme.colors.white} weight="600">
+                          Tertinggi
+                        </Typography>
+                      </View>
+                    )}
+                  </View>
+
+                  <Typography variant="h6" weight="700" color={theme.colors.neutral[800]} style={styles.trendAmount}>
+                    {formatCurrency(item.total)}
+                  </Typography>
+
+                  <View style={styles.trendStats}>
+                    <View style={styles.trendStat}>
+                      <Typography variant="caption" color={theme.colors.neutral[500]}>
+                        {item.count} transaksi
+                      </Typography>
+                    </View>
+                    <View style={styles.trendStat}>
+                      <Typography variant="caption" color={theme.colors.neutral[500]}>
+                        {item.locationCount} lokasi
+                      </Typography>
+                    </View>
+                  </View>
+
+                  {/* Trend indicator */}
+                  {index > 0 && (
+                    <View style={styles.trendIndicator}>
+                      {item.total > trendData[index - 1].total ? (
+                        <Ionicons name="trending-up" size={16} color={theme.colors.danger[500]} />
+                      ) : item.total < trendData[index - 1].total ? (
+                        <Ionicons name="trending-down" size={16} color={theme.colors.success[500]} />
+                      ) : (
+                        <Ionicons name="remove" size={16} color={theme.colors.neutral[400]} />
+                      )}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+
+        {/* Summary Stats */}
+        <View style={styles.trendSummary}>
+          <View style={styles.summaryItem}>
+            <Typography variant="caption" color={theme.colors.neutral[500]}>
+              Total Periode
+            </Typography>
+            <Typography variant="h6" weight="700" color={theme.colors.primary[600]}>
+              {formatCurrency(trendData.reduce((sum, item) => sum + item.total, 0))}
             </Typography>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: theme.colors.danger[700] }]} />
-            <Typography variant="caption" color={theme.colors.neutral[600]}>
-              &gt; Rp 200rb
+          <View style={styles.summaryItem}>
+            <Typography variant="caption" color={theme.colors.neutral[500]}>
+              Rata-rata Bulanan
+            </Typography>
+            <Typography variant="h6" weight="700" color={theme.colors.secondary[600]}>
+              {formatCurrency(trendData.reduce((sum, item) => sum + item.total, 0) / trendData.length)}
             </Typography>
           </View>
         </View>
@@ -492,7 +745,40 @@ export const ExpenseMapScreen = () => {
     );
   };
 
-  // Render superior floating action buttons
+  // Render Dashboard Content berdasarkan viewMode
+  const renderDashboardContent = () => {
+    switch (filters.viewMode) {
+      case 'overview':
+        return (
+          <ScrollView style={styles.dashboardContainer} showsVerticalScrollIndicator={false}>
+            {renderTopLocationsChart()}
+            {renderCategoryDistributionChart()}
+          </ScrollView>
+        );
+      case 'locations':
+        return (
+          <ScrollView style={styles.dashboardContainer} showsVerticalScrollIndicator={false}>
+            {renderTopLocationsChart()}
+          </ScrollView>
+        );
+      case 'categories':
+        return (
+          <ScrollView style={styles.dashboardContainer} showsVerticalScrollIndicator={false}>
+            {renderCategoryDistributionChart()}
+          </ScrollView>
+        );
+      case 'trends':
+        return (
+          <ScrollView style={styles.dashboardContainer} showsVerticalScrollIndicator={false}>
+            {renderTrendChart()}
+          </ScrollView>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Render superior floating action buttons untuk dashboard
   const renderFloatingActionButtons = () => (
     <Animated.View
       style={[
@@ -503,62 +789,37 @@ export const ExpenseMapScreen = () => {
         }
       ]}
     >
-      {/* Current Location */}
+      {/* View Mode Toggle - Tombol Utama */}
       <TouchableOpacity
-        style={[styles.fab, styles.fabSecondary]}
-        onPress={handleGetCurrentLocation}
-        activeOpacity={0.8}
-      >
-        <BlurView intensity={80} style={styles.fabBlur}>
-          <Ionicons
-            name="locate"
-            size={isSmallDevice ? 18 : isLargeDevice ? 24 : 20}
-            color={theme.colors.primary[500]}
-          />
-        </BlurView>
-      </TouchableOpacity>
-
-      {/* Map Style Toggle */}
-      <TouchableOpacity
-        style={[styles.fab, styles.fabSecondary]}
-        onPress={toggleMapType}
-        activeOpacity={0.8}
-      >
-        <BlurView intensity={80} style={styles.fabBlur}>
-          <Ionicons
-            name="map-outline"
-            size={isSmallDevice ? 18 : isLargeDevice ? 24 : 20}
-            color={theme.colors.primary[500]}
-          />
-        </BlurView>
-      </TouchableOpacity>
-
-      {/* View Mode Toggle */}
-      <TouchableOpacity
-        style={[styles.fab, styles.fabSecondary]}
+        style={[styles.fab, styles.fabPrimary]}
         onPress={toggleViewMode}
         activeOpacity={0.8}
       >
         <BlurView intensity={80} style={styles.fabBlur}>
           <Ionicons
-            name={filters.viewMode === 'markers' ? "thermometer-outline" : "map-outline"}
-            size={isSmallDevice ? 18 : isLargeDevice ? 24 : 20}
-            color={theme.colors.primary[500]}
+            name={
+              filters.viewMode === 'overview' ? "grid" :
+              filters.viewMode === 'locations' ? "location" :
+              filters.viewMode === 'categories' ? "pricetag" :
+              "trending-up"
+            }
+            size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
+            color={theme.colors.white}
           />
         </BlurView>
       </TouchableOpacity>
 
       {/* Filter Toggle */}
       <TouchableOpacity
-        style={[styles.fab, styles.fabPrimary]}
+        style={[styles.fab, styles.fabSecondary]}
         onPress={toggleFilters}
         activeOpacity={0.8}
       >
         <BlurView intensity={80} style={styles.fabBlur}>
           <Ionicons
-            name="options-outline"
-            size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
-            color={theme.colors.white}
+            name={showFilters ? "close" : "options"}
+            size={isSmallDevice ? 18 : isLargeDevice ? 24 : 20}
+            color={theme.colors.primary[500]}
           />
         </BlurView>
       </TouchableOpacity>
@@ -691,19 +952,36 @@ export const ExpenseMapScreen = () => {
 
             <View style={styles.headerTitleContainer}>
               <Typography variant="h4" color={theme.colors.white} weight="600">
-                Peta Pengeluaran
+                Dashboard Lokasi
               </Typography>
               <Typography variant="caption" color={theme.colors.white}>
-                Visualisasi lokasi pengeluaran Anda
+                Analisis pengeluaran berdasarkan lokasi
               </Typography>
             </View>
 
             <TouchableOpacity
               style={styles.headerButton}
-              onPress={toggleFilters}
+              onPress={() => {
+                showDialog({
+                  type: 'info',
+                  title: 'Mode Tampilan',
+                  message: `Saat ini: ${
+                    filters.viewMode === 'overview' ? 'Ringkasan' :
+                    filters.viewMode === 'locations' ? 'Lokasi' :
+                    filters.viewMode === 'categories' ? 'Kategori' : 'Tren'
+                  }\n\nTekan tombol biru di kanan bawah untuk mengganti mode tampilan.`,
+                  actions: [
+                    {
+                      text: 'Mengerti',
+                      onPress: hideDialog,
+                      style: 'primary'
+                    }
+                  ]
+                });
+              }}
             >
               <Ionicons
-                name={showFilters ? "options" : "options-outline"}
+                name="information-circle-outline"
                 size={24}
                 color={theme.colors.white}
               />
@@ -727,36 +1005,12 @@ export const ExpenseMapScreen = () => {
           </Typography>
         </View>
       ) : (
-        <View style={styles.mapContainer}>
-          <EnhancedMapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={{
-              latitude: -6.2088,
-              longitude: 106.8456,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }}
-            showsUserLocation={true}
-            showsCompass={true}
-            showsScale={true}
-            showsBuildings={true}
-            rotateEnabled={true}
-            zoomEnabled={true}
-            scrollEnabled={true}
-            pitchEnabled={true}
-            mapType="standard"
-            customMapStyle="auto"
-            enhancedVisuals={true}
-          >
-            {filters.viewMode === 'markers' ? renderMarkers() : renderHeatmap()}
-          </EnhancedMapView>
+        <View style={styles.dashboardMainContainer}>
+          {/* Dashboard Content */}
+          {renderDashboardContent()}
 
           {/* Superior Floating Action Buttons */}
           {renderFloatingActionButtons()}
-
-          {/* Heatmap legend */}
-          {renderHeatmapLegend()}
         </View>
       )}
 
@@ -777,6 +1031,18 @@ export const ExpenseMapScreen = () => {
           />
         </View>
       )}
+
+      {/* Superior Dialog */}
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };
@@ -1172,6 +1438,145 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     overflow: 'hidden',
+  },
+
+  // Dashboard styles
+  dashboardMainContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.neutral[50],
+  },
+  dashboardContainer: {
+    flex: 1,
+    padding: theme.spacing.layout.sm,
+  },
+  chartContainer: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.layout.md,
+    marginBottom: theme.spacing.layout.md,
+    ...theme.elevation.sm,
+  },
+  chartHeader: {
+    marginBottom: theme.spacing.layout.md,
+  },
+
+  // Bar Chart styles
+  barChartContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+  },
+  barItem: {
+    alignItems: 'center',
+    marginHorizontal: theme.spacing.xs,
+    minWidth: 80,
+  },
+  barContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: 140,
+    marginBottom: theme.spacing.sm,
+  },
+  bar: {
+    width: 24,
+    borderRadius: theme.borderRadius.sm,
+    minHeight: 20,
+  },
+  barAmount: {
+    marginTop: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  barLabel: {
+    textAlign: 'center',
+    marginTop: theme.spacing.xs,
+  },
+  barCount: {
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
+  // Category Grid styles
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  categoryCard: {
+    width: '48%',
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    alignItems: 'center',
+    ...theme.elevation.xs,
+  },
+  categoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+
+  // Trend Chart styles
+  trendContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+    gap: theme.spacing.md,
+  },
+  trendCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    minWidth: 140,
+    borderWidth: 1,
+    borderColor: theme.colors.neutral[200],
+    ...theme.elevation.xs,
+  },
+  trendCardHighest: {
+    borderColor: theme.colors.primary[300],
+    borderWidth: 2,
+    ...theme.elevation.sm,
+  },
+  trendCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xs,
+  },
+  highestBadge: {
+    backgroundColor: theme.colors.primary[500],
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.sm,
+  },
+  trendAmount: {
+    marginBottom: theme.spacing.sm,
+  },
+  trendStats: {
+    gap: theme.spacing.xs,
+  },
+  trendStat: {
+    alignItems: 'flex-start',
+  },
+  trendIndicator: {
+    position: 'absolute',
+    top: theme.spacing.xs,
+    right: theme.spacing.xs,
+  },
+  trendSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.neutral[200],
+  },
+  summaryItem: {
+    alignItems: 'center',
   },
 
   // Empty state styles

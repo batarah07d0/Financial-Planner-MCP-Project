@@ -348,13 +348,13 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.md,
   },
   backButton: {
-    flexDirection: 'row',
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xs,
   },
   headerTitle: {
     textAlign: 'center',
-    marginLeft: -40,
   },
   headerRight: {
     width: 40,

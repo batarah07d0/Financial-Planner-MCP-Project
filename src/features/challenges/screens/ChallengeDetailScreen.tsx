@@ -460,9 +460,25 @@ export const ChallengeDetailScreen = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
-        <Typography variant="h6" weight="600" style={styles.headerTitle}>
+        <Typography
+          variant="h6"
+          weight="700"
+          color={theme.colors.primary[500]}
+          style={[
+            styles.headerTitle,
+            {
+              fontSize: 18,
+              lineHeight: 22,
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+            }
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
+        >
           Detail Tantangan
         </Typography>
         {/* Delete button untuk menghapus tantangan */}
@@ -602,28 +618,44 @@ export const ChallengeDetailScreen = () => {
 
               <View style={styles.inputContainer}>
                 <View style={styles.currencyInputContainer}>
-                  <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.currencySymbol}>
-                    Rp
-                  </Typography>
+                  <View style={styles.currencyLabelContainer}>
+                    <Typography variant="body2" color={theme.colors.primary[600]} style={styles.currencySymbol}>
+                      Rp
+                    </Typography>
+                  </View>
                   <TextInput
                     style={styles.progressInput}
                     value={progressInput}
                     onChangeText={handleProgressInputChange}
                     placeholder="0"
+                    placeholderTextColor={theme.colors.neutral[400]}
                     keyboardType="numeric"
                     maxLength={15}
                     returnKeyType="done"
                     onSubmitEditing={handleUpdateProgress}
                   />
                 </View>
-                <Button
-                  title={isUpdating ? "..." : "Update"}
-                  variant="primary"
+                <TouchableOpacity
+                  style={[
+                    styles.updateButton,
+                    {
+                      backgroundColor: rawProgressValue === (challenge?.current_amount || 0)
+                        ? theme.colors.neutral[300]
+                        : theme.colors.primary[500],
+                    }
+                  ]}
                   onPress={handleUpdateProgress}
-                  loading={isUpdating}
-                  style={styles.updateButton}
-                  disabled={rawProgressValue === (challenge?.current_amount || 0)}
-                />
+                  disabled={isUpdating || rawProgressValue === (challenge?.current_amount || 0)}
+                  activeOpacity={0.8}
+                >
+                  {isUpdating ? (
+                    <ActivityIndicator color={theme.colors.white} size="small" />
+                  ) : (
+                    <Typography variant="body1" weight="700" color={theme.colors.white}>
+                      Update
+                    </Typography>
+                  )}
+                </TouchableOpacity>
               </View>
 
               {/* Progress Info */}
@@ -845,20 +877,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg, // Diperbesar dari md ke lg
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    minHeight: 64, // Tambahkan minimum height
   },
   backButton: {
     padding: theme.spacing.sm,
     borderRadius: theme.borderRadius.round,
     backgroundColor: 'transparent',
+    marginLeft: theme.spacing.xs, // Proper spacing from left edge
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     marginHorizontal: theme.spacing.md,
+    minHeight: 40, // Ensure consistent height
   },
   headerSpacer: {
     width: 40,
@@ -964,23 +999,40 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.neutral[100],
+    backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.primary[200],
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+    ...theme.elevation.sm,
+  },
+  currencyLabelContainer: {
+    backgroundColor: theme.colors.primary[50],
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.md,
+    marginRight: theme.spacing.sm,
   },
   currencySymbol: {
-    marginRight: theme.spacing.sm,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 14,
   },
   progressInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
     color: theme.colors.neutral[800],
     backgroundColor: 'transparent',
+    textAlign: 'left',
   },
   updateButton: {
-    minWidth: 80,
+    minWidth: 100,
+    height: 56, // Match input container height
+    borderRadius: theme.borderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.elevation.md,
   },
   // Quick Amount Styles
   quickAmountContainer: {

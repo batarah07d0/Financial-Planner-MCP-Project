@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  ViewStyle,
 } from 'react-native';
 import { Typography } from './Typography';
 import { theme } from '../theme';
@@ -18,7 +19,7 @@ interface StaticMapPreviewProps {
   zoom?: number;
   onPress?: () => void;
   showMarker?: boolean;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export const StaticMapPreview: React.FC<StaticMapPreviewProps> = ({

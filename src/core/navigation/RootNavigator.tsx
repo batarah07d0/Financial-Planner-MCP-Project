@@ -22,6 +22,7 @@ import {
 import {
   AddBudgetScreen,
   BudgetDetailScreen,
+  BudgetAnalysisDetailScreen,
   EditBudgetScreen,
   CategoryPickerScreen,
 } from '../../features/budget/screens';
@@ -112,6 +113,7 @@ export const RootNavigator = () => {
             <Stack.Screen name="EditTransaction" component={EditTransactionScreen} />
             <Stack.Screen name="AddBudget" component={AddBudgetScreen} />
             <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
+            <Stack.Screen name="BudgetAnalysisDetail" component={BudgetAnalysisDetailScreen} />
             <Stack.Screen name="EditBudget" component={EditBudgetScreen} />
             <Stack.Screen
               name="CategoryPicker"

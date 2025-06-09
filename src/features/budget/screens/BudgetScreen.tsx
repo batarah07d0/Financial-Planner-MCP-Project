@@ -722,8 +722,8 @@ export const BudgetScreen = () => {
         />
       )}
 
-      {/* Floating Action Button */}
-      {user && (
+      {/* Floating Action Button - Hanya tampil jika ada data budget */}
+      {user && budgets.length > 0 && (
         <TouchableOpacity
           style={{
             ...styles.fab,

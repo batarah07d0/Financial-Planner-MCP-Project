@@ -259,9 +259,25 @@ export const SettingsScreen = () => {
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
-        <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>Pengaturan</Typography>
+        <Typography
+          variant="h5"
+          weight="700"
+          color={theme.colors.primary[500]}
+          style={{
+            fontSize: 20,
+            textAlign: 'center',
+            lineHeight: 24,
+            includeFontPadding: false,
+            textAlignVertical: 'center',
+          }}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
+        >
+          Pengaturan
+        </Typography>
         <View style={styles.headerRight} />
       </View>
 
@@ -510,24 +526,21 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.layout.sm,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    minHeight: 64,
     ...theme.elevation.sm,
-    position: 'relative',
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    left: theme.spacing.layout.sm,
-    zIndex: 1,
   },
   headerRight: {
     width: 40,

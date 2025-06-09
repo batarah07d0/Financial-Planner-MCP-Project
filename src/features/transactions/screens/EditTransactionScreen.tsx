@@ -247,11 +247,25 @@ export const EditTransactionScreen = () => {
           <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
         
-        <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>
+        <Typography
+          variant="h5"
+          weight="700"
+          color={theme.colors.primary[500]}
+          style={{
+            fontSize: 20,
+            textAlign: 'center',
+            lineHeight: 24,
+            includeFontPadding: false,
+            textAlignVertical: 'center',
+          }}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
+        >
           Edit Transaksi
         </Typography>
-        
-        <View style={{ width: 24 }} />
+
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView
@@ -574,18 +588,25 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
-    position: 'relative',
+    minHeight: 64, // Ensure consistent height
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.layout.sm,
+    ...theme.elevation.sm,
   },
   backButton: {
-    padding: theme.spacing.xs,
-    position: 'absolute',
-    left: 0,
-    zIndex: 1,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerRight: {
+    width: 40,
+    height: 40,
   },
   content: {
     flex: 1,

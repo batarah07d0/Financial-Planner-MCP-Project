@@ -46,12 +46,19 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // Filter kategori berdasarkan tipe transaksi dan pencarian
-  const filteredCategories = categories.filter(category => {
-    const matchesType = category.type === transactionType;
-    const matchesSearch = category.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesType && matchesSearch;
-  });
+  // Filter kategori berdasarkan tipe transaksi dan pencarian, dengan "Lainnya" di akhir
+  const filteredCategories = categories
+    .filter(category => {
+      const matchesType = category.type === transactionType;
+      const matchesSearch = category.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesType && matchesSearch;
+    })
+    .sort((a, b) => {
+      // Pindahkan "Lainnya" ke akhir
+      if (a.name.toLowerCase() === 'lainnya') return 1;
+      if (b.name.toLowerCase() === 'lainnya') return -1;
+      return a.name.localeCompare(b.name);
+    });
 
   // Animasi masuk
   useEffect(() => {
@@ -135,11 +142,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
         ]}
       >
         <LinearGradient
-          colors={
-            transactionType === 'expense'
-              ? [theme.colors.danger[500], theme.colors.danger[600]]
-              : [theme.colors.success[500], theme.colors.success[600]]
-          }
+          colors={[theme.colors.primary[500], theme.colors.primary[700]]}
           style={styles.headerGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -303,11 +306,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                   >
                     {isSelected && (
                       <LinearGradient
-                        colors={
-                          transactionType === 'expense'
-                            ? [theme.colors.danger[500], theme.colors.danger[600]]
-                            : [theme.colors.success[500], theme.colors.success[600]]
-                        }
+                        colors={[theme.colors.primary[500], theme.colors.primary[700]]}
                         style={styles.selectedCategoryGradient}
                       />
                     )}
@@ -389,9 +388,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
           <LinearGradient
             colors={
               selectedCategory
-                ? transactionType === 'expense'
-                  ? [theme.colors.danger[500], theme.colors.danger[600]]
-                  : [theme.colors.success[500], theme.colors.success[600]]
+                ? [theme.colors.primary[500], theme.colors.primary[700]]
                 : [theme.colors.neutral[300], theme.colors.neutral[400]]
             }
             style={styles.confirmGradient}

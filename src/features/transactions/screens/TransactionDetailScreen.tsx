@@ -279,40 +279,24 @@ export const TransactionDetailScreen = () => {
               variant="h5"
               weight="700"
               color={theme.colors.primary[500]}
-              style={{ fontSize: 20, textAlign: 'center' }}
+              style={{
+                fontSize: 20,
+                textAlign: 'center',
+                lineHeight: 24,
+                includeFontPadding: false,
+                textAlignVertical: 'center',
+              }}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.8}
             >
               Detail Transaksi
             </Typography>
             <View style={styles.titleUnderline} />
           </View>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={handleEdit}
-              style={[styles.enhancedActionButton, {
-                marginRight: responsiveSpacing(theme.spacing.sm),
-                backgroundColor: theme.colors.primary[50]
-              }]}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="create-outline" size={22} color={theme.colors.primary[600]} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleDelete}
-              style={[styles.enhancedActionButton, {
-                backgroundColor: theme.colors.danger[50]
-              }]}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <ActivityIndicator size="small" color={theme.colors.danger[600]} />
-              ) : (
-                <Ionicons name="trash-outline" size={22} color={theme.colors.danger[600]} />
-              )}
-            </TouchableOpacity>
-          </View>
+          {/* Spacer untuk menjaga keseimbangan layout */}
+          <View style={styles.headerSpacer} />
         </View>
       </LinearGradient>
 
@@ -615,6 +599,63 @@ export const TransactionDetailScreen = () => {
             </Typography>
           </View>
         </View>
+
+        {/* Action Buttons */}
+        <Animated.View
+          style={[
+            styles.actionButtonsContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+              marginBottom: responsiveSpacing(theme.spacing.layout.lg)
+            }
+          ]}
+        >
+          {/* Edit Button */}
+          <TouchableOpacity
+            onPress={handleEdit}
+            style={[styles.actionButton, styles.editActionButton, {
+              marginBottom: responsiveSpacing(theme.spacing.md)
+            }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <View style={styles.actionButtonContent}>
+              <Ionicons name="create-outline" size={22} color={theme.colors.white} />
+              <Typography
+                variant="body1"
+                weight="600"
+                color={theme.colors.white}
+                style={styles.actionButtonText}
+              >
+                Edit Transaksi
+              </Typography>
+            </View>
+          </TouchableOpacity>
+
+          {/* Delete Button */}
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={[styles.actionButton, styles.deleteActionButton]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            disabled={isDeleting}
+          >
+            <View style={styles.actionButtonContent}>
+              {isDeleting ? (
+                <ActivityIndicator size="small" color={theme.colors.white} />
+              ) : (
+                <Ionicons name="trash-outline" size={22} color={theme.colors.white} />
+              )}
+              <Typography
+                variant="body1"
+                weight="600"
+                color={theme.colors.white}
+                style={styles.actionButtonText}
+              >
+                {isDeleting ? 'Menghapus...' : 'Hapus Transaksi'}
+              </Typography>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
       </Animated.ScrollView>
 
       <SuperiorDialog
@@ -672,13 +713,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: theme.spacing.xs,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionButton: {
-    padding: theme.spacing.xs,
+    marginLeft: theme.spacing.xs, // Proper spacing from left edge
   },
   content: {
     flex: 1,
@@ -796,7 +831,9 @@ const styles = StyleSheet.create({
   titleContainer: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     marginHorizontal: theme.spacing.md,
+    minHeight: 40, // Ensure consistent height
   },
   headerTitle: {
     textAlign: 'center',
@@ -808,14 +845,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary[500],
     borderRadius: 2,
     marginTop: theme.spacing.xs,
-  },
-  enhancedActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...theme.elevation.xs,
   },
 
   // Enhanced Amount Card Styles
@@ -987,5 +1016,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...theme.elevation.xs,
+  },
+
+  // Header Spacer
+  headerSpacer: {
+    width: 40, // Same width as back button to maintain balance
+  },
+
+  // Action Buttons Styles
+  actionButtonsContainer: {
+    flexDirection: 'column',
+  },
+  actionButton: {
+    width: '100%',
+    height: 56,
+    borderRadius: theme.borderRadius.lg,
+    ...theme.elevation.md,
+    shadowColor: theme.colors.neutral[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  actionButtonContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing.sm,
+  },
+  actionButtonText: {
+    letterSpacing: 0.3,
+  },
+  editActionButton: {
+    backgroundColor: theme.colors.primary[500],
+  },
+  deleteActionButton: {
+    backgroundColor: theme.colors.danger[500],
   },
 });

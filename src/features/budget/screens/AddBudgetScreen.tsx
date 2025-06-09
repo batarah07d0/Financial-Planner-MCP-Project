@@ -16,7 +16,6 @@ import { Typography, Input, Card, SuperiorDialog } from '../../../core/component
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSuperiorDialog } from '../../../core/hooks';
 import { useBudgetStore } from '../../../core/services/store/budgetStore';
 import { useAuthStore } from '../../../core/services/store/authStore';
@@ -264,31 +263,32 @@ export const AddBudgetScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-        <LinearGradient
-          colors={[theme.colors.white, theme.colors.neutral[50]]}
-          style={styles.headerContainer}
-        >
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={22} color={theme.colors.primary[500]} />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleContainer}>
+            <Typography
+              variant="h5"
+              weight="700"
+              color={theme.colors.primary[500]}
+              style={{
+                fontSize: 18,
+                textAlign: 'center',
+                lineHeight: 22,
+              }}
             >
-              <Ionicons name="arrow-back" size={22} color={theme.colors.primary[500]} />
-            </TouchableOpacity>
-            <View style={styles.headerTitleContainer}>
-              <Typography
-                variant="h5"
-                color={theme.colors.primary[500]}
-                weight="700"
-                style={{ fontSize: 20, textAlign: 'center' }}
-              >
-                Tambah Anggaran
-              </Typography>
-            </View>
-            <View style={styles.headerRight} />
+              Tambah Anggaran
+            </Typography>
           </View>
-        </LinearGradient>
+
+          <View style={{ width: 40 }} />
+        </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Card style={styles.card}>
@@ -510,35 +510,30 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  headerContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral[200],
-    ...theme.elevation.sm,
-  },
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.layout.sm,
-    paddingBottom: theme.spacing.md,
-    position: 'relative',
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.neutral[200],
+    paddingHorizontal: theme.spacing.layout.sm,
+    paddingVertical: theme.spacing.md,
+    minHeight: 64,
+    ...theme.elevation.xs,
   },
   backButton: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xs,
-    position: 'absolute',
-    left: theme.spacing.layout.sm,
-    zIndex: 1,
+    borderRadius: theme.borderRadius.round,
+    backgroundColor: 'transparent',
+    width: 40,
+    height: 40,
   },
   headerTitleContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 60, // Space for buttons on both sides
-  },
-  headerRight: {
-    width: 40,
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.md,
   },
   scrollContent: {
     padding: theme.spacing.layout.sm,

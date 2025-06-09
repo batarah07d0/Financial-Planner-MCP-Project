@@ -113,7 +113,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         }),
       ])
     ).start();
-  }, [isScanBoxAnimating]); // Hapus animated values dari dependency karena mereka stabil
+  }, [isScanBoxAnimating, pulseAnimation, scanBoxAnimation, scanLineAnimation]); // Tambahkan animated values yang diperlukan
 
   // Efek untuk menampilkan/menyembunyikan tip secara otomatis
   useEffect(() => {

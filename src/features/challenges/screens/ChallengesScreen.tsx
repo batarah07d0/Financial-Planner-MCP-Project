@@ -436,11 +436,12 @@ export const ChallengesScreen = () => {
             </TouchableOpacity>
           </Animated.View>
 
-          <View style={styles.titleContainer}>
-            <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>Tantangan</Typography>
-          </View>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>
+            Tantangan
+          </Typography>
 
-          {/* Tombol tambah di header dihapus */}
+          {/* Header spacer untuk balance */}
+          <View style={styles.headerSpacer} />
         </View>
 
         <View style={styles.filterContainer}>
@@ -553,7 +554,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.md,
   },
   backButtonContainer: {
-    marginRight: theme.spacing.sm,
+    // Container untuk animasi back button
   },
   backButton: {
     width: 40,
@@ -562,16 +563,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // Menghapus borderRadius, backgroundColor, dan elevation untuk membuat tombol transparan
   },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
   headerTitle: {
     textAlign: 'center',
     fontSize: 20,
     lineHeight: 24,
+  },
+  headerSpacer: {
+    width: 40,
+    height: 40,
   },
   // Style untuk tombol tambah di header telah dihapus karena tidak digunakan lagi
   filterContainer: {

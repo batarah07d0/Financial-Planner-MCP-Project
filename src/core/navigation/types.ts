@@ -68,6 +68,7 @@ export type RootStackParamList = {
   };
   EditBudget: { id: string };
   BudgetDetail: { id: string };
+  BudgetAnalysisDetail: { budgetId: string; categoryId: string };
   CategoryPicker: {
     selectedCategoryId?: string;
   };

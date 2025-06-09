@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   Animated,
-  ViewStyle,
 } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -119,7 +118,7 @@ export const EnhancedMarker: React.FC<EnhancedMarkerProps> = ({
   coordinate,
   type = 'default',
   size = 'medium',
-  color,
+  color: _color,
   gradientColors,
   borderColor,
   borderWidth,

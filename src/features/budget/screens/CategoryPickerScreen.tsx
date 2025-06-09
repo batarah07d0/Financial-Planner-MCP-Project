@@ -57,16 +57,25 @@ export const CategoryPickerScreen = () => {
     loadCategories();
   }, []);
 
-  // Filter categories based on search
+  // Filter categories based on search, dengan "Lainnya" di akhir
   useEffect(() => {
+    let filtered;
     if (searchQuery.trim() === '') {
-      setFilteredCategories(categories);
+      filtered = categories;
     } else {
-      const filtered = categories.filter(category =>
+      filtered = categories.filter(category =>
         category.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredCategories(filtered);
     }
+
+    // Sort dengan "Lainnya" di akhir
+    const sorted = filtered.sort((a, b) => {
+      if (a.name.toLowerCase() === 'lainnya') return 1;
+      if (b.name.toLowerCase() === 'lainnya') return -1;
+      return a.name.localeCompare(b.name);
+    });
+
+    setFilteredCategories(sorted);
   }, [searchQuery, categories]);
 
   const handleCategorySelect = (category: Category) => {

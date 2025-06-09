@@ -22,7 +22,11 @@ export class DailyVisitService {
       
       return countStr ? parseInt(countStr, 10) : 0;
     } catch (error) {
-      console.error('Error getting daily visit count:', error);
+      // Silently handle error and return default value
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error getting daily visit count:', error);
+      }
       return 0;
     }
   }
@@ -54,7 +58,11 @@ export class DailyVisitService {
       
       return newCount;
     } catch (error) {
-      console.error('Error incrementing daily visit count:', error);
+      // Silently handle error and return fallback value
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error incrementing daily visit count:', error);
+      }
       return 1; // Return 1 as fallback
     }
   }
@@ -77,6 +85,7 @@ export class DailyVisitService {
         
         // Log untuk debugging
         if (__DEV__) {
+          // eslint-disable-next-line no-console
           console.log('🗓️ New day detected, reset daily visit count:', {
             userId: userId.substring(0, 8) + '...',
             lastDate: lastVisitDate,
@@ -85,7 +94,11 @@ export class DailyVisitService {
         }
       }
     } catch (error) {
-      console.error('Error checking new day:', error);
+      // Silently handle error
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error checking new day:', error);
+      }
     }
   }
 
@@ -102,10 +115,15 @@ export class DailyVisitService {
       await AsyncStorage.removeItem(storageKey);
       
       if (__DEV__) {
+        // eslint-disable-next-line no-console
         console.log('🔄 Manual reset daily visit count for user:', userId.substring(0, 8) + '...');
       }
     } catch (error) {
-      console.error('Error resetting daily visit count:', error);
+      // Silently handle error
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error resetting daily visit count:', error);
+      }
     }
   }
 
@@ -143,11 +161,16 @@ export class DailyVisitService {
         await AsyncStorage.multiRemove(keysToDelete);
         
         if (__DEV__) {
+          // eslint-disable-next-line no-console
           console.log('🧹 Cleaned up old visit data:', keysToDelete.length, 'entries');
         }
       }
     } catch (error) {
-      console.error('Error cleaning up old visit data:', error);
+      // Silently handle error
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.error('Error cleaning up old visit data:', error);
+      }
     }
   }
 }
