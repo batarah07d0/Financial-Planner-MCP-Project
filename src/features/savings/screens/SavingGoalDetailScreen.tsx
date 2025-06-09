@@ -28,6 +28,7 @@ import {
   SavingGoal
 } from '../../../core/services/supabase/savingGoal.service';
 import { useSuperiorDialog } from '../../../core/hooks';
+import { useSensitiveActionAuth } from '../../../core/hooks/useSensitiveActionAuth';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -186,7 +187,11 @@ export const SavingGoalDetailScreen = () => {
   const route = useRoute<SavingGoalDetailScreenRouteProp>();
   const navigation = useNavigation<SavingGoalDetailScreenNavigationProp>();
   const { goalId } = route.params;
-  const { dialogState, showError, showSuccess, showDelete, hideDialog } = useSuperiorDialog();
+  const { dialogState, showError, showSuccess, showConfirm, hideDialog } = useSuperiorDialog();
+  const { authenticateEdit, authenticateDelete } = useSensitiveActionAuth({
+    showConfirm,
+    showError,
+  });
 
   const [goal, setGoal] = useState<SavingGoal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -261,14 +266,20 @@ export const SavingGoalDetailScreen = () => {
     }
   };
 
-  const handleEdit = () => {
-    navigation.navigate('EditSavingGoal', { goalId });
+  const handleEdit = async () => {
+    await authenticateEdit(
+      'tujuan tabungan',
+      goal?.name || 'tujuan tabungan ini',
+      () => {
+        navigation.navigate('EditSavingGoal', { goalId });
+      }
+    );
   };
 
-  const handleDelete = () => {
-    showDelete(
-      'Hapus Tujuan Tabungan',
-      'Apakah Anda yakin ingin menghapus tujuan tabungan ini? Tindakan ini tidak dapat dibatalkan.',
+  const handleDelete = async () => {
+    await authenticateDelete(
+      'tujuan tabungan',
+      goal?.name || 'tujuan tabungan ini',
       async () => {
         try {
           const success = await deleteSavingGoal(goalId);

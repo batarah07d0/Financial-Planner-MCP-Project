@@ -46,6 +46,7 @@ import { getCategoryById } from '../../../core/services/supabase/category.servic
 import { useAuthStore, useTransactionStore } from '../../../core/services/store';
 import { useSuperiorDialog } from '../../../core/hooks';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
+import { useSensitiveActionAuth } from '../../../core/hooks/useSensitiveActionAuth';
 import { supabase } from '../../../config/supabase';
 
 type TransactionDetailRouteProp = RouteProp<{ TransactionDetail: { id: string } }, 'TransactionDetail'>;
@@ -69,7 +70,11 @@ export const TransactionDetailScreen = () => {
 
   const { user } = useAuthStore();
   const { fetchTransactions } = useTransactionStore();
-  const { dialogState, showSuccess, showError, showDelete, hideDialog } = useSuperiorDialog();
+  const { dialogState, showSuccess, showError, showConfirm, hideDialog } = useSuperiorDialog();
+  const { authenticateEdit, authenticateDelete } = useSensitiveActionAuth({
+    showConfirm,
+    showError,
+  });
 
   // Animation functions
   const startEntranceAnimation = useCallback(() => {
@@ -140,24 +145,24 @@ export const TransactionDetailScreen = () => {
   }, [transactionId, showError, navigation, startEntranceAnimation]);
 
   // Handle delete transaction
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
-    showDelete(
-      'Hapus Transaksi',
-      'Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.',
+    await authenticateDelete(
+      'transaksi',
+      category?.name ? `${transaction?.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} ${category.name}` : 'transaksi ini',
       async () => {
         try {
           setIsDeleting(true);
           await deleteTransaction(transactionId);
-          
+
           // Refresh transactions list
           if (user) {
             await fetchTransactions(user.id);
           }
-          
+
           showSuccess('Berhasil', 'Transaksi berhasil dihapus');
           setTimeout(() => navigation.goBack(), 1500);
         } catch (error) {
@@ -170,11 +175,18 @@ export const TransactionDetailScreen = () => {
   };
 
   // Handle edit transaction
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    navigation.navigate('EditTransaction', { id: transactionId });
+
+    await authenticateEdit(
+      'transaksi',
+      category?.name ? `${transaction?.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} ${category.name}` : 'transaksi ini',
+      () => {
+        navigation.navigate('EditTransaction', { id: transactionId });
+      }
+    );
   };
 
   // Handle back navigation

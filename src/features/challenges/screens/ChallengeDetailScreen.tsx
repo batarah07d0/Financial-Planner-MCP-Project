@@ -28,6 +28,7 @@ import {
   ChallengeWithProgress
 } from '../services/challengeService';
 import { useSuperiorDialog } from '../../../core/hooks';
+import { useSensitiveActionAuth } from '../../../core/hooks/useSensitiveActionAuth';
 import { formatCurrency, formatDate } from '../../../core/utils';
 
 type ChallengeDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ChallengeDetail'>;
@@ -38,7 +39,11 @@ export const ChallengeDetailScreen = () => {
   const route = useRoute<ChallengeDetailScreenRouteProp>();
   const { id: challengeId } = route.params;
   const { user } = useAuthStore();
-  const { dialogState, showError, showSuccess, showDialog, hideDialog } = useSuperiorDialog();
+  const { dialogState, showError, showSuccess, showDialog, showConfirm, hideDialog } = useSuperiorDialog();
+  const { authenticateDelete } = useSensitiveActionAuth({
+    showConfirm,
+    showError,
+  });
 
   // State
   const [challenge, setChallenge] = useState<ChallengeWithProgress | null>(null);
@@ -126,26 +131,13 @@ export const ChallengeDetailScreen = () => {
   const handleDeleteChallenge = async () => {
     if (!challenge || !user || !challenge.user_challenge?.id) return;
 
-    showDialog({
-      type: 'warning',
-      title: '⚠️ Hapus Tantangan',
-      message: `Apakah Anda yakin ingin menghapus tantangan "${challenge.name}"?\n\nSemua progress akan hilang dan tidak dapat dikembalikan.`,
-      actions: [
-        {
-          text: 'Batal',
-          onPress: hideDialog,
-          style: 'cancel',
-        },
-        {
-          text: 'Hapus',
-          onPress: async () => {
-            hideDialog();
-            await deleteChallenge();
-          },
-          style: 'destructive',
-        },
-      ],
-    });
+    await authenticateDelete(
+      'tantangan',
+      challenge.name,
+      async () => {
+        await deleteChallenge();
+      }
+    );
   };
 
   // Function untuk menghapus data dari Supabase

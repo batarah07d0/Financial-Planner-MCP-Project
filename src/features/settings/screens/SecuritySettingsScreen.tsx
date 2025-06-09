@@ -25,7 +25,20 @@ import {
   updateSecuritySettings,
   getUserSettings,
   updateUserSettings,
+  createSecuritySettings,
+  createUserSettings,
 } from '../services/userSettingsService';
+import { useBiometrics } from '../../../core/hooks/useBiometrics';
+import {
+  setSecurityLevel,
+  setPrivacyMode,
+  setSensitiveDataSettings,
+} from '../../../core/services/security/securityService';
+import { enableEncryption } from '../../../core/services/security/encryptionService';
+import {
+  enableBiometricLogin,
+  disableBiometricLogin,
+} from '../../../core/services/security/credentialService';
 
 type SecurityLevel = 'low' | 'medium' | 'high';
 
@@ -33,19 +46,22 @@ export const SecuritySettingsScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuthStore();
 
-  const [settings, setSettings] = useState<SecuritySettings>({
+  // Default settings yang akan di-override dari database
+  const defaultSecuritySettings = React.useMemo((): SecuritySettings => ({
     security_level: 'medium',
     privacy_mode: 'standard',
     hide_balances: false,
     hide_transactions: false,
     hide_budgets: false,
     require_auth_for_sensitive_actions: true,
+    require_auth_for_edit: false,
+    require_auth_for_delete: false,
     auto_lock_timeout: 300,
     failed_attempts_limit: 5,
     session_timeout: 3600,
-  });
+  }), []);
 
-  const [userSettings, setUserSettings] = useState<UserSettings>({
+  const defaultUserSettings = React.useMemo((): UserSettings => ({
     notification_enabled: true,
     biometric_enabled: false,
     budget_alert_threshold: 80,
@@ -53,34 +69,116 @@ export const SecuritySettingsScreen = () => {
     weekly_summary_enabled: true,
     saving_goal_alerts: true,
     transaction_reminders: true,
+  }), []);
+
+  const [settings, setSettings] = useState<SecuritySettings>(defaultSecuritySettings);
+  const [userSettings, setUserSettings] = useState<UserSettings>(defaultUserSettings);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Hook untuk biometrik
+  const {
+    isAvailable: biometricAvailable,
+    enableBiometrics,
+    disableBiometrics,
+    authenticate
+  } = useBiometrics((title: string, message: string) => {
+    Alert.alert(title, message);
   });
 
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   const loadSettings = React.useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
+      setIsLoading(true);
+
+      // Load settings from database
+
       const [securitySettings, userSettingsData] = await Promise.all([
         getSecuritySettings(user.id),
         getUserSettings(user.id),
       ]);
 
+      // Pastikan data dari database di-load dengan benar
       if (securitySettings) {
         setSettings(securitySettings);
+      } else {
+        // Jika belum ada data, gunakan default dan buat record baru
+        setSettings(defaultSecuritySettings);
+        // Buat record default di database
+        await createSecuritySettings(user.id, defaultSecuritySettings);
       }
+
       if (userSettingsData) {
         setUserSettings(userSettingsData);
+      } else {
+        // Jika belum ada data, gunakan default dan buat record baru
+        setUserSettings(defaultUserSettings);
+        // Buat record default di database
+        await createUserSettings(user.id, defaultUserSettings);
       }
     } catch (error) {
       Alert.alert('Error', 'Gagal memuat pengaturan keamanan');
+      // Fallback ke default settings
+      setSettings(defaultSecuritySettings);
+      setUserSettings(defaultUserSettings);
+    } finally {
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [user, defaultSecuritySettings, defaultUserSettings]);
 
+  // Helper functions
+  const getSecurityLevelText = (level: SecurityLevel): string => {
+    switch (level) {
+      case 'low': return 'Rendah';
+      case 'medium': return 'Sedang';
+      case 'high': return 'Tinggi';
+      default: return 'Sedang';
+    }
+  };
+
+  const handleSecurityLevelChange = async (level: SecurityLevel) => {
+    try {
+      // Implementasi berdasarkan tingkat keamanan
+      switch (level) {
+        case 'high':
+          // Tingkat tinggi: aktifkan enkripsi dan semua fitur keamanan
+          await enableEncryption();
+          Alert.alert(
+            '🔒 Keamanan Tinggi Diaktifkan',
+            'Enkripsi data telah diaktifkan. Data Anda akan dienkripsi untuk keamanan maksimal.'
+          );
+          break;
+
+        case 'medium':
+          // Tingkat sedang: keamanan standar dengan beberapa fitur tambahan
+          Alert.alert(
+            '🛡️ Keamanan Sedang',
+            'Tingkat keamanan seimbang dengan verifikasi tambahan untuk tindakan sensitif.'
+          );
+          break;
+
+        case 'low':
+          // Tingkat rendah: keamanan dasar
+          Alert.alert(
+            '🔓 Keamanan Rendah',
+            'Keamanan dasar diaktifkan. Beberapa fitur keamanan akan dinonaktifkan.'
+          );
+          break;
+      }
+    } catch (error) {
+      // Error handling sudah ada di updateSetting
+    }
+  };
+
+  // Load settings saat screen pertama kali mount
   useEffect(() => {
-    loadSettings();
-
     // Animasi fade in
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -94,20 +192,65 @@ export const SecuritySettingsScreen = () => {
       StatusBar.setBackgroundColor('transparent');
       StatusBar.setTranslucent(true);
     }
-  }, [loadSettings, fadeAnim]);
+  }, [fadeAnim]);
+
+  // Load settings hanya saat pertama kali mount
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const updateSetting = async (key: keyof SecuritySettings, value: string | boolean | number) => {
     if (!user) return;
 
+    const originalSettings = { ...settings };
+
     try {
+      setIsUpdating(true);
+
+      // Update state optimistically
       const newSettings = { ...settings, [key]: value };
       setSettings(newSettings);
 
+      // Update ke Supabase PERTAMA
       await updateSecuritySettings(user.id, { [key]: value });
+
+      // Implementasi logic berdasarkan jenis setting
+      if (key === 'security_level') {
+        await handleSecurityLevelChange(value as SecurityLevel);
+        await setSecurityLevel(value as SecurityLevel);
+      }
+
+      if (key === 'privacy_mode') {
+        await setPrivacyMode(value as 'standard' | 'enhanced' | 'maximum');
+      }
+
+      // Update sensitive data settings
+      if (['hide_balances', 'hide_transactions', 'hide_budgets', 'require_auth_for_sensitive_actions', 'require_auth_for_edit', 'require_auth_for_delete'].includes(key)) {
+        await setSensitiveDataSettings({
+          hideBalances: newSettings.hide_balances,
+          hideTransactions: newSettings.hide_transactions,
+          hideBudgets: newSettings.hide_budgets,
+          requireAuthForSensitiveActions: newSettings.require_auth_for_sensitive_actions,
+        });
+      }
+
+      // Show success message for important changes
+      if (key === 'security_level') {
+        Alert.alert(
+          '✅ Berhasil!',
+          `Tingkat keamanan berhasil diubah ke ${getSecurityLevelText(value as SecurityLevel)}`
+        );
+      }
+
+      // JANGAN reload settings karena akan override perubahan user
+      // Settings sudah di-update optimistically di state
+
     } catch (error) {
       Alert.alert('Error', 'Gagal memperbarui pengaturan');
       // Revert state on error
-      setSettings(settings);
+      setSettings(originalSettings);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -115,6 +258,69 @@ export const SecuritySettingsScreen = () => {
     if (!user) return;
 
     try {
+      setIsUpdating(true);
+
+      // Handle biometric setting dengan validasi
+      if (key === 'biometric_enabled') {
+        if (value === true) {
+          // Cek ketersediaan biometrik
+          if (!biometricAvailable) {
+            Alert.alert(
+              'Biometrik Tidak Tersedia',
+              'Perangkat Anda tidak mendukung autentikasi biometrik atau belum ada data biometrik yang terdaftar.'
+            );
+            return;
+          }
+
+          // Minta autentikasi untuk mengaktifkan biometrik
+          const authSuccess = await authenticate({
+            promptMessage: 'Autentikasi untuk mengaktifkan biometrik',
+            fallbackLabel: 'Gunakan PIN',
+          });
+
+          if (!authSuccess) {
+            Alert.alert('Gagal', 'Autentikasi biometrik gagal. Pengaturan tidak diubah.');
+            return;
+          }
+
+          // Aktifkan biometrik di sistem
+          const enableSuccess = await enableBiometrics();
+          if (!enableSuccess) {
+            Alert.alert('Error', 'Gagal mengaktifkan autentikasi biometrik');
+            return;
+          }
+
+          // Aktifkan biometric login (menggunakan credentials yang tersimpan)
+          const biometricLoginEnabled = await enableBiometricLogin();
+          if (!biometricLoginEnabled) {
+            Alert.alert(
+              'Peringatan',
+              'Biometrik diaktifkan, tetapi Anda perlu login ulang untuk mengaktifkan login biometrik.'
+            );
+          } else {
+            Alert.alert(
+              '✅ Berhasil!',
+              'Autentikasi biometrik berhasil diaktifkan. Anda dapat menggunakan sidik jari atau wajah untuk login.'
+            );
+          }
+        } else {
+          // Nonaktifkan biometrik
+          const disableSuccess = await disableBiometrics();
+          if (!disableSuccess) {
+            Alert.alert('Error', 'Gagal menonaktifkan autentikasi biometrik');
+            return;
+          }
+
+          // Nonaktifkan biometric login dan hapus credentials
+          await disableBiometricLogin();
+
+          Alert.alert(
+            '✅ Berhasil!',
+            'Autentikasi biometrik berhasil dinonaktifkan.'
+          );
+        }
+      }
+
       const newSettings = { ...userSettings, [key]: value };
       setUserSettings(newSettings);
 
@@ -123,6 +329,8 @@ export const SecuritySettingsScreen = () => {
       Alert.alert('Error', 'Gagal memperbarui pengaturan');
       // Revert state on error
       setUserSettings(userSettings);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -151,9 +359,11 @@ export const SecuritySettingsScreen = () => {
             key={level}
             style={[
               styles.optionItem,
-              settings.security_level === level && styles.optionItemActive
+              settings.security_level === level && styles.optionItemActive,
+              (isUpdating || isLoading) && styles.optionItemDisabled
             ]}
-            onPress={() => updateSetting('security_level', level)}
+            onPress={() => !(isUpdating || isLoading) && updateSetting('security_level', level)}
+            disabled={isUpdating || isLoading}
           >
             <View style={styles.optionContent}>
               <Typography
@@ -208,12 +418,21 @@ export const SecuritySettingsScreen = () => {
           <View style={styles.settingContent}>
             <Typography variant="body1" weight="500">Aktifkan Biometrik</Typography>
             <Typography variant="body2" color={theme.colors.neutral[600]}>
-              Gunakan sidik jari atau wajah untuk login
+              {biometricAvailable
+                ? 'Gunakan sidik jari atau wajah untuk login'
+                : 'Biometrik tidak tersedia di perangkat ini'
+              }
             </Typography>
+            {!biometricAvailable && (
+              <Typography variant="caption" color={theme.colors.warning[600]} style={{ marginTop: 4 }}>
+                Pastikan Anda telah mendaftarkan sidik jari atau wajah di pengaturan perangkat
+              </Typography>
+            )}
           </View>
           <Switch
             value={userSettings.biometric_enabled}
             onValueChange={(value) => updateUserSetting('biometric_enabled', value)}
+            disabled={isUpdating || isLoading || !biometricAvailable}
             trackColor={{
               false: theme.colors.neutral[300],
               true: theme.colors.success[300],
@@ -230,18 +449,65 @@ export const SecuritySettingsScreen = () => {
           <View style={styles.settingContent}>
             <Typography variant="body1" weight="500">Autentikasi untuk Tindakan Sensitif</Typography>
             <Typography variant="body2" color={theme.colors.neutral[600]}>
-              Minta autentikasi untuk tindakan sensitif
+              Minta autentikasi untuk melihat data sensitif
             </Typography>
           </View>
           <Switch
             value={settings.require_auth_for_sensitive_actions}
             onValueChange={(value) => updateSetting('require_auth_for_sensitive_actions', value)}
+            disabled={isUpdating || isLoading}
             trackColor={{
               false: theme.colors.neutral[300],
               true: theme.colors.success[300],
             }}
             thumbColor={
               settings.require_auth_for_sensitive_actions
+                ? theme.colors.success[500]
+                : theme.colors.neutral[100]
+            }
+          />
+        </View>
+
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <Typography variant="body1" weight="500">Autentikasi untuk Edit Data</Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Minta autentikasi saat mengedit transaksi, anggaran, dll
+            </Typography>
+          </View>
+          <Switch
+            value={settings.require_auth_for_edit}
+            onValueChange={(value) => updateSetting('require_auth_for_edit', value)}
+            disabled={isUpdating || isLoading}
+            trackColor={{
+              false: theme.colors.neutral[300],
+              true: theme.colors.success[300],
+            }}
+            thumbColor={
+              settings.require_auth_for_edit
+                ? theme.colors.success[500]
+                : theme.colors.neutral[100]
+            }
+          />
+        </View>
+
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <Typography variant="body1" weight="500">Autentikasi untuk Hapus Data</Typography>
+            <Typography variant="body2" color={theme.colors.neutral[600]}>
+              Minta autentikasi saat menghapus transaksi, anggaran, dll
+            </Typography>
+          </View>
+          <Switch
+            value={settings.require_auth_for_delete}
+            onValueChange={(value) => updateSetting('require_auth_for_delete', value)}
+            disabled={isUpdating || isLoading}
+            trackColor={{
+              false: theme.colors.neutral[300],
+              true: theme.colors.success[300],
+            }}
+            thumbColor={
+              settings.require_auth_for_delete
                 ? theme.colors.success[500]
                 : theme.colors.neutral[100]
             }
@@ -281,6 +547,7 @@ export const SecuritySettingsScreen = () => {
           <Switch
             value={settings.hide_balances}
             onValueChange={(value) => updateSetting('hide_balances', value)}
+            disabled={isUpdating || isLoading}
             trackColor={{
               false: theme.colors.neutral[300],
               true: theme.colors.warning[300],
@@ -303,6 +570,7 @@ export const SecuritySettingsScreen = () => {
           <Switch
             value={settings.hide_transactions}
             onValueChange={(value) => updateSetting('hide_transactions', value)}
+            disabled={isUpdating || isLoading}
             trackColor={{
               false: theme.colors.neutral[300],
               true: theme.colors.warning[300],
@@ -325,6 +593,7 @@ export const SecuritySettingsScreen = () => {
           <Switch
             value={settings.hide_budgets}
             onValueChange={(value) => updateSetting('hide_budgets', value)}
+            disabled={isUpdating || isLoading}
             trackColor={{
               false: theme.colors.neutral[300],
               true: theme.colors.warning[300],
@@ -456,6 +725,10 @@ const styles = StyleSheet.create({
   optionItemActive: {
     borderColor: theme.colors.primary[300],
     backgroundColor: theme.colors.primary[50],
+  },
+  optionItemDisabled: {
+    opacity: 0.5,
+    backgroundColor: theme.colors.neutral[100],
   },
   optionContent: {
     flex: 1,

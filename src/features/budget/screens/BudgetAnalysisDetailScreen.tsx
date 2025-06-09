@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -15,9 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
-import { formatCurrency, formatDate, formatPercentage } from '../../../core/utils';
+import { formatCurrency, formatDate } from '../../../core/utils';
 import { useSuperiorDialog } from '../../../core/hooks';
-import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
+// import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { getBudgetById, getBudgetSpending } from '../../../core/services/supabase/budget.service';
 import { getCategories } from '../../../core/services/supabase/category.service';
 import { getTransactions } from '../../../core/services/supabase/transaction.service';
@@ -25,7 +24,7 @@ import { useAuthStore } from '../../../core/services/store/authStore';
 import { Budget, Category, Transaction } from '../../../core/services/supabase/types';
 import { RootStackParamList } from '../../../core/navigation/types';
 
-const { width: screenWidth } = Dimensions.get('window');
+// const { width: screenWidth } = Dimensions.get('window');
 
 type BudgetAnalysisDetailRouteProp = RouteProp<{ BudgetAnalysisDetail: { budgetId: string; categoryId: string } }, 'BudgetAnalysisDetail'>;
 type BudgetAnalysisDetailNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -53,8 +52,8 @@ export const BudgetAnalysisDetailScreen = () => {
   const route = useRoute<BudgetAnalysisDetailRouteProp>();
   const { budgetId, categoryId } = route.params;
 
-  const [budget, setBudget] = useState<Budget | null>(null);
-  const [category, setCategory] = useState<Category | null>(null);
+  const [, setBudget] = useState<Budget | null>(null);
+  const [, setCategory] = useState<Category | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -62,7 +61,46 @@ export const BudgetAnalysisDetailScreen = () => {
 
   const { user } = useAuthStore();
   const { showError, dialogState, hideDialog } = useSuperiorDialog();
-  const { responsiveSpacing, responsiveFontSize, isSmallDevice } = useAppDimensions();
+  // const { responsiveSpacing, responsiveFontSize, isSmallDevice } = useAppDimensions();
+
+  // Process raw transaction data into analysis insights
+  const processAnalysisData = useCallback((transactions: Transaction[], totalSpent: number, period: string): AnalysisData => {
+    const transactionCount = transactions.length;
+    const averageTransaction = transactionCount > 0 ? totalSpent / transactionCount : 0;
+
+    const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
+    const dailyAverage = totalSpent / periodDays;
+
+    // Weekly trend (last 7 days)
+    const weeklyTrend = generateWeeklyTrend(transactions);
+
+    // Monthly trend (last 12 months)
+    const monthlyTrend = generateMonthlyTrend(transactions);
+
+    // Spending pattern by time of day
+    const spendingPattern = analyzeSpendingPattern(transactions);
+
+    // Top transactions
+    const topTransactions = transactions
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    // Generate insights
+    const insights = generateInsights(transactions, totalSpent, averageTransaction, dailyAverage);
+
+    return {
+      totalSpent,
+      transactionCount,
+      averageTransaction,
+      dailyAverage,
+      weeklyTrend,
+      monthlyTrend,
+      categoryBreakdown: [], // Will be implemented if needed
+      spendingPattern,
+      topTransactions,
+      insights,
+    };
+  }, []);
 
   // Load analysis data
   const loadAnalysisData = useCallback(async () => {
@@ -117,46 +155,7 @@ export const BudgetAnalysisDetailScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [budgetId, categoryId, user?.id, selectedPeriod, showError]);
-
-  // Process raw transaction data into analysis insights
-  const processAnalysisData = (transactions: Transaction[], totalSpent: number, period: string): AnalysisData => {
-    const transactionCount = transactions.length;
-    const averageTransaction = transactionCount > 0 ? totalSpent / transactionCount : 0;
-    
-    const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
-    const dailyAverage = totalSpent / periodDays;
-
-    // Weekly trend (last 7 days)
-    const weeklyTrend = generateWeeklyTrend(transactions);
-    
-    // Monthly trend (last 12 months)
-    const monthlyTrend = generateMonthlyTrend(transactions);
-
-    // Spending pattern by time of day
-    const spendingPattern = analyzeSpendingPattern(transactions);
-
-    // Top transactions
-    const topTransactions = transactions
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-
-    // Generate insights
-    const insights = generateInsights(transactions, totalSpent, averageTransaction, dailyAverage);
-
-    return {
-      totalSpent,
-      transactionCount,
-      averageTransaction,
-      dailyAverage,
-      weeklyTrend,
-      monthlyTrend,
-      categoryBreakdown: [], // Will be implemented if needed
-      spendingPattern,
-      topTransactions,
-      insights,
-    };
-  };
+  }, [budgetId, categoryId, user?.id, selectedPeriod, showError, processAnalysisData]);
 
   // Generate weekly trend data
   const generateWeeklyTrend = (transactions: Transaction[]) => {

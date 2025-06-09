@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography, Card, TransactionCard, SuperiorDialog } from '../../../core/components';
+import { Typography, Card, TransactionCard, SuperiorDialog, PrivacyProtectedText } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -483,7 +483,13 @@ export const DashboardScreen = () => {
               {isLoading ? (
                 <ActivityIndicator size="small" color={theme.colors.primary[500]} />
               ) : (
-                <View style={styles.balanceAmountContainer}>
+                <PrivacyProtectedText
+                  type="balance"
+                  fallbackText="••••••••"
+                  showToggle={true}
+                  requireAuth={true}
+                  style={styles.balanceAmountContainer}
+                >
                   <Typography variant="h3" color={theme.colors.primary[500]} weight="700">
                     {formatCardCurrency(currentBalance)}
                   </Typography>
@@ -495,7 +501,7 @@ export const DashboardScreen = () => {
                       style={styles.balanceInfoIcon}
                     />
                   )}
-                </View>
+                </PrivacyProtectedText>
               )}
             </TouchableOpacity>
             <TouchableOpacity style={[styles.addButton, {
@@ -679,9 +685,15 @@ export const DashboardScreen = () => {
               {isLoading ? (
                 <ActivityIndicator size="small" color={theme.colors.success[500]} />
               ) : (
-                <Typography variant="h5" color={theme.colors.success[500]} weight="600">
-                  {formatCardCurrency(monthlyIncome)}
-                </Typography>
+                <PrivacyProtectedText
+                  type="balance"
+                  fallbackText="••••••"
+                  showToggle={false}
+                >
+                  <Typography variant="h5" color={theme.colors.success[500]} weight="600">
+                    {formatCardCurrency(monthlyIncome)}
+                  </Typography>
+                </PrivacyProtectedText>
               )}
             </Card>
 
@@ -713,9 +725,15 @@ export const DashboardScreen = () => {
               {isLoading ? (
                 <ActivityIndicator size="small" color={theme.colors.danger[500]} />
               ) : (
-                <Typography variant="h5" color={theme.colors.danger[500]} weight="600">
-                  {formatCardCurrency(monthlyExpense)}
-                </Typography>
+                <PrivacyProtectedText
+                  type="balance"
+                  fallbackText="••••••"
+                  showToggle={false}
+                >
+                  <Typography variant="h5" color={theme.colors.danger[500]} weight="600">
+                    {formatCardCurrency(monthlyExpense)}
+                  </Typography>
+                </PrivacyProtectedText>
               )}
             </Card>
           </View>

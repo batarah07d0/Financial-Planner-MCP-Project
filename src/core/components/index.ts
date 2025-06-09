@@ -20,3 +20,4 @@ export * from './ChallengeCard';
 export * from './BiometricAuth';
 export * from './SuperiorDialog';
 export * from './Switch';
+export * from './PrivacyProtectedText';

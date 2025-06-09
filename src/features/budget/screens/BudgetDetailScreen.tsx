@@ -19,6 +19,7 @@ import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate, formatPercentage, getCategoryIcon, getCategoryColor } from '../../../core/utils';
 import { useSuperiorDialog } from '../../../core/hooks';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
+import { useSensitiveActionAuth } from '../../../core/hooks/useSensitiveActionAuth';
 import { getBudgetById, deleteBudget, getBudgetSpending } from '../../../core/services/supabase/budget.service';
 import { getCategories } from '../../../core/services/supabase/category.service';
 import { getTransactions } from '../../../core/services/supabase/transaction.service';
@@ -45,8 +46,12 @@ export const BudgetDetailScreen = () => {
 
   const { user } = useAuthStore();
   const { deleteBudget: deleteBudgetFromStore } = useBudgetStore();
-  const { showDelete, showSuccess, showError, dialogState, hideDialog } = useSuperiorDialog();
+  const { showSuccess, showError, showConfirm, dialogState, hideDialog } = useSuperiorDialog();
   const { responsiveSpacing, responsiveFontSize, isSmallDevice } = useAppDimensions();
+  const { authenticateEdit, authenticateDelete } = useSensitiveActionAuth({
+    showConfirm,
+    showError,
+  });
 
   // Load budget data
   const loadBudgetData = useCallback(async () => {
@@ -152,16 +157,22 @@ export const BudgetDetailScreen = () => {
   };
 
   // Handle edit budget
-  const handleEdit = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (navigation as any).navigate('EditBudget', { id: budgetId });
+  const handleEdit = async () => {
+    await authenticateEdit(
+      'anggaran',
+      category?.name ? `Anggaran ${category.name}` : 'anggaran ini',
+      () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigation as any).navigate('EditBudget', { id: budgetId });
+      }
+    );
   };
 
   // Handle delete budget
-  const handleDelete = () => {
-    showDelete(
-      'Hapus Anggaran',
-      'Apakah Anda yakin ingin menghapus anggaran ini? Tindakan ini tidak dapat dibatalkan.',
+  const handleDelete = async () => {
+    await authenticateDelete(
+      'anggaran',
+      category?.name ? `Anggaran ${category.name}` : 'anggaran ini',
       async () => {
         try {
           setIsDeleting(true);
