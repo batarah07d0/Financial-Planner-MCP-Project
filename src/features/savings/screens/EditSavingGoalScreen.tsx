@@ -9,6 +9,7 @@ import {
   Text,
   Platform,
   ViewStyle,
+  TextInput as RNTextInput,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, TextInput, Button, Card, SuperiorDialog } from '../../../core/components';
+import { Typography, Button, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 
 import {
@@ -351,9 +352,9 @@ export const EditSavingGoalScreen = () => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
-          <Typography variant="h4" weight="600" color={theme.colors.neutral[800]}>
+          <Typography variant="h4" weight="700" color={theme.colors.primary[500]}>
             Edit Tujuan Tabungan
           </Typography>
           <View style={styles.headerSpacer} />
@@ -387,9 +388,9 @@ export const EditSavingGoalScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600" color={theme.colors.neutral[800]}>
+        <Typography variant="h4" weight="700" color={theme.colors.primary[500]}>
           Edit Tujuan Tabungan
         </Typography>
         <View style={styles.headerSpacer} />
@@ -428,10 +429,10 @@ export const EditSavingGoalScreen = () => {
             <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.inputLabel}>
               Nama Tujuan Tabungan
             </Typography>
-            <TextInput
+            <RNTextInput
               style={styles.textInput}
               value={formData.name}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+              onChangeText={(text: string) => setFormData(prev => ({ ...prev, name: text }))}
               placeholder="Contoh: Liburan ke Bali"
               placeholderTextColor={theme.colors.neutral[400]}
             />
@@ -445,10 +446,10 @@ export const EditSavingGoalScreen = () => {
               <Typography variant="h6" color={theme.colors.neutral[600]} style={styles.currencySymbol}>
                 Rp
               </Typography>
-              <TextInput
+              <RNTextInput
                 style={styles.currencyInput}
                 value={formData.targetAmount}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, targetAmount: formatCurrency(text) }))}
+                onChangeText={(text: string) => setFormData(prev => ({ ...prev, targetAmount: formatCurrency(text) }))}
                 placeholder="0"
                 keyboardType="numeric"
                 placeholderTextColor={theme.colors.neutral[400]}
@@ -464,10 +465,10 @@ export const EditSavingGoalScreen = () => {
               <Typography variant="h6" color={theme.colors.neutral[600]} style={styles.currencySymbol}>
                 Rp
               </Typography>
-              <TextInput
+              <RNTextInput
                 style={styles.currencyInput}
                 value={formData.currentAmount}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, currentAmount: formatCurrency(text) }))}
+                onChangeText={(text: string) => setFormData(prev => ({ ...prev, currentAmount: formatCurrency(text) }))}
                 placeholder="0"
                 keyboardType="numeric"
                 placeholderTextColor={theme.colors.neutral[400]}
@@ -487,10 +488,10 @@ export const EditSavingGoalScreen = () => {
             <Typography variant="body2" color={theme.colors.neutral[700]} style={styles.inputLabel}>
               Deskripsi (Opsional)
             </Typography>
-            <TextInput
+            <RNTextInput
               style={[styles.textInput, styles.textArea]}
               value={formData.description}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+              onChangeText={(text: string) => setFormData(prev => ({ ...prev, description: text }))}
               placeholder="Tambahkan deskripsi untuk tujuan tabungan Anda..."
               placeholderTextColor={theme.colors.neutral[400]}
               multiline
@@ -648,16 +649,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: responsiveSpacing(theme.spacing.layout.md),
+    paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
     paddingVertical: responsiveSpacing(theme.spacing.md),
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[100],
+    ...theme.elevation.sm,
   },
   backButton: {
-    padding: responsiveSpacing(theme.spacing.xs),
+    width: responsiveSpacing(40),
+    height: responsiveSpacing(40),
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: responsiveSpacing(theme.borderRadius.round),
     backgroundColor: 'transparent',
+    marginLeft: responsiveSpacing(theme.spacing.xs), // Proper spacing from left edge
   },
   headerSpacer: {
     width: responsiveSpacing(40),

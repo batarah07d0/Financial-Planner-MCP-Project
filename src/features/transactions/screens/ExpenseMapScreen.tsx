@@ -51,7 +51,7 @@ interface DashboardFilters {
     max: number;
   };
   selectedCategories: string[];
-  viewMode: 'overview' | 'locations' | 'categories' | 'trends';
+  viewMode: 'overview' | 'locations' | 'categories';
   groupBy: 'area' | 'exact_location' | 'category';
 }
 
@@ -280,7 +280,7 @@ export const ExpenseMapScreen = () => {
   // Fungsi untuk toggle view mode dashboard
   const toggleViewMode = () => {
     setFilters(prev => {
-      const modes: Array<'overview' | 'locations' | 'categories' | 'trends'> = ['overview', 'locations', 'categories', 'trends'];
+      const modes: Array<'overview' | 'locations' | 'categories'> = ['overview', 'locations', 'categories'];
       const currentIndex = modes.indexOf(prev.viewMode);
       const nextIndex = (currentIndex + 1) % modes.length;
 
@@ -578,172 +578,7 @@ export const ExpenseMapScreen = () => {
     );
   };
 
-  // Render Trend Chart
-  const renderTrendChart = () => {
-    // Group transactions by month
-    const monthlyData = new Map<string, { total: number; count: number; locations: Set<string> }>();
 
-    filteredTransactions.forEach(transaction => {
-      const date = new Date(transaction.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const locationKey = transaction.location.address || 'Lokasi tidak diketahui';
-
-      if (!monthlyData.has(monthKey)) {
-        monthlyData.set(monthKey, {
-          total: 0,
-          count: 0,
-          locations: new Set()
-        });
-      }
-
-      const monthData = monthlyData.get(monthKey)!;
-      monthData.total += transaction.amount;
-      monthData.count += 1;
-      monthData.locations.add(locationKey);
-    });
-
-    const trendData = Array.from(monthlyData.entries())
-      .map(([month, data]) => ({
-        month,
-        total: data.total,
-        count: data.count,
-        locationCount: data.locations.size,
-        avgPerTransaction: data.total / data.count
-      }))
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .slice(-6); // Last 6 months
-
-    if (trendData.length === 0) {
-      return (
-        <View style={styles.chartContainer}>
-          <View style={styles.chartHeader}>
-            <Typography variant="h5" weight="700" color={theme.colors.neutral[900]}>
-              📈 Tren Pengeluaran
-            </Typography>
-            <Typography variant="body2" color={theme.colors.neutral[600]}>
-              Belum ada data untuk ditampilkan
-            </Typography>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.chartContainer}>
-        <View style={styles.chartHeader}>
-          <Typography variant="h5" weight="700" color={theme.colors.neutral[900]}>
-            📈 Tren Pengeluaran
-          </Typography>
-          <Typography variant="body2" color={theme.colors.neutral[600]}>
-            {filters.selectedCategories.length > 0
-              ? `Tren untuk ${filters.selectedCategories.length} kategori terpilih`
-              : `Perkembangan ${trendData.length} bulan terakhir`
-            }
-          </Typography>
-        </View>
-
-        {/* Monthly Trend Cards */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.trendContainer}>
-            {trendData.map((item, index) => {
-              const monthName = new Date(item.month + '-01').toLocaleDateString('id-ID', {
-                month: 'short',
-                year: '2-digit'
-              });
-              const isHighest = item.total === Math.max(...trendData.map(d => d.total));
-
-              return (
-                <TouchableOpacity
-                  key={item.month}
-                  style={[
-                    styles.trendCard,
-                    isHighest && styles.trendCardHighest
-                  ]}
-                  onPress={() => {
-                    showDialog({
-                      type: 'info',
-                      title: `Detail ${monthName}`,
-                      message: `Total Pengeluaran: ${formatCurrency(item.total)}\nJumlah Transaksi: ${item.count}\nLokasi Berbeda: ${item.locationCount}\nRata-rata per Transaksi: ${formatCurrency(item.avgPerTransaction)}`,
-                      actions: [
-                        {
-                          text: 'Tutup',
-                          onPress: hideDialog,
-                          style: 'primary'
-                        }
-                      ]
-                    });
-                  }}
-                >
-                  <View style={styles.trendCardHeader}>
-                    <Typography variant="caption" weight="600" color={theme.colors.neutral[600]}>
-                      {monthName}
-                    </Typography>
-                    {isHighest && (
-                      <View style={styles.highestBadge}>
-                        <Typography variant="caption" color={theme.colors.white} weight="600">
-                          Tertinggi
-                        </Typography>
-                      </View>
-                    )}
-                  </View>
-
-                  <Typography variant="h6" weight="700" color={theme.colors.neutral[800]} style={styles.trendAmount}>
-                    {formatCurrency(item.total)}
-                  </Typography>
-
-                  <View style={styles.trendStats}>
-                    <View style={styles.trendStat}>
-                      <Typography variant="caption" color={theme.colors.neutral[500]}>
-                        {item.count} transaksi
-                      </Typography>
-                    </View>
-                    <View style={styles.trendStat}>
-                      <Typography variant="caption" color={theme.colors.neutral[500]}>
-                        {item.locationCount} lokasi
-                      </Typography>
-                    </View>
-                  </View>
-
-                  {/* Trend indicator */}
-                  {index > 0 && (
-                    <View style={styles.trendIndicator}>
-                      {item.total > trendData[index - 1].total ? (
-                        <Ionicons name="trending-up" size={16} color={theme.colors.danger[500]} />
-                      ) : item.total < trendData[index - 1].total ? (
-                        <Ionicons name="trending-down" size={16} color={theme.colors.success[500]} />
-                      ) : (
-                        <Ionicons name="remove" size={16} color={theme.colors.neutral[400]} />
-                      )}
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
-
-        {/* Summary Stats */}
-        <View style={styles.trendSummary}>
-          <View style={styles.summaryItem}>
-            <Typography variant="caption" color={theme.colors.neutral[500]}>
-              Total Periode
-            </Typography>
-            <Typography variant="h6" weight="700" color={theme.colors.primary[600]}>
-              {formatCurrency(trendData.reduce((sum, item) => sum + item.total, 0))}
-            </Typography>
-          </View>
-          <View style={styles.summaryItem}>
-            <Typography variant="caption" color={theme.colors.neutral[500]}>
-              Rata-rata Bulanan
-            </Typography>
-            <Typography variant="h6" weight="700" color={theme.colors.secondary[600]}>
-              {formatCurrency(trendData.reduce((sum, item) => sum + item.total, 0) / trendData.length)}
-            </Typography>
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   // Render Dashboard Content berdasarkan viewMode
   const renderDashboardContent = () => {
@@ -767,12 +602,7 @@ export const ExpenseMapScreen = () => {
             {renderCategoryDistributionChart()}
           </ScrollView>
         );
-      case 'trends':
-        return (
-          <ScrollView style={styles.dashboardContainer} showsVerticalScrollIndicator={false}>
-            {renderTrendChart()}
-          </ScrollView>
-        );
+
       default:
         return null;
     }
@@ -800,8 +630,7 @@ export const ExpenseMapScreen = () => {
             name={
               filters.viewMode === 'overview' ? "grid" :
               filters.viewMode === 'locations' ? "location" :
-              filters.viewMode === 'categories' ? "pricetag" :
-              "trending-up"
+              "pricetag"
             }
             size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
             color={theme.colors.white}
@@ -968,7 +797,7 @@ export const ExpenseMapScreen = () => {
                   message: `Saat ini: ${
                     filters.viewMode === 'overview' ? 'Ringkasan' :
                     filters.viewMode === 'locations' ? 'Lokasi' :
-                    filters.viewMode === 'categories' ? 'Kategori' : 'Tren'
+                    'Kategori'
                   }\n\nTekan tombol biru di kanan bawah untuk mengganti mode tampilan.`,
                   actions: [
                     {
@@ -1520,64 +1349,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
 
-  // Trend Chart styles
-  trendContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
-    gap: theme.spacing.md,
-  },
-  trendCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    minWidth: 140,
-    borderWidth: 1,
-    borderColor: theme.colors.neutral[200],
-    ...theme.elevation.xs,
-  },
-  trendCardHighest: {
-    borderColor: theme.colors.primary[300],
-    borderWidth: 2,
-    ...theme.elevation.sm,
-  },
-  trendCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.xs,
-  },
-  highestBadge: {
-    backgroundColor: theme.colors.primary[500],
-    paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
-  },
-  trendAmount: {
-    marginBottom: theme.spacing.sm,
-  },
-  trendStats: {
-    gap: theme.spacing.xs,
-  },
-  trendStat: {
-    alignItems: 'flex-start',
-  },
-  trendIndicator: {
-    position: 'absolute',
-    top: theme.spacing.xs,
-    right: theme.spacing.xs,
-  },
-  trendSummary: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: theme.spacing.md,
-    paddingTop: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.neutral[200],
-  },
-  summaryItem: {
-    alignItems: 'center',
-  },
+
 
   // Empty state styles
   emptyStateContainer: {

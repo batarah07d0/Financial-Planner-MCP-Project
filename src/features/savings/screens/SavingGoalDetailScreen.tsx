@@ -300,9 +300,9 @@ export const SavingGoalDetailScreen = () => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
-          <Typography variant="h4" weight="600" color={theme.colors.neutral[800]}>
+          <Typography variant="h4" weight="700" color={theme.colors.primary[500]}>
             Detail Tabungan
           </Typography>
           <View style={styles.headerSpacer} />
@@ -337,9 +337,9 @@ export const SavingGoalDetailScreen = () => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
-          <Typography variant="h4" weight="600" color={theme.colors.neutral[800]}>
+          <Typography variant="h4" weight="700" color={theme.colors.primary[500]}>
             Detail Tabungan
           </Typography>
           <View style={styles.headerSpacer} />
@@ -403,9 +403,9 @@ export const SavingGoalDetailScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600" color={theme.colors.neutral[800]}>
+        <Typography variant="h4" weight="700" color={theme.colors.primary[500]}>
           Detail Tabungan
         </Typography>
         <TouchableOpacity
@@ -460,16 +460,18 @@ export const SavingGoalDetailScreen = () => {
                   <Typography variant="caption" color={theme.colors.white} style={styles.heroStatLabel}>
                     Terkumpul
                   </Typography>
-                  <Typography variant="h5" weight="700" color={theme.colors.white}>
+                  <Typography variant="h5" weight="700" color={theme.colors.white} style={styles.heroStatAmount}>
                     {formatCurrency(goal.current_amount)}
                   </Typography>
                 </View>
+
+                <View style={styles.heroStatDivider} />
 
                 <View style={styles.heroStat}>
                   <Typography variant="caption" color={theme.colors.white} style={styles.heroStatLabel}>
                     Target
                   </Typography>
-                  <Typography variant="h5" weight="700" color={theme.colors.white}>
+                  <Typography variant="h5" weight="700" color={theme.colors.white} style={styles.heroStatAmount}>
                     {formatCurrency(goal.target_amount)}
                   </Typography>
                 </View>
@@ -760,16 +762,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: responsiveSpacing(theme.spacing.layout.md),
+    paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
     paddingVertical: responsiveSpacing(theme.spacing.md),
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[100],
+    ...theme.elevation.sm,
   },
   backButton: {
-    padding: responsiveSpacing(theme.spacing.xs),
+    width: responsiveSpacing(40),
+    height: responsiveSpacing(40),
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: responsiveSpacing(theme.borderRadius.round),
     backgroundColor: 'transparent',
+    marginLeft: responsiveSpacing(theme.spacing.xs), // Proper spacing from left edge
   },
   editButton: {
     padding: responsiveSpacing(theme.spacing.xs),
@@ -865,19 +872,35 @@ const styles = StyleSheet.create({
   },
   heroStats: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     width: '100%',
     marginBottom: responsiveSpacing(theme.spacing.xl),
+    paddingHorizontal: responsiveSpacing(theme.spacing.md),
   },
   heroStat: {
     alignItems: 'center',
     flex: 1,
+    paddingHorizontal: responsiveSpacing(theme.spacing.sm),
   },
   heroStatLabel: {
     opacity: 0.8,
-    marginBottom: responsiveSpacing(theme.spacing.xs),
+    marginBottom: responsiveSpacing(theme.spacing.sm),
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    fontSize: responsiveFontSize(12),
+  },
+  heroStatAmount: {
+    textAlign: 'center',
+    lineHeight: responsiveFontSize(24),
+    fontSize: responsiveFontSize(18),
+    paddingHorizontal: responsiveSpacing(theme.spacing.xs),
+  },
+  heroStatDivider: {
+    width: 1,
+    height: responsiveSpacing(40),
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: responsiveSpacing(theme.spacing.sm),
   },
   progressContainer: {
     width: '100%',
@@ -951,7 +974,8 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     paddingHorizontal: responsiveSpacing(theme.spacing.layout.md),
-    marginBottom: responsiveSpacing(theme.spacing.lg),
+    marginBottom: responsiveSpacing(theme.spacing.xl), // Increased bottom margin
+    marginTop: responsiveSpacing(theme.spacing.md), // Added top margin
   },
   addButton: {
     borderRadius: responsiveSpacing(theme.borderRadius.lg),
@@ -961,21 +985,34 @@ const styles = StyleSheet.create({
   superiorAddButton: {
     borderRadius: responsiveSpacing(theme.borderRadius.xl),
     overflow: 'hidden',
+    minHeight: responsiveSpacing(64), // Increased height
     ...theme.elevation.lg,
   },
   addButtonGradient: {
-    paddingVertical: responsiveSpacing(theme.spacing.lg),
-    paddingHorizontal: responsiveSpacing(theme.spacing.xl),
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: responsiveSpacing(theme.spacing.xl), // Increased vertical padding
+    paddingHorizontal: responsiveSpacing(theme.spacing.xxl), // Increased horizontal padding
+    minHeight: responsiveSpacing(64), // Ensure minimum height
   },
   addButtonContent: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: responsiveSpacing(32), // Ensure content has minimum height
   },
   addButtonText: {
-    letterSpacing: 0.5,
+    textAlign: 'center', // Ensure horizontal center alignment
+    textAlignVertical: 'center', // Ensure vertical center alignment
+    letterSpacing: 0.8, // Slightly increased letter spacing
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    fontSize: responsiveFontSize(18), // Increased font size
+    lineHeight: responsiveFontSize(22), // Better line height
+    includeFontPadding: false, // Remove extra font padding for better centering
   },
   dangerCard: {
     margin: responsiveSpacing(theme.spacing.layout.md),

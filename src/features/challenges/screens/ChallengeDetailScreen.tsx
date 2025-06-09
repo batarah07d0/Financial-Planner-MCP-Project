@@ -992,7 +992,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch', // Use stretch to make both elements same height
     gap: theme.spacing.md,
   },
   currencyInputContainer: {
@@ -1004,7 +1004,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.primary[200],
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.md, // Keep original padding
     ...theme.elevation.sm,
   },
   currencyLabelContainer: {
@@ -1027,11 +1027,14 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   updateButton: {
-    minWidth: 100,
-    height: 56, // Match input container height
+    minWidth: 120, // Increased width for better proportion
     borderRadius: theme.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg, // Horizontal padding for better touch area
+    paddingVertical: theme.spacing.md, // Same vertical padding as input field
+    borderWidth: 2, // Add border width to match input field structure
+    borderColor: 'transparent', // Transparent border to maintain same structure
     ...theme.elevation.md,
   },
   // Quick Amount Styles
