@@ -1,13 +1,13 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  StyleSheet,
   Animated,
   Image,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Typography } from './Typography';
 import { theme } from '../theme';
+import { Typography } from './Typography';
 
 interface SplashScreenProps {
   isVisible: boolean;
