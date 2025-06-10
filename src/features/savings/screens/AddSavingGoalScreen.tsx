@@ -636,7 +636,7 @@ const optimizedInputStyles = StyleSheet.create({
     borderRadius: responsiveSpacing(theme.borderRadius.lg),
     minHeight: responsiveSpacing(56),
     paddingHorizontal: responsiveSpacing(theme.spacing.md),
-    // Stable border properties to prevent layout shifts
+    
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -655,7 +655,7 @@ const optimizedInputStyles = StyleSheet.create({
     paddingVertical: responsiveSpacing(theme.spacing.md),
     paddingHorizontal: 0,
     textAlignVertical: 'center' as const,
-    // Prevent text jumping
+    
     includeFontPadding: false,
     textAlign: 'left' as const,
   },
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: responsiveSpacing(theme.borderRadius.round),
     backgroundColor: 'transparent',
-    marginLeft: responsiveSpacing(theme.spacing.xs), // Proper spacing from left edge
+    marginLeft: responsiveSpacing(theme.spacing.xs), 
   },
   headerSpacer: {
     width: responsiveSpacing(40),

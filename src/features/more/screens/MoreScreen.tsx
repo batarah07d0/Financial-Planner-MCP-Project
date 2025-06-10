@@ -24,7 +24,7 @@ interface MenuItem {
   title: string;
   description: string;
   icon: React.ReactNode;
-  iconBackground: [string, string]; // Dua warna untuk gradient
+  iconBackground: [string, string]; 
   onPress: () => void;
   badgeCount?: number;
 }
@@ -33,13 +33,11 @@ export const MoreScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuthStore();
   const [activeChallenges, setActiveChallenges] = useState<number>(0);
-  // State untuk loading (digunakan dalam loadData)
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Menampilkan loading indicator jika diperlukan
   useEffect(() => {
     if (isLoading) {
-      // Bisa ditambahkan loading indicator jika diperlukan
       // Loading data - handle loading state here
     }
   }, [isLoading]);
@@ -311,15 +309,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badge: {
-    backgroundColor: '#ef4444', // Red color sesuai spesifikasi
-    borderRadius: 12, // Full border radius untuk bentuk lingkaran
-    minWidth: 24, // Sedikit lebih besar agar lebih terlihat
+    backgroundColor: '#ef4444', 
+    borderRadius: 12, 
+    minWidth: 24, 
     height: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.sm,
     paddingHorizontal: 8,
-    // Superior shadow untuk elevation
+    
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -328,7 +326,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    // Tambahan untuk memastikan terlihat
+    
     position: 'relative',
     zIndex: 1,
   },

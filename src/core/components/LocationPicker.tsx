@@ -736,7 +736,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.neutral[50],
   },
 
-  // Header Styles
   header: {
     zIndex: 1000,
   },
@@ -765,7 +764,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 60, // Space for buttons on both sides
+    paddingHorizontal: 60, 
   },
   searchButton: {
     width: 40,
@@ -779,7 +778,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  // Search Styles
   searchContainer: {
     backgroundColor: theme.colors.white,
     paddingHorizontal: theme.spacing.lg,
@@ -809,7 +807,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xs,
   },
 
-  // Map Styles
   mapContainer: {
     flex: 1,
     position: 'relative',
@@ -857,12 +854,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 
-  // Crosshair Styles (menggantikan marker)
 
 
-  // Hapus floating button styles - tidak digunakan lagi
 
-  // Address Card Styles
+
+
   addressCard: {
     backgroundColor: theme.colors.white,
     marginHorizontal: theme.spacing.lg,
@@ -894,7 +890,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Action Button Styles
+
   actionContainer: {
     flexDirection: 'row',
     paddingHorizontal: theme.spacing.lg,
@@ -912,7 +908,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
     marginHorizontal: theme.spacing.xs,
-    height: 50, // Fixed height instead of minHeight
+    height: 50, 
   },
   cancelButton: {
     backgroundColor: theme.colors.neutral[100],
@@ -935,7 +931,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
-    height: 50, // Fixed height instead of minHeight
+    height: 50, 
   },
   disabledButton: {
     opacity: 0.6,

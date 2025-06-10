@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
-    minHeight: 64, // Ensure consistent height
+    minHeight: 64, 
     paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.layout.sm,
     ...theme.elevation.sm,

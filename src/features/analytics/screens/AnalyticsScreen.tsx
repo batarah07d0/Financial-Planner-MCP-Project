@@ -184,7 +184,6 @@ export const AnalyticsScreen = () => {
           startDate.setMonth(today.getMonth() - 6);
           break;
         case 'yearly':
-          // Perbaikan: Ambil data mulai dari awal tahun 2025 karena aplikasi baru dibuat 2025
           startDate.setFullYear(2025, 0, 1); // 1 Januari 2025
           break;
         default:
@@ -460,7 +459,7 @@ export const AnalyticsScreen = () => {
                           height: segmentSize,
                           borderRadius: segmentSize / 2,
                           backgroundColor: category.color,
-                          opacity: 0.95 - (index * 0.03), // Perbaikan: Opacity yang lebih subtle
+                          opacity: 0.95 - (index * 0.03), 
                           top: offset,
                           left: offset,
                           zIndex: expenseCategories.length - index,
@@ -559,7 +558,6 @@ export const AnalyticsScreen = () => {
 
   // Render summary
   const renderSummary = () => {
-    // Perbaikan: Hitung total dari transaksi yang difilter berdasarkan periode yang dipilih
     const totalIncome = filteredTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -913,7 +911,6 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.layout.sm,
   },
   pieChart: {
-    // Ukuran akan diatur secara dinamis melalui inline styles
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -925,7 +922,6 @@ const styles = StyleSheet.create({
     ...theme.elevation.sm,
   },
   pieChartCenter: {
-    // Ukuran akan diatur secara dinamis melalui inline styles
     alignItems: 'center',
     justifyContent: 'center',
     ...theme.elevation.md,
@@ -936,7 +932,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   totalAmount: {
-    // Font size dan line height akan diatur secara dinamis melalui inline styles
     fontWeight: '700',
   },
   emptyChartContainer: {
@@ -1002,7 +997,6 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.sm,
   },
 
-  // Styles lama (tetap dipertahankan untuk kompatibilitas)
   summaryRow: {
     flexDirection: 'row',
     marginBottom: theme.spacing.md,
@@ -1029,7 +1023,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  // Styles baru untuk layout grid
   summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

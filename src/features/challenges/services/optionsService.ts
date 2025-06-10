@@ -112,15 +112,12 @@ export const getChallengeTypes = async (userId: string): Promise<ChallengeType[]
 
     return combinedTypes;
   } catch (error) {
-    // Error handling tanpa console.error untuk menghindari ESLint warning
 
-    // Fallback ke cache jika ada
     const cachedData = await AsyncStorage.getItem(CACHE_KEYS.CHALLENGE_TYPES);
     if (cachedData) {
       return JSON.parse(cachedData);
     }
     
-    // Fallback ke data hardcoded
     return [];
   }
 };
@@ -221,15 +218,12 @@ export const getDurationOptions = async (_userId: string): Promise<DurationOptio
 
     return transformedOptions;
   } catch (error) {
-    // Error handling tanpa console.error untuk menghindari ESLint warning
 
-    // Fallback ke cache jika ada
     const cachedData = await AsyncStorage.getItem(CACHE_KEYS.DURATION_OPTIONS);
     if (cachedData) {
       return JSON.parse(cachedData);
     }
     
-    // Fallback ke data hardcoded
     return [];
   }
 };
@@ -280,7 +274,7 @@ export const addCustomChallengeType = async (userId: string, customType: Omit<Ch
 
     return newType;
   } catch (error) {
-    // Error handling tanpa console.error untuk menghindari ESLint warning
+
     return null;
   }
 };

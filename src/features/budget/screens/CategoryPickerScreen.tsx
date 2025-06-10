@@ -235,7 +235,7 @@ export const CategoryPickerScreen = () => {
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, {
-        marginHorizontal: responsiveSpacing(theme.spacing.sm), // Sejajar dengan card
+        marginHorizontal: responsiveSpacing(theme.spacing.sm), 
         marginVertical: responsiveSpacing(theme.spacing.md),
       }]}>
         <View style={[styles.searchInputContainer, {
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchContainer: {
-    // Container for search bar
+    
   },
   searchInputContainer: {
     flexDirection: 'row',

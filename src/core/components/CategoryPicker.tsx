@@ -426,13 +426,13 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   headerGradient: {
-    paddingTop: theme.spacing.sm, // Tambah padding top agar tidak terlalu dekat dengan status bar
+    paddingTop: theme.spacing.sm,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg, // Perbesar padding vertical
+    paddingVertical: theme.spacing.lg, 
     position: 'relative',
   },
   closeButton: {
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 60, // Space for buttons on both sides
+    paddingHorizontal: 60, 
   },
   searchButton: {
     width: 40,
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     backgroundColor: theme.colors.white,
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg, // Perbesar padding vertical
+    paddingVertical: theme.spacing.lg, 
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
     ...theme.elevation.xs,
@@ -479,8 +479,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.neutral[100],
     borderRadius: theme.borderRadius.xl,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md, // Perbesar padding untuk field yang lebih besar
-    marginHorizontal: 0, // Pastikan sejajar dengan card di bawah
+    paddingVertical: theme.spacing.md, 
+    marginHorizontal: 0, 
   },
   searchIcon: {
     marginRight: theme.spacing.sm,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoriesContent: {
-    paddingHorizontal: theme.spacing.lg, // Sejajar dengan search container
+    paddingHorizontal: theme.spacing.lg, 
     paddingVertical: theme.spacing.lg,
   },
   categoriesGrid: {
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   categoryCard: {
-    width: (width - theme.spacing.lg * 3) / 2, // Sejajar dengan search field
+    width: (width - theme.spacing.lg * 3) / 2, 
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.lg,
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
     marginHorizontal: theme.spacing.xs,
-    height: 50, // Fixed height instead of minHeight
+    height: 50, 
   },
   cancelButton: {
     backgroundColor: theme.colors.neutral[100],
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.neutral[300],
   },
   confirmButton: {
-    flex: 1.5, // Slightly larger than cancel button
+    flex: 1.5, 
   },
   confirmGradient: {
     flex: 1,
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
-    height: 50, // Fixed height instead of minHeight
+    height: 50, 
   },
   disabledButton: {
     opacity: 0.6,

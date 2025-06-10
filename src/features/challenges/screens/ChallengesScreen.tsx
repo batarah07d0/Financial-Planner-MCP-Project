@@ -557,14 +557,14 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.md,
   },
   backButtonContainer: {
-    // Container untuk animasi back button
+    
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    // Menghapus borderRadius, backgroundColor, dan elevation untuk membuat tombol transparan
+    
   },
   headerTitle: {
     textAlign: 'center',
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
-  // Style untuk tombol tambah di header telah dihapus karena tidak digunakan lagi
+  
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: theme.spacing.layout.sm,
@@ -680,6 +680,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    zIndex: 999, // Memastikan FAB selalu di atas elemen lain
+    zIndex: 999, 
   },
 });

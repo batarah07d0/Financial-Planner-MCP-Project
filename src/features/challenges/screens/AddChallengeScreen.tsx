@@ -508,7 +508,7 @@ const AddChallengeScreenComponent = () => {
                 placeholder="Masukkan jumlah target tabungan"
                 value={targetAmount ? targetAmount.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''}
                 onChangeText={(text) => {
-                  // Hapus semua karakter non-numerik (termasuk titik sebagai pemisah ribuan)
+                  
                   const numericValue = text.replace(/[^0-9]/g, '');
                   setTargetAmount(numericValue);
                 }}
@@ -961,7 +961,6 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    // Menghapus borderRadius, backgroundColor, dan elevation
   },
   headerTitle: {
     flex: 1,
@@ -980,7 +979,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     ...theme.elevation.md,
-    padding: theme.spacing.lg, // Increased padding from md to lg
+    padding: theme.spacing.lg, 
   },
   formHeader: {
     flexDirection: 'row',
@@ -996,14 +995,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
-    marginBottom: theme.spacing.lg, // Increased margin from md to lg
+    marginBottom: theme.spacing.lg, 
   },
   sectionCard: {
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     ...theme.elevation.md,
-    padding: theme.spacing.lg, // Increased padding from md to lg
+    padding: theme.spacing.lg, 
   },
   sectionTitle: {
     marginBottom: theme.spacing.sm,
@@ -1049,22 +1048,22 @@ const styles = StyleSheet.create({
   },
   difficultyContainer: {
     flexDirection: 'row',
-    justifyContent: 'center', // Changed from space-between to center
-    marginBottom: theme.spacing.lg, // Increased bottom margin
-    marginTop: theme.spacing.md, // Increased top margin
-    marginHorizontal: theme.spacing.md, // Changed from negative to positive margin
+    justifyContent: 'center', 
+    marginBottom: theme.spacing.lg, 
+    marginTop: theme.spacing.md, 
+    marginHorizontal: theme.spacing.md, 
   },
   difficultyCard: {
-    width: (width - theme.spacing.layout.sm * 2 - theme.spacing.lg * 2 - theme.spacing.md * 4) / 3, // Adjusted width calculation for new container padding and margins
+    width: (width - theme.spacing.layout.sm * 2 - theme.spacing.lg * 2 - theme.spacing.md * 4) / 3, 
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
-    paddingVertical: theme.spacing.lg, // Increased vertical padding
-    paddingHorizontal: theme.spacing.md, // Increased horizontal padding
+    paddingVertical: theme.spacing.lg, 
+    paddingHorizontal: theme.spacing.md, 
     alignItems: 'center',
     ...theme.elevation.sm,
     borderWidth: 1,
     borderColor: theme.colors.neutral[200],
-    marginHorizontal: theme.spacing.md, // Increased horizontal margin between cards
+    marginHorizontal: theme.spacing.md, 
   },
   selectedDifficultyCard: {
     borderWidth: 2,
@@ -1077,23 +1076,23 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.md, // Increased bottom margin
-    marginTop: theme.spacing.sm, // Increased top margin
+    marginBottom: theme.spacing.md, 
+    marginTop: theme.spacing.sm, 
     ...theme.elevation.sm,
   },
   difficultyName: {
-    marginTop: theme.spacing.md, // Increased top margin
+    marginTop: theme.spacing.md, 
     textAlign: 'center',
     fontWeight: '600',
-    paddingHorizontal: theme.spacing.sm, // Increased horizontal padding
-    fontSize: 16, // Added explicit font size
+    paddingHorizontal: theme.spacing.sm, 
+    fontSize: 16, 
   },
   difficultyDesc: {
-    marginTop: theme.spacing.sm, // Increased top margin
+    marginTop: theme.spacing.sm, 
     textAlign: 'center',
-    paddingHorizontal: theme.spacing.sm, // Increased horizontal padding
-    marginBottom: theme.spacing.md, // Increased bottom margin
-    fontSize: 12, // Added explicit font size
+    paddingHorizontal: theme.spacing.sm, 
+    marginBottom: theme.spacing.md, 
+    fontSize: 12, 
   },
   durationScrollContent: {
     paddingBottom: theme.spacing.sm,
@@ -1109,7 +1108,7 @@ const styles = StyleSheet.create({
     ...theme.elevation.sm,
     borderWidth: 1,
     borderColor: theme.colors.neutral[200],
-    position: 'relative', // Menambahkan position relative untuk indikator
+    position: 'relative', 
   },
   durationIconContainer: {
     marginBottom: theme.spacing.sm,
@@ -1134,7 +1133,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     ...theme.elevation.md,
-    padding: theme.spacing.lg, // Increased padding from md to lg to match other cards
+    padding: theme.spacing.lg, 
   },
   optionsHeader: {
     flexDirection: 'row',
@@ -1159,7 +1158,7 @@ const styles = StyleSheet.create({
   saveButtonContainer: {
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.xl,
-    paddingHorizontal: 0, // Tidak perlu padding karena sudah ada di scrollViewContent
+    paddingHorizontal: 0, 
   },
   saveButton: {
     backgroundColor: '#2196F3',

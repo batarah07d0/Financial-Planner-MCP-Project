@@ -148,7 +148,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = React.memo(({
           {/* Header dengan ikon dan status badge - Enhanced Layout */}
           <View style={[styles.header, {
             marginBottom: responsiveSpacing(theme.spacing.md),
-            alignItems: 'flex-start', // Align ke atas untuk memberikan ruang lebih
+            alignItems: 'flex-start', 
           }]}>
             <View style={styles.headerLeft}>
               {/* Enhanced Icon Container dengan gradient dan shadow */}
@@ -157,7 +157,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = React.memo(({
                 height: responsiveSpacing(isSmallDevice ? 48 : 56),
                 borderRadius: responsiveSpacing(isSmallDevice ? 24 : 28),
                 marginRight: responsiveSpacing(theme.spacing.md),
-                flexShrink: 0, // Mencegah ikon menyusut
+                flexShrink: 0, 
               }]}>
                 <LinearGradient
                   colors={[
@@ -189,8 +189,8 @@ export const BudgetCard: React.FC<BudgetCardProps> = React.memo(({
               </View>
 
               <View style={[styles.categoryInfo, {
-                minHeight: responsiveSpacing(isSmallDevice ? 48 : 56), // Minimal height sama dengan ikon
-                justifyContent: 'center', // Center vertikal
+                minHeight: responsiveSpacing(isSmallDevice ? 48 : 56), 
+                justifyContent: 'center', 
               }]}>
                 <Typography
                   variant="body1"
@@ -228,7 +228,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = React.memo(({
               paddingHorizontal: responsiveSpacing(theme.spacing.sm),
               paddingVertical: responsiveSpacing(6),
               borderRadius: theme.borderRadius.round,
-              marginTop: responsiveSpacing(2), // Sedikit margin dari atas
+              marginTop: responsiveSpacing(2), 
             }]}>
               <Typography
                 variant="caption"
@@ -410,13 +410,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start', // Align ke atas untuk memberikan ruang lebih
+    alignItems: 'flex-start', 
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    minWidth: 0, // Memungkinkan flex shrink
+    minWidth: 0, 
   },
   iconContainer: {
     justifyContent: 'center',
@@ -445,16 +445,15 @@ const styles = StyleSheet.create({
   },
   categoryInfo: {
     flex: 1,
-    minWidth: 0, // Memungkinkan flex shrink
-    paddingRight: theme.spacing.sm, // Memberikan ruang dari status badge
+    minWidth: 0, 
+    paddingRight: theme.spacing.sm, 
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    flexShrink: 0, // Mencegah badge menyusut
-    maxWidth: 100, // Membatasi lebar maksimum badge
+    flexShrink: 0, 
+    maxWidth: 100, 
   },
   amountSection: {
-    // Container for amount display
   },
   amountRow: {
     flexDirection: 'row',
@@ -463,7 +462,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
   progressContainer: {
-    // Container for progress bar
   },
   progressHeader: {
     flexDirection: 'row',

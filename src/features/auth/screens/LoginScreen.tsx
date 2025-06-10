@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing.md,
-    padding: theme.spacing.sm, // Tambahkan padding internal
+    padding: theme.spacing.sm, 
     ...theme.elevation.sm,
   },
   appName: {

@@ -10,7 +10,6 @@ export const BudgetWiseLogo: React.FC<BudgetWiseLogoProps> = ({
   size = 96,
   variant = 'app'
 }) => {
-  // Pilih logo berdasarkan variant
   const logoSource = variant === 'login'
     ? require('../../../assets/BudgetLogoForLogin.png')
     : require('../../../assets/BudgetWiseLogo.png');
@@ -32,6 +31,5 @@ export const BudgetWiseLogo: React.FC<BudgetWiseLogoProps> = ({
 
 const styles = StyleSheet.create({
   logo: {
-    // Styling dasar untuk logo
   },
 });

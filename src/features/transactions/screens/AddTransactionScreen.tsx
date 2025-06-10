@@ -16,7 +16,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../../core/navigation/types';
 import { useForm, Controller } from 'react-hook-form';
-// Removed unused import: Button as PaperButton
 import { Typography, Input, Card, LocationPicker, DatePicker, CategoryPicker, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
@@ -104,8 +103,6 @@ export const AddTransactionScreen = () => {
     return 20; // medium device
   };
 
-  // Tidak perlu animasi lagi
-
   // Fungsi untuk memuat kategori dari Supabase
   const loadCategories = async () => {
     try {
@@ -121,7 +118,7 @@ export const AddTransactionScreen = () => {
         setCategories(data as Category[]);
       }
     } catch (error) {
-      // Error loading categories (logging dihapus)
+      // Error loading categories (logging dihapus) 
     } finally {
       setIsLoadingCategories(false);
     }
@@ -227,12 +224,8 @@ export const AddTransactionScreen = () => {
         location_name: data.location?.address || null,
       };
 
-      // Submitting transaction to Supabase (logging dihapus)
-
       // Simpan ke Supabase menggunakan service
       await createTransaction(transactionData);
-
-      // Transaction saved successfully (logging dihapus)
 
       // Refresh transaction store untuk update data di halaman lain
       if (user) {
@@ -300,17 +293,7 @@ export const AddTransactionScreen = () => {
     setShowLocationPicker(false);
   };
 
-  // Fungsi untuk mendapatkan lokasi saat ini - akan digunakan nanti
-  // const handleGetCurrentLocation = async () => {
-  //   const currentLocation = await getCurrentLocation();
-  //
-  //   if (currentLocation) {
-  //     setValue('location', {
-  //       latitude: currentLocation.latitude,
-  //       longitude: currentLocation.longitude,
-  //     });
-  //   }
-  // };
+
 
   // Fungsi untuk menangani perubahan tanggal
   const handleDateChange = (selectedDate: Date) => {
@@ -795,7 +778,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
-    left: theme.spacing.layout.sm, // Tambahkan margin kiri
+    left: theme.spacing.layout.sm, 
     zIndex: 1,
   },
   headerRight: {
@@ -805,7 +788,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 120, // Memberikan ruang yang cukup untuk tombol simpan
+    paddingBottom: 120, 
   },
   card: {
     padding: 24,
@@ -844,11 +827,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   activeTypeButton: {
-    backgroundColor: '#F44336', // Warna merah sesuai gambar
+    backgroundColor: '#F44336', 
     ...theme.elevation.sm,
   },
   activeIncomeButton: {
-    backgroundColor: '#26A69A', // Warna hijau sesuai gambar
+    backgroundColor: '#26A69A', 
     ...theme.elevation.sm,
   },
   amountInput: {
@@ -858,7 +841,7 @@ const styles = StyleSheet.create({
   pickerButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center', // Changed back to center for proper alignment
+    alignItems: 'center', 
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
@@ -869,13 +852,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 0,
-    minWidth: 100, // Increased for better spacing
-    marginRight: 12, // Add margin for spacing
+    minWidth: 100, 
+    marginRight: 12, 
   },
   pickerValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Ensure proper spacing
+    justifyContent: 'space-between', 
     flex: 1,
     minHeight: 44,
   },
@@ -884,7 +867,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primary[500],
   },
 
-  // Value Text Container - For consistent alignment
   valueTextContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -895,7 +877,6 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
 
-  // Chevron Icon Style
   chevronIcon: {
     flexShrink: 0,
     marginLeft: 8,
@@ -939,7 +920,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Tips Section Styles
   tipsContainer: {
     marginTop: 24,
     paddingTop: 20,

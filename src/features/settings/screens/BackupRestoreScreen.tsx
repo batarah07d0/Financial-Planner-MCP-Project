@@ -1484,12 +1484,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.lg, // Diperbesar dari md ke lg
+    paddingVertical: theme.spacing.lg, 
     paddingHorizontal: theme.spacing.layout.sm,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
-    minHeight: 64, // Tambahkan minimum height
+    minHeight: 64, 
     ...theme.elevation.sm,
   },
   backButton: {
@@ -1560,34 +1560,34 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.primary[300],
     backgroundColor: theme.colors.white,
-    paddingVertical: theme.spacing.lg, // Konsisten dengan button gradient
+    paddingVertical: theme.spacing.lg, 
     paddingHorizontal: theme.spacing.xl,
-    minHeight: 56, // Sama dengan button gradient
+    minHeight: 56, 
   },
   buttonGradient: {
-    paddingVertical: theme.spacing.lg, // Diperbesar dari md ke lg
-    paddingHorizontal: theme.spacing.xl, // Diperbesar dari lg ke xl
+    paddingVertical: theme.spacing.lg, 
+    paddingHorizontal: theme.spacing.xl, 
     borderRadius: theme.borderRadius.lg,
-    minHeight: 56, // Tambahkan minimum height untuk button yang lebih besar
+    minHeight: 56, 
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 24, // Pastikan ada ruang minimum untuk konten
+    minHeight: 24, 
   },
   buttonIcon: {
     marginRight: theme.spacing.sm,
   },
   buttonText: {
-    fontSize: 17, // Diperbesar dari 16 ke 17
+    fontSize: 17, 
     fontWeight: '600',
     color: 'white',
-    textAlign: 'center', // Pastikan text center
+    textAlign: 'center', 
   },
   outlineButtonText: {
     color: theme.colors.primary[600],
-    fontSize: 17, // Konsisten dengan buttonText
+    fontSize: 17, 
     fontWeight: '600',
     textAlign: 'center',
   },

@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   statContent: {
     flex: 1,
   },
-  // Skeleton styles
+
   skeletonIcon: {
     backgroundColor: theme.colors.neutral[200],
     opacity: 0.7,

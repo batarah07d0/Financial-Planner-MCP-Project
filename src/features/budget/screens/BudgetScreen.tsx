@@ -834,19 +834,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
     ...theme.elevation.xs,
-    // Responsive values will be applied inline
+    
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    // Responsive values will be applied inline
+    
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    // Responsive values will be applied inline
+    
   },
   featureButtonsContainer: {
     flexDirection: 'row',
@@ -879,27 +879,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     zIndex: 999,
-    // Responsive values will be applied inline
+    
   },
   periodContainer: {
     backgroundColor: theme.colors.white,
-    // All styling moved inline for perfect center alignment
+    
   },
   periodButton: {
-    // Responsive values moved to renderPeriodButtons
+    
   },
   activePeriodButton: {
-    // Responsive values moved to renderPeriodButtons
+    
   },
   summaryContainer: {
     flexDirection: 'row',
-    // Responsive values will be applied inline
+    
   },
   summaryItem: {
-    // Responsive values moved to renderSummary
+    
   },
   listContent: {
-    // Responsive values will be applied inline
+    
   },
   flatList: {
     flex: 1,

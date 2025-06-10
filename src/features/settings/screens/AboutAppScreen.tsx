@@ -327,12 +327,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.lg, // Diperbesar dari md ke lg
+    paddingVertical: theme.spacing.lg, 
     paddingHorizontal: theme.spacing.layout.sm,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
-    minHeight: 64, // Tambahkan minimum height
+    minHeight: 64, 
     ...theme.elevation.sm,
   },
   backButton: {

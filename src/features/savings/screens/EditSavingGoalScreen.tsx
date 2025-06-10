@@ -588,7 +588,6 @@ export const EditSavingGoalScreen = () => {
   );
 };
 
-// DateInput Styles
 const dateInputStyles = StyleSheet.create({
   container: {
     marginBottom: responsiveSpacing(theme.spacing.lg),
@@ -663,7 +662,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: responsiveSpacing(theme.borderRadius.round),
     backgroundColor: 'transparent',
-    marginLeft: responsiveSpacing(theme.spacing.xs), // Proper spacing from left edge
+    marginLeft: responsiveSpacing(theme.spacing.xs), 
   },
   headerSpacer: {
     width: responsiveSpacing(40),
