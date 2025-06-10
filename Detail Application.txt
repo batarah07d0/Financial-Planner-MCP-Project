@@ -1,8 +1,61 @@
 *File Ini Yang Dikumpulkan Ke E-Learning*
-
 1. Link GitHub = https://github.com/batarah07d0/Financial-Planner-MCP-Project
-2. Link Google Drive = untuk file APK/APP/IPA (link gdrive/github)  
-3. Detail user login dan password (jika ada).  
-4. List Nama dan Tugas Anggota Kelompok
-5. Keterangan Cara Penggunaan Aplikasi  
+2. Link Google Drive = https://drive.google.com/file/d/1y3wcmpvNRDBC1CpprK1GKltn3IkyUSCj/view?usp=sharing
+3. Email: kathrynehodkiewicz18@outlook.com | Password: akucantik123
+
+4. Nama Anggota dan Tanggung Jawab
+- Axel Reginald Wiranto (00000078456)
+Halaman Transaksi(Operasi CRUD), Tantangan(Operasi CRUD), Tabungan(Operasi CRUD), Anggaran(Operasi CRUD), Backup & Restore, Biometrik.
+- Batara Hotdo Horas S. (00000078626)
+Halaman Dashboard, Informasi Akun, Analisis, Notifikasi, Ubah Password, Kebijakan Privasi, Laporan
+- Efri Ramadhan (00000078662)
+Halaman Login, Register, Forgot Password, Splash, Onboard, Syarat & Ketentuan, Laporan
+
+5. Keterangan Cara Penggunaan Aplikasi
+*Memulai Aplikasi
+Registrasi: Masukkan email dan password (min 6 karakter), lalu tap "Daftar"
+Login: Gunakan email/password atau biometric authentication
+
+*Navigasi Utama
+🏠 Dashboard: Overview saldo dan transaksi terbaru
+💰 Transaksi: Daftar semua transaksi dengan filter
+📊 Budget: Kelola anggaran dan monitoring
+🎯 Tantangan: Challenge menabung dan progress
+⚙️ Lainnya: Pengaturan dan profil
+
+*Mengelola Transaksi
+Tambah Transaksi: Tap "+" → Pilih jenis (Pemasukan/Pengeluaran) → Isi nominal, kategori, deskripsi → Simpan
+Edit: Tap transaksi → Ikon edit → Ubah data → Simpan
+Hapus: Tap transaksi → Ikon hapus → Konfirmasi
+Filter: Gunakan filter tanggal, kategori, atau pencarian
+
+*Manajemen Budget
+Buat Budget: Tab Budget → "Tambah Budget" → Isi nama, kategori, jumlah, periode → Simpan
+Monitor: Lihat progress bar dan status (🟢 On Track, 🟡 Warning, 🔴 Over Budget)
+Alert: Notifikasi otomatis saat budget 80% dan saat terlampaui
+
+*Sistem Tantangan
+Pilih Challenge: Tab Tantangan → Browse → Pilih → "Ikuti Tantangan"
+Buat Sendiri: "Buat Tantangan" → Isi nama, target, durasi → "Mulai Tantangan"
+Update Progress: Tap challenge aktif → "Update Progress" → Input pencapaian
+
+*Analisis Keuangan
+Dashboard: Total balance, income/expense bulanan, budget usage
+Charts: Income vs expense trend, breakdown kategori, budget performance
+Expense Map: Lihat lokasi pengeluaran di peta
+
 6. Keterangan Tambahan
+*Fitur Keamanan
+Biometric Login: Aktifkan di Pengaturan > Keamanan
+Privacy Mode: Sembunyikan saldo dan detail transaksi
+Auto Logout: Set timeout 1-30 menit
+
+*Backup & Restore
+Auto Backup: Set frekuensi daily/weekly/monthly
+Manual Backup: Pengaturan > Backup & Restore > "Backup Sekarang"
+Restore: Pilih file backup dari riwayat atau upload manual
+
+*Notifikasi
+Budget alerts, daily reminders, weekly summary
+Challenge updates, goal achievements
+Atur di Pengaturan > Notifikasi
