@@ -1,11 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated, GestureResponderEvent } from 'react-native';
-import { Card } from './Card';
-import { Typography } from './Typography';
-import { PrivacyProtectedText } from './PrivacyProtectedText';
+import { Animated, GestureResponderEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
 import { formatCurrency, formatDate } from '../utils';
-import { Ionicons } from '@expo/vector-icons';
+import { Card } from './Card';
+import { PrivacyProtectedText } from './PrivacyProtectedText';
+import { Typography } from './Typography';
 
 interface TransactionCardProps {
   id: string;
@@ -195,7 +195,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     marginBottom: theme.spacing.sm,
-    padding: theme.spacing.md,
+    padding: theme.spacing.xl,
     borderRadius: 16,
   },
   container: {

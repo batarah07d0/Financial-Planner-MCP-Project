@@ -810,7 +810,7 @@ export const DashboardScreen = () => {
           {isLoading ? (
             <Card style={[
               styles.emptyTransactionCard,
-              {
+              { 
                 marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
                 padding: responsiveSpacing(theme.spacing.layout.md),
                 borderRadius: responsiveSpacing(16)
@@ -830,7 +830,7 @@ export const DashboardScreen = () => {
             </Card>
           ) : recentTransactions.length > 0 ? (
             <View style={{
-              marginHorizontal: responsiveSpacing(theme.spacing.layout.sm)
+              marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
             }}>
               {recentTransactions.map((transaction) => (
                 <TransactionCard
@@ -866,7 +866,7 @@ export const DashboardScreen = () => {
                   Belum ada transaksi
                 </Typography>
                 <TouchableOpacity
-                  style={[styles.addTransactionButton, {
+                  style={[styles.addTransactionButton, { 
                     paddingVertical: responsiveSpacing(theme.spacing.sm),
                     paddingHorizontal: responsiveSpacing(theme.spacing.md),
                     borderRadius: responsiveSpacing(theme.borderRadius.md),
@@ -910,13 +910,13 @@ export const DashboardScreen = () => {
                 padding: responsiveSpacing(theme.spacing.md)
               }]}
             >
-              <View style={styles.tipContent}>
-                <View style={{ maxWidth: isSmallDevice ? '75%' : '85%' }}>
-                  <Typography variant="body1" weight="600" color={theme.colors.info[900]}>
+              <View style={[styles.tipContent, {padding: responsiveSpacing(theme.spacing.xl)}]}>
+                <View style={{ maxWidth: isSmallDevice ? '75%' : '100%' }}>
+                  <Typography variant="body1" weight="700" color={theme.colors.info[900]}>
                     Atur Anggaran Bulanan
                   </Typography>
                   <Typography variant="body2" color={theme.colors.info[800]} style={[styles.tipDescription, {
-                    marginTop: responsiveSpacing(theme.spacing.xs)
+                    marginTop: responsiveSpacing(theme.spacing.xs),
                   }]}>
                     Tetapkan anggaran untuk setiap kategori pengeluaran untuk mengontrol keuangan Anda.
                   </Typography>
