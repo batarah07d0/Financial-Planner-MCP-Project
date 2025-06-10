@@ -1159,8 +1159,7 @@ const styles = StyleSheet.create({
   saveButtonContainer: {
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.xl,
-    paddingHorizontal: 0, // Menghapus padding horizontal agar sejajar dengan card-card
-    marginHorizontal: theme.spacing.layout.sm, // Menggunakan margin yang sama dengan scrollViewContent
+    paddingHorizontal: 0, // Tidak perlu padding karena sudah ada di scrollViewContent
   },
   saveButton: {
     backgroundColor: '#2196F3',

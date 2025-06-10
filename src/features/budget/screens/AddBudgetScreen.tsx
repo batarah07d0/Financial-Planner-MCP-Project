@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  StatusBar,
+  AppState,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -59,6 +61,45 @@ export const AddBudgetScreen = () => {
 
     loadCategories();
   }, [showError]);
+
+  // Setup status bar dan system UI
+  useEffect(() => {
+    // Konfigurasi status bar
+    StatusBar.setBarStyle('dark-content');
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(theme.colors.white);
+      StatusBar.setTranslucent(false);
+    }
+
+    // Handle app state changes untuk memastikan system UI tetap konsisten
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        // Reset status bar ketika app kembali aktif
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor(theme.colors.white);
+          StatusBar.setTranslucent(false);
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  // Pastikan status bar dikonfigurasi ulang ketika screen difokuskan
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle('dark-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(theme.colors.white);
+        StatusBar.setTranslucent(false);
+      }
+    }, [])
+  );
 
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<BudgetFormData>({
     defaultValues: {
@@ -259,6 +300,7 @@ export const AddBudgetScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.white} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}

@@ -76,7 +76,8 @@
     "util": "^0.12.5",
     "uuid": "^11.1.0",
     "victory-native": "^41.17.3",
-    "zustand": "^5.0.4"
+    "zustand": "^5.0.4",
+    "expo-navigation-bar": "~4.2.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

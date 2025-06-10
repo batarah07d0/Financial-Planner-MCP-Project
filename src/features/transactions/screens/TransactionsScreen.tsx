@@ -450,7 +450,7 @@ export const TransactionsScreen = () => {
                 align="center"
                 style={styles.emptySubtitle}
               >
-                Tambahkan transaksi pertama Anda dengan menekan tombol + di bawah
+                Tambahkan transaksi pertama Anda dengan menekan tombol + di header
               </Typography>
             </View>
           }

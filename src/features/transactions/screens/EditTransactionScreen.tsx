@@ -117,10 +117,7 @@ export const EditTransactionScreen = () => {
       setValue('payment_method', transactionData.payment_method || '');
 
     } catch (error) {
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error loading data:', error);
-      }
+      // Error loading data (logging dihapus)
       showError('Error', 'Gagal memuat data transaksi');
       navigation.goBack();
     } finally {
@@ -167,10 +164,7 @@ export const EditTransactionScreen = () => {
       setTimeout(() => navigation.goBack(), 1500);
 
     } catch (error) {
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error updating transaction:', error);
-      }
+      // Error updating transaction (logging dihapus)
       showError('Error', 'Gagal memperbarui transaksi');
     } finally {
       setIsSubmitting(false);

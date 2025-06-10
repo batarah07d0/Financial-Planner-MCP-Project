@@ -29,10 +29,7 @@ export class PeriodVisitService {
       return countStr ? parseInt(countStr, 10) : 0;
     } catch (error) {
       // Silently handle error and return default value
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error getting period visit count:', error);
-      }
+      // Logging dihapus untuk mengurangi noise di console
       return 0;
     }
   }
@@ -65,10 +62,7 @@ export class PeriodVisitService {
       return newCount;
     } catch (error) {
       // Silently handle error and return fallback value
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error incrementing period visit count:', error);
-      }
+      // Logging dihapus untuk mengurangi noise di console
       return 1; // Return 1 as fallback
     }
   }
@@ -89,22 +83,11 @@ export class PeriodVisitService {
         const oldCountKey = getPeriodVisitCountKey(userId, lastVisitPeriod);
         await AsyncStorage.removeItem(oldCountKey);
         
-        // Log untuk debugging
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.log('🕐 New period detected, reset period visit count:', {
-            userId: userId.substring(0, 8) + '...',
-            lastPeriod: lastVisitPeriod,
-            currentPeriod: currentPeriodKey
-          });
-        }
+        // Log untuk debugging - dihapus untuk mengurangi noise di console
       }
     } catch (error) {
       // Silently handle error
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error checking new period:', error);
-      }
+      // Logging dihapus untuk mengurangi noise di console
     }
   }
 
@@ -120,16 +103,10 @@ export class PeriodVisitService {
       const storageKey = getPeriodVisitCountKey(userId, periodKey);
       await AsyncStorage.removeItem(storageKey);
       
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('🔄 Manual reset period visit count for user:', userId.substring(0, 8) + '...');
-      }
+      // Manual reset period visit count - logging dihapus untuk mengurangi noise di console
     } catch (error) {
       // Silently handle error
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error resetting period visit count:', error);
-      }
+      // Logging dihapus untuk mengurangi noise di console
     }
   }
 
@@ -167,17 +144,11 @@ export class PeriodVisitService {
       if (keysToDelete.length > 0) {
         await AsyncStorage.multiRemove(keysToDelete);
         
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.log('🧹 Cleaned up old period data:', keysToDelete.length, 'entries');
-        }
+        // Cleaned up old period data - logging dihapus untuk mengurangi noise di console
       }
     } catch (error) {
       // Silently handle error
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error cleaning up old period data:', error);
-      }
+      // Logging dihapus untuk mengurangi noise di console
     }
   }
 
@@ -210,20 +181,11 @@ export class PeriodVisitService {
         const oldLastVisitKey = getLastVisitDateKey(userId);
         await AsyncStorage.removeItem(oldLastVisitKey);
         
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.log('📦 Migrated daily visit count to period visit count:', {
-            userId: userId.substring(0, 8) + '...',
-            count: oldDailyCount
-          });
-        }
+        // Migrated daily visit count to period visit count - logging dihapus untuk mengurangi noise di console
       }
     } catch (error) {
       // Silently handle error
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error migrating to period visit count:', error);
-      }
+      // Logging dihapus untuk mengurangi noise di console
     }
   }
 }
