@@ -27,6 +27,8 @@ import {
 import { getUserStats, getUserSettings, updateUserSettings } from '../services';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SuperiorDialog } from '../../../core/components/SuperiorDialog';
+import { useBiometrics } from '../../../core/hooks/useBiometrics';
 import { supabase } from '../../../config/supabase';
 
 export const SettingsScreen = () => {
@@ -55,8 +57,16 @@ export const SettingsScreen = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // State untuk biometrik
+  const [userBiometricEnabled, setUserBiometricEnabled] = useState(false);
+
   // Animasi untuk scroll
   const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  // Hook untuk biometrik
+  const { authenticate } = useBiometrics((title: string, message: string) => {
+    Alert.alert(title, message);
+  });
 
   // Fungsi untuk memuat data pengguna
   const loadUserData = React.useCallback(async () => {
@@ -72,6 +82,8 @@ export const SettingsScreen = () => {
         setSettings({
           notificationsEnabled: userSettings.notification_enabled,
         });
+        // Set status biometrik dari database
+        setUserBiometricEnabled(userSettings.biometric_enabled);
       }
 
       // Memuat statistik pengguna
@@ -179,6 +191,24 @@ export const SettingsScreen = () => {
   const confirmDeleteAccount = async () => {
     try {
       if (!user) return;
+
+      // Jika biometrik diaktifkan, lakukan autentikasi terlebih dahulu
+      if (userBiometricEnabled) {
+        const authSuccess = await authenticate({
+          promptMessage: 'Autentikasi untuk menghapus akun',
+          fallbackLabel: 'Gunakan PIN',
+          cancelLabel: 'Batal',
+        });
+
+        if (!authSuccess) {
+          Alert.alert(
+            'Autentikasi Gagal',
+            'Autentikasi biometrik diperlukan untuk menghapus akun.'
+          );
+          setShowDeleteDialog(false);
+          return;
+        }
+      }
 
       setIsDeleting(true);
 
@@ -379,63 +409,26 @@ export const SettingsScreen = () => {
       </Animated.ScrollView>
 
       {/* Superior Logout Dialog */}
-      <Modal
+      <SuperiorDialog
         visible={showLogoutDialog}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLogoutDialog(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.dialogContainer}>
-            <LinearGradient
-              colors={[theme.colors.secondary[50], theme.colors.secondary[100]]}
-              style={styles.dialogGradient}
-            >
-              <View style={styles.dialogHeader}>
-                <View style={styles.dialogIcon}>
-                  <LinearGradient
-                    colors={[theme.colors.secondary[500], theme.colors.secondary[600]]}
-                    style={styles.iconGradient}
-                  >
-                    <Ionicons name="log-out" size={28} color="white" />
-                  </LinearGradient>
-                </View>
-                <Typography variant="h5" weight="700" color={theme.colors.neutral[800]}>
-                  Konfirmasi Logout
-                </Typography>
-              </View>
-
-              <View style={styles.dialogContent}>
-                <Typography variant="body1" color={theme.colors.neutral[700]} style={styles.dialogText}>
-                  Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses akun Anda.
-                </Typography>
-              </View>
-
-              <View style={styles.dialogActions}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setShowLogoutDialog(false)}
-                >
-                  <Typography variant="body1" weight="600" color={theme.colors.neutral[600]}>
-                    Batal
-                  </Typography>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.confirmButton} onPress={confirmLogout}>
-                  <LinearGradient
-                    colors={[theme.colors.secondary[500], theme.colors.secondary[600]]}
-                    style={styles.confirmButtonGradient}
-                  >
-                    <Typography variant="body1" weight="600" color="white">
-                      Logout
-                    </Typography>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </View>
-        </View>
-      </Modal>
+        type="confirm"
+        title="Konfirmasi Logout"
+        message="Apakah Anda yakin ingin keluar dari aplikasi? Anda perlu login kembali untuk mengakses akun Anda."
+        icon="log-out"
+        actions={[
+          {
+            text: 'Batal',
+            onPress: () => setShowLogoutDialog(false),
+            style: 'cancel',
+          },
+          {
+            text: 'Logout',
+            onPress: confirmLogout,
+            style: 'destructive',
+          },
+        ]}
+        onClose={() => setShowLogoutDialog(false)}
+      />
 
       {/* Superior Delete Account Dialog */}
       <Modal
@@ -552,7 +545,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.sm,
   },
 
-  // Dialog Styles
+  // Dialog Styles untuk Delete Account (masih menggunakan custom dialog)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -568,7 +561,9 @@ const styles = StyleSheet.create({
     ...theme.elevation.lg,
   },
   dialogGradient: {
-    padding: theme.spacing.xl,
+    paddingTop: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+    paddingBottom: theme.spacing.lg,
   },
   dialogHeader: {
     alignItems: 'center',
@@ -585,7 +580,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dialogContent: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
   },
   dialogText: {
     textAlign: 'center',
@@ -604,6 +599,7 @@ const styles = StyleSheet.create({
   dialogActions: {
     flexDirection: 'row',
     gap: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   cancelButton: {
     flex: 1,
@@ -615,17 +611,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 48,
   },
   confirmButton: {
     flex: 1,
     borderRadius: theme.borderRadius.lg,
     overflow: 'hidden',
+    minHeight: 48,
   },
   confirmButtonGradient: {
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 48,
   },
   disabledButton: {
     opacity: 0.6,

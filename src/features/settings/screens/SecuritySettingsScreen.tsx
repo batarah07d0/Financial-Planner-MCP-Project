@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Switch,
   TouchableOpacity,
-  Alert,
   Animated,
   StatusBar,
   Platform,
@@ -29,6 +28,8 @@ import {
   createUserSettings,
 } from '../services/userSettingsService';
 import { useBiometrics } from '../../../core/hooks/useBiometrics';
+import { useSuperiorDialog } from '../../../core/hooks/useSuperiorDialog';
+import { SuperiorDialog } from '../../../core/components/SuperiorDialog';
 import {
   setSecurityLevel,
   setPrivacyMode,
@@ -76,6 +77,15 @@ export const SecuritySettingsScreen = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Hook untuk Superior Dialog
+  const {
+    showSuccess,
+    showError,
+    showWarning,
+    showInfo,
+    dialogState,
+  } = useSuperiorDialog();
+
   // Hook untuk biometrik
   const {
     isAvailable: biometricAvailable,
@@ -83,7 +93,7 @@ export const SecuritySettingsScreen = () => {
     disableBiometrics,
     authenticate
   } = useBiometrics((title: string, message: string) => {
-    Alert.alert(title, message);
+    showError(title, message);
   });
 
 
@@ -124,14 +134,14 @@ export const SecuritySettingsScreen = () => {
         await createUserSettings(user.id, defaultUserSettings);
       }
     } catch (error) {
-      Alert.alert('Error', 'Gagal memuat pengaturan keamanan');
+      showError('Error', 'Gagal memuat pengaturan keamanan');
       // Fallback ke default settings
       setSettings(defaultSecuritySettings);
       setUserSettings(defaultUserSettings);
     } finally {
       setIsLoading(false);
     }
-  }, [user, defaultSecuritySettings, defaultUserSettings]);
+  }, [user, defaultSecuritySettings, defaultUserSettings, showError]);
 
   // Helper functions
   const getSecurityLevelText = (level: SecurityLevel): string => {
@@ -150,24 +160,24 @@ export const SecuritySettingsScreen = () => {
         case 'high':
           // Tingkat tinggi: aktifkan enkripsi dan semua fitur keamanan
           await enableEncryption();
-          Alert.alert(
-            '🔒 Keamanan Tinggi Diaktifkan',
+          showSuccess(
+            'Keamanan Tinggi Diaktifkan',
             'Enkripsi data telah diaktifkan. Data Anda akan dienkripsi untuk keamanan maksimal.'
           );
           break;
 
         case 'medium':
           // Tingkat sedang: keamanan standar dengan beberapa fitur tambahan
-          Alert.alert(
-            '🛡️ Keamanan Sedang',
+          showInfo(
+            'Keamanan Sedang',
             'Tingkat keamanan seimbang dengan verifikasi tambahan untuk tindakan sensitif.'
           );
           break;
 
         case 'low':
           // Tingkat rendah: keamanan dasar
-          Alert.alert(
-            '🔓 Keamanan Rendah',
+          showWarning(
+            'Keamanan Rendah',
             'Keamanan dasar diaktifkan. Beberapa fitur keamanan akan dinonaktifkan.'
           );
           break;
@@ -236,8 +246,8 @@ export const SecuritySettingsScreen = () => {
 
       // Show success message for important changes
       if (key === 'security_level') {
-        Alert.alert(
-          '✅ Berhasil!',
+        showSuccess(
+          'Berhasil!',
           `Tingkat keamanan berhasil diubah ke ${getSecurityLevelText(value as SecurityLevel)}`
         );
       }
@@ -246,7 +256,7 @@ export const SecuritySettingsScreen = () => {
       // Settings sudah di-update optimistically di state
 
     } catch (error) {
-      Alert.alert('Error', 'Gagal memperbarui pengaturan');
+      showError('Error', 'Gagal memperbarui pengaturan');
       // Revert state on error
       setSettings(originalSettings);
     } finally {
@@ -265,7 +275,7 @@ export const SecuritySettingsScreen = () => {
         if (value === true) {
           // Cek ketersediaan biometrik
           if (!biometricAvailable) {
-            Alert.alert(
+            showError(
               'Biometrik Tidak Tersedia',
               'Perangkat Anda tidak mendukung autentikasi biometrik atau belum ada data biometrik yang terdaftar.'
             );
@@ -279,27 +289,27 @@ export const SecuritySettingsScreen = () => {
           });
 
           if (!authSuccess) {
-            Alert.alert('Gagal', 'Autentikasi biometrik gagal. Pengaturan tidak diubah.');
+            showError('Gagal', 'Autentikasi biometrik gagal. Pengaturan tidak diubah.');
             return;
           }
 
           // Aktifkan biometrik di sistem
           const enableSuccess = await enableBiometrics();
           if (!enableSuccess) {
-            Alert.alert('Error', 'Gagal mengaktifkan autentikasi biometrik');
+            showError('Error', 'Gagal mengaktifkan autentikasi biometrik');
             return;
           }
 
           // Aktifkan biometric login (menggunakan credentials yang tersimpan)
           const biometricLoginEnabled = await enableBiometricLogin();
           if (!biometricLoginEnabled) {
-            Alert.alert(
+            showWarning(
               'Peringatan',
               'Biometrik diaktifkan, tetapi Anda perlu login ulang untuk mengaktifkan login biometrik.'
             );
           } else {
-            Alert.alert(
-              '✅ Berhasil!',
+            showSuccess(
+              'Berhasil!',
               'Autentikasi biometrik berhasil diaktifkan. Anda dapat menggunakan sidik jari atau wajah untuk login.'
             );
           }
@@ -307,15 +317,15 @@ export const SecuritySettingsScreen = () => {
           // Nonaktifkan biometrik
           const disableSuccess = await disableBiometrics();
           if (!disableSuccess) {
-            Alert.alert('Error', 'Gagal menonaktifkan autentikasi biometrik');
+            showError('Error', 'Gagal menonaktifkan autentikasi biometrik');
             return;
           }
 
           // Nonaktifkan biometric login dan hapus credentials
           await disableBiometricLogin();
 
-          Alert.alert(
-            '✅ Berhasil!',
+          showSuccess(
+            'Berhasil!',
             'Autentikasi biometrik berhasil dinonaktifkan.'
           );
         }
@@ -326,7 +336,7 @@ export const SecuritySettingsScreen = () => {
 
       await updateUserSettings(user.id, { [key]: value });
     } catch (error) {
-      Alert.alert('Error', 'Gagal memperbarui pengaturan');
+      showError('Error', 'Gagal memperbarui pengaturan');
       // Revert state on error
       setUserSettings(userSettings);
     } finally {
@@ -650,6 +660,17 @@ export const SecuritySettingsScreen = () => {
         <BiometricCard />
         <PrivacyCard />
       </Animated.ScrollView>
+
+      {/* Superior Dialog */}
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };

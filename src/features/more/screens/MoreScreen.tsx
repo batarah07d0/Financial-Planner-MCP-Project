@@ -33,7 +33,6 @@ export const MoreScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuthStore();
   const [activeChallenges, setActiveChallenges] = useState<number>(0);
-  const [barcodeScans, setBarcodeScans] = useState<number>(0);
   // State untuk loading (digunakan dalam loadData)
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -118,15 +117,7 @@ export const MoreScreen = () => {
         }
       }
 
-      // Memuat jumlah pemindaian barcode
-      const { data: barcodeData, error: barcodeError } = await supabase
-        .from('barcode_data')
-        .select('id')
-        .eq('created_by', user.id);
 
-      if (!barcodeError && barcodeData) {
-        setBarcodeScans(barcodeData.length);
-      }
     } catch (error) {
       // Error handling tanpa console.error untuk menghindari ESLint warning
     } finally {
@@ -215,16 +206,6 @@ export const MoreScreen = () => {
       icon: <Ionicons name="settings" size={24} color={theme.colors.white} />,
       iconBackground: [theme.colors.primary[400], theme.colors.primary[600]],
       onPress: navigateToSettings,
-    },
-
-    {
-      id: 'barcodeHistory',
-      title: 'Riwayat Pemindaian',
-      description: 'Lihat riwayat pemindaian barcode',
-      icon: <Ionicons name="barcode" size={24} color={theme.colors.white} />,
-      iconBackground: [theme.colors.secondary[400], theme.colors.secondary[600]],
-      onPress: () => navigation.navigate('BarcodeScanHistory'),
-      badgeCount: barcodeScans,
     },
   ];
 

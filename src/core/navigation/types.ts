@@ -48,18 +48,6 @@ export type RootStackParamList = {
     type?: 'income' | 'expense';
     categoryId?: string;
     budgetId?: string;
-    scannedData?: {
-      amount?: number;
-      date?: Date;
-      description?: string;
-      receiptImageUri?: string;
-    };
-    barcodeData?: {
-      productName: string;
-      amount: number;
-      category: string;
-      barcode: string;
-    };
   };
   EditTransaction: { id: string };
   TransactionDetail: { id: string };
@@ -72,14 +60,7 @@ export type RootStackParamList = {
   CategoryPicker: {
     selectedCategoryId?: string;
   };
-  AddProduct: {
-    barcode?: string;
-  };
-  BarcodeScanner: {
-    returnTo?: 'Transactions' | 'BarcodeScanHistory';
-  };
-  BarcodeScanHistory: undefined;
-  ReceiptScanner: undefined;
+
   ExpenseMap: undefined;
   SecuritySettings: undefined;
   BackupRestore: undefined;

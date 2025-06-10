@@ -17,10 +17,6 @@ import { Typography } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Konstanta untuk ukuran gambar yang responsif
-const ONBOARDING_STORAGE_KEY = '@onboarding_completed';
 
 // Type untuk icon names yang valid
 type IoniconsName =
@@ -186,10 +182,7 @@ export const OnboardingScreen = () => {
     try {
       setIsLoading(true);
 
-      // Simpan status onboarding ke AsyncStorage
-      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-
-      // Animasi keluar
+      // Animasi keluar terlebih dahulu untuk transisi yang smooth
       await new Promise(resolve => {
         Animated.parallel([
           Animated.timing(fadeAnim, {
@@ -205,11 +198,11 @@ export const OnboardingScreen = () => {
         ]).start(resolve);
       });
 
-      // Set onboarding complete
-      setOnboardingComplete(true);
+      // Set onboarding complete menggunakan store yang sudah diperbarui
+      await setOnboardingComplete(true);
     } catch (error) {
       // Error handling tanpa console.error untuk menghindari ESLint warning
-      setOnboardingComplete(true); // Fallback
+      await setOnboardingComplete(true); // Fallback
     } finally {
       setIsLoading(false);
     }

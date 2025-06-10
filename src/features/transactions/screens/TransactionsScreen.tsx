@@ -83,25 +83,11 @@ export const TransactionsScreen = () => {
     return 44; // medium device
   };
 
-  // Responsive FAB size
-  const getFABSize = () => {
-    if (isSmallDevice) return 56;
-    if (isLargeDevice) return 68;
-    return 60; // medium device
-  };
-
   // Responsive icon sizes
   const getIconSize = () => {
     if (isSmallDevice) return 20;
     if (isLargeDevice) return 26;
     return 22; // medium device
-  };
-
-  // Responsive FAB position
-  const getFABPosition = () => {
-    if (isSmallDevice) return 20;
-    if (isLargeDevice) return 28;
-    return 24; // medium device
   };
 
   // Fungsi untuk memuat transaksi dari Supabase dengan error handling yang lebih baik
@@ -219,27 +205,7 @@ export const TransactionsScreen = () => {
     navigateTo(navigation, 'AddTransaction');
   };
 
-  // Fungsi untuk menangani klik pada tombol pemindai struk
-  const handleScanReceipt = () => {
-    // Navigasi ke halaman pemindai struk
-    navigateTo(navigation, 'ReceiptScanner');
-  };
 
-  // Fungsi untuk menangani klik pada tombol pemindai barcode
-  const handleScanBarcode = () => {
-    // Navigasi ke halaman pemindai barcode
-    navigateTo(navigation, 'BarcodeScanner', {
-      returnTo: 'Transactions',
-    });
-
-    // Navigation handled by navigateTo function
-  };
-
-  // Fungsi untuk menangani klik pada tombol riwayat pemindaian barcode
-  const handleBarcodeScanHistory = () => {
-    // Navigasi ke halaman riwayat pemindaian barcode
-    navigateTo(navigation, 'BarcodeScanHistory');
-  };
 
   // Fungsi untuk menangani klik pada tombol peta pengeluaran
   const handleOpenExpenseMap = () => {
@@ -399,16 +365,22 @@ export const TransactionsScreen = () => {
           </Typography>
         </View>
 
-        {/* Action Icons Row */}
+        {/* Filter Buttons */}
+        <View style={styles.filterWrapper}>
+          {renderFilterButtons()}
+        </View>
+
+        {/* Action Icons Row - Moved below filter buttons */}
         <View style={[
-          styles.headerActions,
+          styles.actionIconsContainer,
           {
             paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
+            marginTop: responsiveSpacing(theme.spacing.md),
           }
         ]}>
           <TouchableOpacity
             style={[
-              styles.iconButton,
+              styles.actionButton,
               {
                 width: getIconButtonSize(),
                 height: getIconButtonSize(),
@@ -422,50 +394,18 @@ export const TransactionsScreen = () => {
 
           <TouchableOpacity
             style={[
-              styles.iconButton,
+              styles.actionButton,
+              styles.addButton,
               {
                 width: getIconButtonSize(),
                 height: getIconButtonSize(),
                 borderRadius: getIconButtonSize() / 2,
               }
             ]}
-            onPress={handleScanReceipt}
+            onPress={handleAddTransaction}
           >
-            <Ionicons name="scan-outline" size={getIconSize()} color={theme.colors.primary[500]} />
+            <Ionicons name="add" size={getIconSize()} color={theme.colors.white} />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.iconButton,
-              {
-                width: getIconButtonSize(),
-                height: getIconButtonSize(),
-                borderRadius: getIconButtonSize() / 2,
-              }
-            ]}
-            onPress={handleScanBarcode}
-          >
-            <Ionicons name="barcode-outline" size={getIconSize()} color={theme.colors.primary[500]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.iconButton,
-              {
-                width: getIconButtonSize(),
-                height: getIconButtonSize(),
-                borderRadius: getIconButtonSize() / 2,
-              }
-            ]}
-            onPress={handleBarcodeScanHistory}
-          >
-            <Ionicons name="list-outline" size={getIconSize()} color={theme.colors.primary[500]} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Filter Buttons */}
-        <View style={styles.filterWrapper}>
-          {renderFilterButtons()}
         </View>
       </View>
 
@@ -517,27 +457,7 @@ export const TransactionsScreen = () => {
         />
       )}
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          {
-            width: getFABSize(),
-            height: getFABSize(),
-            borderRadius: getFABSize() / 2,
-            bottom: getFABPosition(),
-            right: getFABPosition(),
-          }
-        ]}
-        onPress={handleAddTransaction}
-        activeOpacity={0.8}
-      >
-        <Ionicons
-          name="add"
-          size={isSmallDevice ? 20 : isLargeDevice ? 28 : 24}
-          color={theme.colors.white}
-        />
-      </TouchableOpacity>
+
 
       {/* Superior Dialog */}
       <SuperiorDialog
@@ -590,6 +510,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: theme.spacing.xs,
+  },
+  actionIconsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+  },
+  actionButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.neutral[100],
+    ...theme.elevation.sm,
+  },
+  addButton: {
+    backgroundColor: theme.colors.primary[500],
   },
   filterWrapper: {
     paddingHorizontal: theme.spacing.layout.sm,
@@ -644,16 +580,5 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
     maxWidth: '80%',
   },
-  fab: {
-    position: 'absolute',
-    backgroundColor: theme.colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...theme.elevation.md,
-    shadowColor: theme.colors.primary[700],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 999, // Memastikan FAB selalu di atas elemen lain
-  },
+
 });

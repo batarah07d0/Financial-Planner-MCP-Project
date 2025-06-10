@@ -164,20 +164,4 @@ export const getBiometricLoginCredentials = async (): Promise<{
   }
 };
 
-// Fungsi untuk memperbarui waktu login terakhir
-export const updateLastLoginTime = async (): Promise<boolean> => {
-  try {
-    const credentials = await getStoredCredentials();
-    if (!credentials) {
-      return false;
-    }
 
-    credentials.lastLoginTime = Date.now();
-    await AsyncStorage.setItem(STORED_CREDENTIALS_KEY, JSON.stringify(credentials));
-    
-    return true;
-  } catch (error) {
-    // Error updating last login time - silently handled
-    return false;
-  }
-};

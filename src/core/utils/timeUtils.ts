@@ -9,7 +9,7 @@
  */
 export const getLocalTimeInfo = () => {
   const now = new Date();
-  
+
   // Pastikan menggunakan timezone lokal device
   const localHour = now.getHours();
   const localMinute = now.getMinutes();
@@ -17,11 +17,15 @@ export const getLocalTimeInfo = () => {
   const localDate = now.getDate();
   const localMonth = now.getMonth();
   const localYear = now.getFullYear();
-  
+
   // Buat key unik untuk tracking perubahan waktu
   const timeKey = `${localHour}:${Math.floor(localMinute / 30) * 30}`;
   const dateKey = `${localYear}-${localMonth}-${localDate}`;
-  
+
+  // Tambahkan periode waktu untuk tracking visit count per periode
+  const timePeriod = getTimePeriod(localHour);
+  const periodKey = `${dateKey}-${timePeriod}`;
+
   return {
     hour: localHour,
     minute: localMinute,
@@ -31,6 +35,8 @@ export const getLocalTimeInfo = () => {
     year: localYear,
     timeKey,
     dateKey,
+    timePeriod,
+    periodKey,
     timestamp: now.getTime(),
     fullDate: now,
   };
@@ -132,7 +138,26 @@ export const getGreetingType = (
 };
 
 /**
- * Mendapatkan key untuk daily visit count storage
+ * Mendapatkan key untuk period visit count storage (berdasarkan periode waktu)
+ * @param userId - ID user
+ * @param periodKey - Key periode (tanggal + periode waktu)
+ * @returns Storage key untuk period visit count
+ */
+export const getPeriodVisitCountKey = (userId: string, periodKey: string): string => {
+  return `period_visit_count_${userId}_${periodKey}`;
+};
+
+/**
+ * Mendapatkan key untuk last visit period storage
+ * @param userId - ID user
+ * @returns Storage key untuk last visit period
+ */
+export const getLastVisitPeriodKey = (userId: string): string => {
+  return `last_visit_period_${userId}`;
+};
+
+/**
+ * Mendapatkan key untuk daily visit count storage (backward compatibility)
  * @param userId - ID user
  * @param dateKey - Key tanggal
  * @returns Storage key untuk daily visit count
@@ -142,7 +167,7 @@ export const getDailyVisitCountKey = (userId: string, dateKey: string): string =
 };
 
 /**
- * Mendapatkan key untuk last visit date storage
+ * Mendapatkan key untuk last visit date storage (backward compatibility)
  * @param userId - ID user
  * @returns Storage key untuk last visit date
  */

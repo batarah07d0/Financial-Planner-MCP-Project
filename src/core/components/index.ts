@@ -14,10 +14,12 @@ export * from './EnhancedMarker';
 export * from './StaticMapPreview';
 export * from './DatePicker';
 export * from './CategoryPicker';
-export * from './ReceiptScanner';
+export * from './BudgetWiseLogo';
+
 export * from './BudgetAlert';
 export * from './ChallengeCard';
 export * from './BiometricAuth';
 export * from './SuperiorDialog';
 export * from './Switch';
 export * from './PrivacyProtectedText';
+export * from './SplashScreen';

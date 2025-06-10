@@ -6,6 +6,7 @@ import {
   Animated,
   StatusBar,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -297,8 +298,22 @@ export const TermsConditionsScreen = () => {
             </Typography>
           </View>
           <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.contactText}>
-            Jika Anda memiliki pertanyaan tentang syarat dan ketentuan ini, silakan hubungi tim dukungan kami di support@budgetwise.com
+            Jika Anda memiliki pertanyaan tentang syarat dan ketentuan ini atau memerlukan bantuan, silakan kunjungi repository GitHub kami:
           </Typography>
+          <TouchableOpacity
+            style={styles.githubContactButton}
+            onPress={() => Linking.openURL('https://github.com/batarah07d0/Financial-Planner-MCP-Project')}
+          >
+            <LinearGradient
+              colors={[theme.colors.neutral[800], theme.colors.neutral[900]]}
+              style={styles.githubButtonGradient}
+            >
+              <Ionicons name="logo-github" size={20} color="white" />
+              <Typography variant="body1" color="white" weight="600">
+                Kunjungi GitHub
+              </Typography>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
@@ -478,6 +493,19 @@ const styles = StyleSheet.create({
   },
   contactText: {
     lineHeight: 20,
+    marginBottom: theme.spacing.md,
+  },
+  githubContactButton: {
+    borderRadius: theme.borderRadius.lg,
+    overflow: 'hidden',
+  },
+  githubButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
+    gap: theme.spacing.sm,
   },
   footer: {
     marginTop: theme.spacing.xl,

@@ -30,6 +30,9 @@ polyfill.js
 # Mock files JavaScript (bukan TypeScript)
 src/mocks/**/*.js
 
+# Scripts directory
+scripts/
+
 # Environment files
 .env
 .env.local

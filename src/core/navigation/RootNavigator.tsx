@@ -6,6 +6,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { TabNavigator } from './TabNavigator';
 import { useAuthStore } from '../services/store';
 import { supabase } from '../../config/supabase';
+import { SplashScreen } from '../components';
 
 // Import screens
 import { OnboardingScreen } from '../../features/onboarding/screens';
@@ -14,10 +15,6 @@ import {
   TransactionDetailScreen,
   EditTransactionScreen,
   ExpenseMapScreen,
-  ReceiptScannerScreen,
-  BarcodeScannerScreen,
-  AddProductScreen,
-  BarcodeScanHistoryScreen,
 } from '../../features/transactions/screens';
 import {
   AddBudgetScreen,
@@ -47,44 +44,58 @@ import { ChallengesScreen, AddChallengeScreen, ChallengeDetailScreen } from '../
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator = () => {
-  const { isAuthenticated, hasCompletedOnboarding, initializeOnboardingStatus } = useAuthStore();
+  const {
+    isAuthenticated,
+    hasCompletedOnboarding,
+    isInitialized,
+    initializeOnboardingStatus,
+    initializeAuth,
+    setUser,
+    setIsAuthenticated
+  } = useAuthStore();
 
-  // Cek status autentikasi dan onboarding saat aplikasi dimulai
+  // Inisialisasi aplikasi
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Initialize onboarding status
-        await initializeOnboardingStatus();
-
-        // Cek session autentikasi dengan error handling
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error) {
-          // Jika ada error dengan session (seperti invalid refresh token), clear session
-          await supabase.auth.signOut();
-        } else if (data.session) {
-          // Session valid, implementasi lengkap akan ditambahkan nanti
-        }
+        // Jalankan inisialisasi secara paralel untuk performa yang lebih baik
+        await Promise.all([
+          initializeOnboardingStatus(),
+          initializeAuth(),
+        ]);
       } catch (error) {
-        // Handle any other errors
-        // Clear any invalid session
-        await supabase.auth.signOut();
+        // Jika ada error, tetap lanjutkan
       }
     };
 
     initializeApp();
+  }, [initializeOnboardingStatus, initializeAuth]);
 
-    // Listen for auth state changes
+  // Listen for auth state changes
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        // Handle sign out or token refresh
-        if (!session) {
-          // User signed out, clear any cached data if needed
-        }
-      }
-
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'SIGNED_OUT') {
+        // User signed out
+        setUser(null);
+        setIsAuthenticated(false);
+      } else if (event === 'SIGNED_IN' && session?.user) {
         // User signed in
+        const user = {
+          id: session.user.id,
+          email: session.user.email || null,
+          name: session.user.user_metadata?.name,
+        };
+        setUser(user);
+        setIsAuthenticated(true);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Token refreshed, update user data
+        const user = {
+          id: session.user.id,
+          email: session.user.email || null,
+          name: session.user.user_metadata?.name,
+        };
+        setUser(user);
+        setIsAuthenticated(true);
       }
     });
 
@@ -92,29 +103,35 @@ export const RootNavigator = () => {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [initializeOnboardingStatus]);
+  }, [setUser, setIsAuthenticated]);
+
+  // Tampilkan splash screen hanya saat belum initialized
+  if (!isInitialized) {
+    return <SplashScreen isVisible={true} />;
+  }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        {!hasCompletedOnboarding ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        ) : !isAuthenticated ? (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        ) : (
-          <>
-            <Stack.Screen name="Main" component={TabNavigator} />
-            <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
-            <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
-            <Stack.Screen name="EditTransaction" component={EditTransactionScreen} />
-            <Stack.Screen name="AddBudget" component={AddBudgetScreen} />
-            <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
-            <Stack.Screen name="BudgetAnalysisDetail" component={BudgetAnalysisDetailScreen} />
-            <Stack.Screen name="EditBudget" component={EditBudgetScreen} />
+    <>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          {!hasCompletedOnboarding ? (
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          ) : !isAuthenticated ? (
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          ) : (
+            <>
+              <Stack.Screen name="Main" component={TabNavigator} />
+              <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
+              <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
+              <Stack.Screen name="EditTransaction" component={EditTransactionScreen} />
+              <Stack.Screen name="AddBudget" component={AddBudgetScreen} />
+              <Stack.Screen name="BudgetDetail" component={BudgetDetailScreen} />
+              <Stack.Screen name="BudgetAnalysisDetail" component={BudgetAnalysisDetailScreen} />
+              <Stack.Screen name="EditBudget" component={EditBudgetScreen} />
             <Stack.Screen
               name="CategoryPicker"
               component={CategoryPickerScreen}
@@ -127,10 +144,7 @@ export const RootNavigator = () => {
             <Stack.Screen name="AddSavingGoal" component={AddSavingGoalScreen} />
             <Stack.Screen name="EditSavingGoal" component={EditSavingGoalScreen} />
             <Stack.Screen name="SavingGoalDetail" component={SavingGoalDetailScreen} />
-            <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
-            <Stack.Screen name="BarcodeScanHistory" component={BarcodeScanHistoryScreen} />
-            <Stack.Screen name="AddProduct" component={AddProductScreen} />
-            <Stack.Screen name="ReceiptScanner" component={ReceiptScannerScreen} />
+
             <Stack.Screen name="ExpenseMap" component={ExpenseMapScreen} />
             <Stack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
             <Stack.Screen name="BackupRestore" component={BackupRestoreScreen} />
@@ -147,5 +161,6 @@ export const RootNavigator = () => {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </>
   );
 };

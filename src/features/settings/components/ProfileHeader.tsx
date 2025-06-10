@@ -4,10 +4,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Typography } from '../../../core/components';
+import { Typography, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +14,8 @@ import { supabase } from '../../../config/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../../core/services/store';
 import { decode } from 'base64-arraybuffer';
+import { useSuperiorDialog } from '../../../core/hooks/useSuperiorDialog';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 interface ProfileData {
   full_name: string;
@@ -30,6 +31,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
   const { user } = useAuthStore();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Dialog hooks
+  const {
+    dialogState,
+    showError,
+    showSuccess,
+    showLoading,
+    showConfirm,
+    showDialog,
+    hideDialog,
+  } = useSuperiorDialog();
 
   // Animasi
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -75,13 +87,158 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
     ]).start();
   }, [user, fadeAnim, scaleAnim, fetchProfile]);
 
+  const compressImage = async (uri: string): Promise<string | null> => {
+    try {
+      // Compress image to ensure it's under 1MB
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 400, height: 400 } }], // Resize to 400x400
+        {
+          compress: 0.7, // 70% quality
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true,
+        }
+      );
+
+      return manipulatedImage.base64 || null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const deleteAvatar = async () => {
+    try {
+      if (!user || !profileData?.avatar_url) {
+        showError('Error', 'Tidak ada foto profil untuk dihapus');
+        return;
+      }
+
+      setUploading(true);
+      showLoading('Menghapus...', 'Sedang menghapus foto profil Anda');
+
+      // Extract filename from URL
+      const urlParts = profileData.avatar_url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `${user.id}/${fileName}`;
+
+      // Hapus file dari storage
+      const { error: deleteError } = await supabase.storage
+        .from('avatars')
+        .remove([filePath]);
+
+      if (deleteError) {
+        throw new Error(`Gagal menghapus file: ${deleteError.message}`);
+      }
+
+      // Update profile untuk menghapus avatar_url
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw new Error(`Gagal update profil: ${updateError.message}`);
+      }
+
+      // Refresh profile data
+      await fetchProfile();
+
+      hideDialog();
+      showSuccess('✅ Berhasil!', 'Foto profil berhasil dihapus');
+    } catch (error: unknown) {
+      hideDialog();
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui';
+      showError('❌ Hapus Gagal', `Gagal menghapus foto profil: ${errorMessage}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const showPhotoOptions = () => {
+    const hasAvatar = profileData?.avatar_url;
+
+    if (!hasAvatar) {
+      // Jika belum ada foto, langsung ke galeri
+      pickImage();
+      return;
+    }
+
+    // Jika sudah ada foto, tampilkan dialog pilihan
+    showConfirm(
+      '📸 Foto Profil',
+      'Pilih tindakan yang ingin Anda lakukan dengan foto profil',
+      () => {
+        // Callback untuk tombol pertama akan diatur di actions
+      },
+      'Ganti Foto',
+      'Batal'
+    );
+
+    // Override actions untuk menambahkan tombol hapus
+    setTimeout(() => {
+      hideDialog();
+      // Tampilkan dialog custom dengan 3 pilihan
+      showCustomPhotoDialog();
+    }, 100);
+  };
+
+  const showCustomPhotoDialog = () => {
+    const customActions = [
+      {
+        text: 'Batal',
+        onPress: hideDialog,
+        style: 'cancel' as const,
+      },
+      {
+        text: '🗑️ Hapus Foto',
+        onPress: () => {
+          hideDialog();
+          setTimeout(() => {
+            showConfirm(
+              '⚠️ Konfirmasi Hapus',
+              'Apakah Anda yakin ingin menghapus foto profil? Tindakan ini tidak dapat dibatalkan.',
+              deleteAvatar,
+              'Ya, Hapus',
+              'Batal'
+            );
+          }, 100);
+        },
+        style: 'destructive' as const,
+      },
+      {
+        text: '📷 Ganti Foto',
+        onPress: () => {
+          hideDialog();
+          setTimeout(() => {
+            pickImage();
+          }, 100);
+        },
+        style: 'primary' as const,
+      },
+    ];
+
+    // Gunakan showDialog yang sudah ada
+    showDialog({
+      type: 'info',
+      title: '📸 Foto Profil',
+      message: 'Pilih tindakan yang ingin Anda lakukan dengan foto profil Anda',
+      actions: customActions,
+    });
+  };
+
   const pickImage = async () => {
     try {
       // Meminta izin akses galeri
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== 'granted') {
-        Alert.alert('Izin Diperlukan', 'Aplikasi memerlukan izin untuk mengakses galeri foto Anda');
+        showError(
+          'Izin Diperlukan',
+          'Aplikasi memerlukan izin untuk mengakses galeri foto Anda'
+        );
         return;
       }
 
@@ -89,37 +246,53 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
-        base64: true,
+        base64: false, // We'll handle compression ourselves
+        mediaTypes: ['images'], // Only images
       });
 
-      if (!result.canceled && result.assets && result.assets[0].base64) {
-        await uploadAvatar(result.assets[0].base64);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+
+        // Compress the image
+        const compressedBase64 = await compressImage(asset.uri);
+
+        if (compressedBase64) {
+          await uploadAvatar(compressedBase64);
+        } else {
+          showError('Error', 'Gagal memproses gambar. Silakan coba lagi.');
+        }
       }
     } catch (error) {
-      Alert.alert('Error', 'Gagal memilih gambar');
+      showError('Error', 'Gagal memilih gambar. Silakan coba lagi.');
     }
   };
 
   const uploadAvatar = async (base64Image: string) => {
     try {
       if (!user) {
-        Alert.alert('Error', 'Anda harus login untuk mengubah foto profil');
+        showError('Error', 'Anda harus login untuk mengubah foto profil');
         return;
       }
 
       setUploading(true);
+      showLoading('Mengunggah...', 'Sedang mengunggah foto profil Anda');
 
-      const fileName = `avatar-${user.id}-${Date.now()}.jpg`;
+      // Gunakan struktur folder sesuai dengan policy: user_id/filename
+      const fileName = `${user.id}/avatar-${Date.now()}.jpg`;
       const contentType = 'image/jpeg';
 
       // Hapus avatar lama jika ada
       if (profileData?.avatar_url) {
-        const oldFileName = profileData.avatar_url.split('/').pop();
-        if (oldFileName && oldFileName.startsWith('avatar-' + user.id)) {
+        // Extract filename from URL
+        const urlParts = profileData.avatar_url.split('/');
+        const oldFileName = urlParts[urlParts.length - 1];
+        const oldFilePath = `${user.id}/${oldFileName}`;
+
+        if (oldFileName && oldFileName.startsWith('avatar-')) {
           try {
             await supabase.storage
               .from('avatars')
-              .remove([oldFileName]);
+              .remove([oldFilePath]);
           } catch (removeError) {
             // Lanjutkan meskipun gagal menghapus avatar lama
           }
@@ -136,7 +309,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
         });
 
       if (uploadError) {
-        throw uploadError;
+        throw new Error(`Upload gagal: ${uploadError.message}`);
       }
 
       // Dapatkan URL publik
@@ -156,15 +329,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
         .eq('id', user.id);
 
       if (updateError) {
-        throw updateError;
+        throw new Error(`Update profil gagal: ${updateError.message}`);
       }
 
       // Refresh profile data
       await fetchProfile();
 
-      Alert.alert('Sukses', 'Foto profil berhasil diperbarui');
-    } catch (error) {
-      Alert.alert('Error', 'Gagal mengunggah foto profil. Silakan coba lagi.');
+      hideDialog();
+      showSuccess('✅ Berhasil!', 'Foto profil berhasil diperbarui dengan sempurna');
+    } catch (error: unknown) {
+      hideDialog();
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui';
+      showError('❌ Upload Gagal', `Gagal mengunggah foto profil: ${errorMessage}`);
     } finally {
       setUploading(false);
     }
@@ -203,7 +379,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
         <View style={styles.content}>
           <TouchableOpacity
             style={styles.avatarContainer}
-            onPress={pickImage}
+            onPress={showPhotoOptions}
             disabled={uploading || isLoading}
             activeOpacity={0.8}
           >
@@ -256,6 +432,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ isLoading = false 
           </View>
         </View>
       </LinearGradient>
+
+      {/* Superior Dialog */}
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </Animated.View>
   );
 };

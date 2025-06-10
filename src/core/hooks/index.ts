@@ -2,7 +2,6 @@ export * from './useAppDimensions';
 export * from './useSupabaseAuth';
 export * from './useLocation';
 export * from './useCamera';
-export * from './useOCR';
 export * from './useNotifications';
 export * from './useNotificationManager';
 export * from './useBudgetMonitor';
