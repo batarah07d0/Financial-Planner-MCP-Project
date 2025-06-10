@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
@@ -54,6 +54,10 @@ export const RootNavigator = () => {
     setIsAuthenticated
   } = useAuthStore();
 
+  // State untuk mengatur durasi minimum splash screen
+  const [showSplash, setShowSplash] = useState(true);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+
   // Inisialisasi aplikasi
   useEffect(() => {
     const initializeApp = async () => {
@@ -70,6 +74,27 @@ export const RootNavigator = () => {
 
     initializeApp();
   }, [initializeOnboardingStatus, initializeAuth]);
+
+  // Timer untuk durasi minimum splash screen (3 detik)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinTimeElapsed(true);
+    }, 3000); // 3 detik durasi minimum
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Kontrol kapan splash screen hilang
+  useEffect(() => {
+    if (isInitialized && minTimeElapsed) {
+      // Delay tambahan untuk transisi yang smooth
+      const hideTimer = setTimeout(() => {
+        setShowSplash(false);
+      }, 500); // 0.5 detik delay tambahan
+
+      return () => clearTimeout(hideTimer);
+    }
+  }, [isInitialized, minTimeElapsed]);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -105,8 +130,8 @@ export const RootNavigator = () => {
     };
   }, [setUser, setIsAuthenticated]);
 
-  // Tampilkan splash screen hanya saat belum initialized
-  if (!isInitialized) {
+  // Tampilkan splash screen berdasarkan kondisi yang lebih kompleks
+  if (showSplash) {
     return <SplashScreen isVisible={true} />;
   }
 
