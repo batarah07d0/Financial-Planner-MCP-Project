@@ -1,45 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  Animated,
-  StatusBar,
-  Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Typography, Card } from '../../../core/components';
-import { theme } from '../../../core/theme';
-import { useAuthStore } from '../../../core/services/store';
+import React, { useEffect, useState } from 'react';
+import {
+  Animated,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Card, Typography } from '../../../core/components';
+import { SuperiorDialog } from '../../../core/components/SuperiorDialog';
+import { useBiometrics } from '../../../core/hooks/useBiometrics';
+import { useSuperiorDialog } from '../../../core/hooks/useSuperiorDialog';
 import { RootStackParamList } from '../../../core/navigation/types';
+import {
+  disableBiometricLogin,
+  enableBiometricLogin,
+} from '../../../core/services/security/credentialService';
+import { enableEncryption } from '../../../core/services/security/encryptionService';
+import {
+  setPrivacyMode,
+  setSecurityLevel,
+  setSensitiveDataSettings,
+} from '../../../core/services/security/securityService';
+import { useAuthStore } from '../../../core/services/store';
+import { theme } from '../../../core/theme';
 import {
   SecuritySettings,
   UserSettings,
-  getSecuritySettings,
-  updateSecuritySettings,
-  getUserSettings,
-  updateUserSettings,
   createSecuritySettings,
   createUserSettings,
+  getSecuritySettings,
+  getUserSettings,
+  updateSecuritySettings,
+  updateUserSettings,
 } from '../services/userSettingsService';
-import { useBiometrics } from '../../../core/hooks/useBiometrics';
-import { useSuperiorDialog } from '../../../core/hooks/useSuperiorDialog';
-import { SuperiorDialog } from '../../../core/components/SuperiorDialog';
-import {
-  setSecurityLevel,
-  setPrivacyMode,
-  setSensitiveDataSettings,
-} from '../../../core/services/security/securityService';
-import { enableEncryption } from '../../../core/services/security/encryptionService';
-import {
-  enableBiometricLogin,
-  disableBiometricLogin,
-} from '../../../core/services/security/credentialService';
 
 type SecurityLevel = 'low' | 'medium' | 'high';
 
@@ -310,7 +310,7 @@ export const SecuritySettingsScreen = () => {
           } else {
             showSuccess(
               'Berhasil!',
-              'Autentikasi biometrik berhasil diaktifkan. Anda dapat menggunakan sidik jari atau wajah untuk login.'
+              'Autentikasi biometrik berhasil diaktifkan. Anda dapat menggunakan sidik jari untuk login.'
             );
           }
         } else {

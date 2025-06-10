@@ -37,13 +37,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         Animated.delay(300),
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 1200, // Diperpanjang dari 800ms ke 1200ms
+          duration: 1200,
           useNativeDriver: true,
         }),
         // Logo scale up dengan durasi lebih panjang
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 900, // Diperpanjang dari 600ms ke 900ms
+          duration: 900,
           useNativeDriver: true,
         }),
         // Delay tambahan untuk menahan tampilan
@@ -53,7 +53,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       // Animasi keluar dengan durasi yang lebih panjang untuk transisi smooth
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 600, // Diperpanjang dari 400ms ke 600ms
+        duration: 600,
         useNativeDriver: true,
       }).start(() => {
         setShouldRender(false);
