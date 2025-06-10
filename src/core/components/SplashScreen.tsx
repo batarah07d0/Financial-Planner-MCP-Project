@@ -31,26 +31,29 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       scaleAnim.setValue(0.8);
       logoOpacity.setValue(0);
 
-      // Animasi masuk
+      // Animasi masuk dengan durasi yang lebih panjang
       Animated.sequence([
-        // Logo muncul
+        // Logo muncul dengan delay
+        Animated.delay(300),
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 800,
+          duration: 1200, // Diperpanjang dari 800ms ke 1200ms
           useNativeDriver: true,
         }),
-        // Logo scale up
+        // Logo scale up dengan durasi lebih panjang
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 600,
+          duration: 900, // Diperpanjang dari 600ms ke 900ms
           useNativeDriver: true,
         }),
+        // Delay tambahan untuk menahan tampilan
+        Animated.delay(800),
       ]).start();
     } else {
-      // Animasi keluar
+      // Animasi keluar dengan durasi yang lebih panjang untuk transisi smooth
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 400,
+        duration: 600, // Diperpanjang dari 400ms ke 600ms
         useNativeDriver: true,
       }).start(() => {
         setShouldRender(false);
