@@ -20,5 +20,6 @@
   "javascript.updateImportsOnFileMove.enabled": "always",
   "typescript.updateImportsOnFileMove.enabled": "always",
   "problems.showCurrentInStatus": true,
-  "problems.decorations.enabled": true
+  "problems.decorations.enabled": true,
+  "java.configuration.updateBuildConfiguration": "interactive"
 }
