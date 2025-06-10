@@ -1,34 +1,34 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  StatusBar,
-  Animated,
   ActivityIndicator,
+  Animated,
   AppState,
   AppStateStatus,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography, Card, TransactionCard, SuperiorDialog, PrivacyProtectedText } from '../../../core/components';
-import { theme } from '../../../core/theme';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useAuthStore } from '../../../core/services/store';
-import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
+import { Card, PrivacyProtectedText, SuperiorDialog, TransactionCard, Typography } from '../../../core/components';
 import { useSuperiorDialog } from '../../../core/hooks';
+import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
+import { useAuthStore } from '../../../core/services/store';
+import { theme } from '../../../core/theme';
 
 import { supabase } from '../../../config/supabase';
 import { PeriodVisitService } from '../../../core/services/periodVisitService';
-import { formatCardCurrency, needsExplanation, getCurrencyExplanation } from '../../../core/utils';
+import { Transaction } from '../../../core/services/supabase/types';
+import { formatCardCurrency, getCurrencyExplanation, needsExplanation } from '../../../core/utils';
 import {
-  getLocalTimeInfo,
-  getGreetingType,
   getConsistentMessageIndex,
+  getGreetingType,
+  getLocalTimeInfo,
   shouldUpdateGreeting
 } from '../../../core/utils/timeUtils';
-import { Transaction } from '../../../core/services/supabase/types';
 
 export const DashboardScreen = () => {
   const [scrollY] = useState(new Animated.Value(0));
@@ -498,7 +498,7 @@ export const DashboardScreen = () => {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: headerHeights.expanded + responsiveSpacing(20),
+            paddingTop: headerHeights.expanded,
             paddingBottom: responsiveSpacing(theme.spacing.layout.lg)
           }
         ]}
@@ -515,7 +515,7 @@ export const DashboardScreen = () => {
         <Card style={[styles.balanceCard, {
           marginHorizontal: responsiveSpacing(theme.spacing.layout.sm),
           marginBottom: responsiveSpacing(theme.spacing.layout.md),
-          padding: responsiveSpacing(theme.spacing.layout.md),
+          padding: responsiveSpacing(theme.spacing.layout.xs),
           borderRadius: responsiveSpacing(20)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }] as any} elevation="md">
@@ -570,7 +570,7 @@ export const DashboardScreen = () => {
           }]}>
             <TouchableOpacity
               style={[styles.actionButton, {
-                width: isSmallDevice ? '22%' : '23%',
+                width: isSmallDevice ? '22%' : '25%',
                 paddingVertical: responsiveSpacing(theme.spacing.sm)
               }]}
               onPress={() => handleNavigateToAddTransaction('income')}
@@ -598,7 +598,7 @@ export const DashboardScreen = () => {
 
             <TouchableOpacity
               style={[styles.actionButton, {
-                width: isSmallDevice ? '22%' : '23%',
+                width: isSmallDevice ? '22%' : '26%',
                 paddingVertical: responsiveSpacing(theme.spacing.sm)
               }]}
               onPress={() => handleNavigateToAddTransaction('expense')}
@@ -694,7 +694,9 @@ export const DashboardScreen = () => {
               Ringkasan Bulan Ini
             </Typography>
             <TouchableOpacity onPress={handleNavigateToAnalytics}>
-              <Typography variant="caption" color={theme.colors.primary[500]}>
+              <Typography variant="caption" style={{
+                  fontSize: responsiveFontSize(11)
+                }} color={theme.colors.primary[500]}>
                 Lihat Detail
               </Typography>
             </TouchableOpacity>
@@ -707,7 +709,7 @@ export const DashboardScreen = () => {
               styles.summaryCard,
               styles.incomeCard,
               {
-                padding: responsiveSpacing(theme.spacing.md),
+                padding: responsiveSpacing(theme.spacing.xxl),
                 borderRadius: responsiveSpacing(16),
                 marginRight: responsiveSpacing(theme.spacing.sm)
               }
@@ -747,7 +749,7 @@ export const DashboardScreen = () => {
               styles.summaryCard,
               styles.expenseCard,
               {
-                padding: responsiveSpacing(theme.spacing.md),
+                padding: responsiveSpacing(theme.spacing.xxl),
                 borderRadius: responsiveSpacing(16),
                 marginLeft: responsiveSpacing(theme.spacing.sm)
               }
@@ -797,7 +799,9 @@ export const DashboardScreen = () => {
               Transaksi Terbaru
             </Typography>
             <TouchableOpacity onPress={handleNavigateToTransactions}>
-              <Typography variant="caption" color={theme.colors.primary[500]}>
+              <Typography variant="caption" style={{
+                  fontSize: responsiveFontSize(11)
+                }} color={theme.colors.primary[500]}>
                 Lihat Semua
               </Typography>
             </TouchableOpacity>

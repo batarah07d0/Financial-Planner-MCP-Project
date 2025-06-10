@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { EXPO_PUBLIC_SUPABASE_ANON_KEY, EXPO_PUBLIC_SUPABASE_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY } from '@env';
+import { createClient } from '@supabase/supabase-js';
 
 
 const supabaseUrl = EXPO_PUBLIC_SUPABASE_URL;

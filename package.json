@@ -77,7 +77,10 @@
     "uuid": "^11.1.0",
     "victory-native": "^41.17.3",
     "zustand": "^5.0.4",
-    "expo-navigation-bar": "~4.2.5"
+    "expo-navigation-bar": "~4.2.5",
+    "react-dom": "19.0.0",
+    "react-native-web": "^0.20.0",
+    "@expo/metro-runtime": "~5.0.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
