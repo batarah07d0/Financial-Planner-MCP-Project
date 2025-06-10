@@ -22,7 +22,6 @@ export const storeCredentials = async (
     // Enkripsi password
     const encryptedPassword = await encryptData(password);
     if (!encryptedPassword) {
-      // Failed to encrypt password
       return false;
     }
 
@@ -35,10 +34,9 @@ export const storeCredentials = async (
 
     // Simpan credentials terenkripsi
     await AsyncStorage.setItem(STORED_CREDENTIALS_KEY, JSON.stringify(credentials));
-    
+
     return true;
   } catch (error) {
-    // Error storing credentials - silently handled
     return false;
   }
 };
@@ -103,7 +101,6 @@ export const enableBiometricLogin = async (): Promise<boolean> => {
     await AsyncStorage.setItem(BIOMETRIC_LOGIN_ENABLED_KEY, 'true');
     return true;
   } catch (error) {
-    // Error enabling biometric login - silently handled
     return false;
   }
 };
