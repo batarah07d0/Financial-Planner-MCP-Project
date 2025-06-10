@@ -1,8 +1,9 @@
 import { supabase } from '../../../config/supabase';
 import { PostgrestError } from '@supabase/supabase-js';
 
-export interface Challenge {
+export interface UserChallenge {
   id: string;
+  user_id: string;
   name: string;
   description: string;
   target_amount: number;
@@ -11,50 +12,26 @@ export interface Challenge {
   icon: string;
   color: string;
   is_featured: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UserChallenge {
-  id: string;
-  user_id: string;
-  challenge_id: string;
   start_date: string;
   end_date: string;
   current_amount: number;
   status: 'active' | 'completed' | 'failed';
   created_at: string;
   updated_at: string;
-  challenge?: Challenge;
 }
 
-export interface ChallengeWithProgress extends Challenge {
+// Alias untuk backward compatibility
+export interface Challenge extends UserChallenge {}
+export interface ChallengeWithProgress extends UserChallenge {
   user_challenge?: UserChallenge;
-  current_amount?: number;
-  status?: 'active' | 'completed' | 'failed';
-  start_date?: string;
-  end_date?: string;
 }
 
 /**
- * Mengambil semua tantangan yang tersedia
- */
-export const getAllChallenges = async (): Promise<{ data: Challenge[] | null; error: PostgrestError | null }> => {
-  const { data, error } = await supabase
-    .from('saving_challenges')
-    .select('*')
-    .order('is_featured', { ascending: false })
-    .order('created_at', { ascending: false });
-
-  return { data, error };
-};
-
-/**
- * Mengambil tantangan berdasarkan ID
+ * Mengambil tantangan berdasarkan ID (dari user_challenges)
  */
 export const getChallengeById = async (id: string): Promise<{ data: Challenge | null; error: PostgrestError | null }> => {
   const { data, error } = await supabase
-    .from('saving_challenges')
+    .from('user_challenges')
     .select('*')
     .eq('id', id)
     .single();
@@ -68,10 +45,7 @@ export const getChallengeById = async (id: string): Promise<{ data: Challenge | 
 export const getUserChallenges = async (userId: string): Promise<{ data: UserChallenge[] | null; error: PostgrestError | null }> => {
   const { data, error } = await supabase
     .from('user_challenges')
-    .select(`
-      *,
-      challenge:challenge_id(*)
-    `)
+    .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -87,10 +61,7 @@ export const getUserChallengesByStatus = async (
 ): Promise<{ data: UserChallenge[] | null; error: PostgrestError | null }> => {
   const { data, error } = await supabase
     .from('user_challenges')
-    .select(`
-      *,
-      challenge:challenge_id(*)
-    `)
+    .select('*')
     .eq('user_id', userId)
     .eq('status', status)
     .order('created_at', { ascending: false });
@@ -112,117 +83,55 @@ export const getActiveChallengesCount = async (userId: string): Promise<{ count:
 };
 
 /**
- * Mengambil semua tantangan dengan progress pengguna (jika ada)
+ * Mengambil semua tantangan pengguna dengan progress
  */
 export const getChallengesWithUserProgress = async (
   userId: string
 ): Promise<{ data: ChallengeWithProgress[] | null; error: PostgrestError | null }> => {
-  // Ambil semua tantangan
-  const { data: challenges, error: challengesError } = await getAllChallenges();
-  if (challengesError || !challenges) {
-    return { data: null, error: challengesError };
-  }
-
-  // Ambil semua tantangan pengguna
+  // Ambil semua tantangan pengguna langsung dari user_challenges
   const { data: userChallenges, error: userChallengesError } = await getUserChallenges(userId);
   if (userChallengesError) {
     return { data: null, error: userChallengesError };
   }
 
-  // Gabungkan data tantangan dengan progress pengguna
-  const challengesWithProgress: ChallengeWithProgress[] = challenges.map(challenge => {
-    const userChallenge = userChallenges?.find(uc => uc.challenge_id === challenge.id);
-
-    if (userChallenge) {
-      return {
-        ...challenge,
-        user_challenge: userChallenge,
-        current_amount: userChallenge.current_amount,
-        status: userChallenge.status,
-        start_date: userChallenge.start_date,
-        end_date: userChallenge.end_date,
-      };
-    }
-
-    return challenge;
-  });
+  // Konversi ke format ChallengeWithProgress
+  const challengesWithProgress: ChallengeWithProgress[] = (userChallenges || []).map(userChallenge => ({
+    ...userChallenge,
+    user_challenge: userChallenge,
+  }));
 
   return { data: challengesWithProgress, error: null };
 };
 
 /**
- * Mengambil satu tantangan dengan progress pengguna (jika ada)
+ * Mengambil satu tantangan dengan progress pengguna berdasarkan ID
  */
 export const getChallengeWithUserProgress = async (
   userId: string,
   challengeId: string
 ): Promise<{ data: ChallengeWithProgress[] | null; error: PostgrestError | null }> => {
-  // Ambil tantangan berdasarkan ID
-  const { data: challenge, error: challengeError } = await getChallengeById(challengeId);
-  if (challengeError || !challenge) {
-    return { data: null, error: challengeError };
-  }
-
-  // Ambil tantangan pengguna untuk challenge ini
+  // Ambil tantangan langsung dari user_challenges berdasarkan ID dan user_id
   const { data: userChallenge, error: userChallengeError } = await supabase
     .from('user_challenges')
     .select('*')
+    .eq('id', challengeId)
     .eq('user_id', userId)
-    .eq('challenge_id', challengeId)
     .single();
 
-  // Jika ada error selain 'not found', return error
-  if (userChallengeError && userChallengeError.code !== 'PGRST116') {
+  if (userChallengeError) {
     return { data: null, error: userChallengeError };
   }
 
-  // Gabungkan data tantangan dengan progress pengguna
-  const challengeWithProgress: ChallengeWithProgress = userChallenge ? {
-    ...challenge,
+  // Konversi ke format ChallengeWithProgress
+  const challengeWithProgress: ChallengeWithProgress = {
+    ...userChallenge,
     user_challenge: userChallenge,
-    current_amount: userChallenge.current_amount,
-    status: userChallenge.status,
-    start_date: userChallenge.start_date,
-    end_date: userChallenge.end_date,
-  } : challenge;
+  };
 
   return { data: [challengeWithProgress], error: null };
 };
 
-/**
- * Memulai tantangan baru untuk pengguna
- */
-export const startChallenge = async (
-  userId: string,
-  challengeId: string,
-  startDate: Date = new Date()
-): Promise<{ data: UserChallenge | null; error: PostgrestError | null }> => {
-  // Ambil informasi tantangan
-  const { data: challenge, error: challengeError } = await getChallengeById(challengeId);
-  if (challengeError || !challenge) {
-    return { data: null, error: challengeError };
-  }
 
-  // Hitung tanggal akhir berdasarkan durasi tantangan
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + challenge.duration_days);
-
-  // Buat entri tantangan pengguna baru
-  const { data, error } = await supabase
-    .from('user_challenges')
-    .insert({
-      user_id: userId,
-      challenge_id: challengeId,
-      start_date: startDate.toISOString(),
-      end_date: endDate.toISOString(),
-      current_amount: 0,
-      status: 'active',
-    })
-    .select()
-    .single();
-
-  return { data, error };
-};
 
 /**
  * Memperbarui progress tantangan pengguna
@@ -285,18 +194,36 @@ export interface ChallengeInput {
   icon: string;
   color: string;
   is_featured?: boolean;
+  user_id: string; // Tambahan untuk user_id
 }
 
 /**
- * Menambahkan tantangan baru
+ * Menambahkan tantangan baru langsung ke user_challenges
  */
 export const addChallenge = async (
   challenge: ChallengeInput
 ): Promise<{ data: Challenge | null; error: PostgrestError | null }> => {
+  // Hitung tanggal akhir berdasarkan durasi tantangan
+  const startDate = new Date();
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + challenge.duration_days);
+
   const { data, error } = await supabase
-    .from('saving_challenges')
+    .from('user_challenges')
     .insert({
-      ...challenge,
+      user_id: challenge.user_id,
+      name: challenge.name,
+      description: challenge.description,
+      target_amount: challenge.target_amount,
+      duration_days: challenge.duration_days,
+      difficulty: challenge.difficulty,
+      icon: challenge.icon,
+      color: challenge.color,
+      is_featured: challenge.is_featured || false,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
+      current_amount: 0,
+      status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })

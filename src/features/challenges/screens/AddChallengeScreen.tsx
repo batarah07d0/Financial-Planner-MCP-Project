@@ -22,7 +22,7 @@ import { theme } from '../../../core/theme';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../core/services/store';
-import { addChallenge, ChallengeInput, startChallenge } from '../services/challengeService';
+import { addChallenge, ChallengeInput } from '../services/challengeService';
 import { useSuperiorDialog } from '../../../core/hooks';
 import {
   getChallengeTypes,
@@ -150,7 +150,7 @@ const AddChallengeScreenComponent = () => {
   const navigation = useNavigation<AddChallengeScreenNavigationProp>();
   const { user } = useAuthStore();
   const { setupChallengeReminders } = useNotificationManager();
-  const { dialogState, showError, showWarning, showSuccess, hideDialog } = useSuperiorDialog();
+  const { dialogState, showError, showSuccess, hideDialog } = useSuperiorDialog();
 
   // State untuk form
   const [name, setName] = useState('');
@@ -393,9 +393,10 @@ const AddChallengeScreenComponent = () => {
         icon: selectedTypeObj.icon,
         color: selectedTypeObj.color,
         is_featured: isFeatured,
+        user_id: user.id, // Tambahkan user_id
       };
 
-      // Tambahkan tantangan baru
+      // Tambahkan tantangan baru langsung ke user_challenges
       const { data: newChallenge, error } = await addChallenge(challengeInput);
 
       if (error || !newChallenge) {
@@ -404,28 +405,16 @@ const AddChallengeScreenComponent = () => {
         return;
       }
 
-      // Mulai tantangan untuk pengguna
-      const { error: startError } = await startChallenge(user.id, newChallenge.id);
+      // Setup reminder notifikasi untuk tantangan
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + durationDays);
+      await setupChallengeReminders(formattedName, endDate.toISOString());
 
-      if (startError) {
-        // Error starting challenge - silently handled
-        showWarning(
-          'Peringatan',
-          'Tantangan berhasil dibuat tetapi gagal dimulai. Anda dapat memulainya nanti dari halaman Tantangan.'
-        );
-        setTimeout(() => navigation.goBack(), 2000);
-      } else {
-        // Setup reminder notifikasi untuk tantangan
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() + durationDays);
-        await setupChallengeReminders(formattedName, endDate.toISOString());
-
-        showSuccess(
-          'Sukses',
-          'Tantangan menabung berhasil dibuat dan dimulai! Semoga berhasil mencapai target tabungan Anda.'
-        );
-        setTimeout(() => navigation.goBack(), 2000);
-      }
+      showSuccess(
+        'Sukses',
+        'Tantangan menabung berhasil dibuat dan dimulai! Semoga berhasil mencapai target tabungan Anda.'
+      );
+      setTimeout(() => navigation.goBack(), 2000);
     } catch (error) {
       // Error saving challenge - silently handled
       showError('Error', 'Terjadi kesalahan saat menyimpan tantangan');
@@ -1170,8 +1159,7 @@ const styles = StyleSheet.create({
   saveButtonContainer: {
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.xl,
-    paddingHorizontal: 0, // Menghapus padding horizontal agar sejajar dengan card-card
-    marginHorizontal: theme.spacing.layout.sm, // Menggunakan margin yang sama dengan scrollViewContent
+    paddingHorizontal: 0, // Tidak perlu padding karena sudah ada di scrollViewContent
   },
   saveButton: {
     backgroundColor: '#2196F3',

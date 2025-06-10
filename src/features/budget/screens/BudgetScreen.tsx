@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -49,6 +49,7 @@ export const BudgetScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('weekly');
+  const [isProcessingPeriodChange, setIsProcessingPeriodChange] = useState(false);
 
   // Responsive dimensions
   const {
@@ -58,7 +59,7 @@ export const BudgetScreen = () => {
   } = useAppDimensions();
 
   // Menggunakan store untuk state management
-  const { budgets: supabaseBudgets, fetchBudgets, clearBudgets } = useBudgetStore();
+  const { budgets: supabaseBudgets, fetchBudgets } = useBudgetStore();
   const { user } = useAuthStore();
   const { checkBudgetThresholds } = useBudgetMonitor();
 
@@ -166,19 +167,21 @@ export const BudgetScreen = () => {
   // Fungsi untuk memuat anggaran
   const loadBudgets = useCallback(async () => {
     try {
-      setIsLoading(true);
+      // Hanya set loading jika belum ada data untuk mencegah flicker
+      if (budgets.length === 0 && supabaseBudgets.length === 0) {
+        setIsLoading(true);
+      }
 
       if (!user?.id) return;
 
-      // Memuat kategori terlebih dahulu
-      await loadCategories();
+      // Memuat kategori terlebih dahulu hanya jika belum ada
+      if (Object.keys(categoryMap).length === 0) {
+        await loadCategories();
+      }
 
       try {
         // Memuat anggaran dari Supabase
         await fetchBudgets(user.id);
-
-        // Tunggu sebentar untuk memastikan store ter-update
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Setelah memuat budget, cek threshold untuk notifikasi
         checkBudgetThresholds();
@@ -195,21 +198,15 @@ export const BudgetScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, fetchBudgets, checkBudgetThresholds]);
+  }, [user?.id, fetchBudgets, checkBudgetThresholds, budgets.length, supabaseBudgets.length, categoryMap]);
 
   // Fungsi untuk refresh data dengan force reload
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Clear existing data untuk force refresh
-      setBudgets([]);
-      clearBudgets();
-
-      // Force reload dari database
+      // Force reload dari database tanpa clear untuk mencegah flicker
       if (user?.id) {
         await fetchBudgets(user.id);
-        // Tunggu sebentar untuk memastikan store ter-update
-        await new Promise(resolve => setTimeout(resolve, 200));
       }
     } catch (error) {
       // Error handled in loadBudgets
@@ -231,50 +228,61 @@ export const BudgetScreen = () => {
     navigation.navigate('AddBudget' as never);
   };
 
-  // Fungsi untuk menghitung total anggaran dan pengeluaran
-  const calculateTotals = () => {
-    const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
-    const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
-    return { totalBudget, totalSpent };
-  };
-
   // Memuat anggaran saat komponen dimount atau periode berubah
   useEffect(() => {
     if (user?.id) {
-      // Clear existing budgets saat periode berubah
-      setBudgets([]);
-      loadBudgets();
+      // Untuk initial load, load data
+      const isInitialLoad = budgets.length === 0 && supabaseBudgets.length === 0;
+
+      if (isInitialLoad) {
+        loadBudgets();
+      } else {
+        // Untuk perubahan periode, tidak clear data tapi langsung filter ulang
+        // Data akan difilter di useEffect processStoreBudgets
+      }
     }
-  }, [selectedPeriod, user?.id, loadBudgets]);
+  }, [selectedPeriod, user?.id, loadBudgets, budgets.length, supabaseBudgets.length]);
 
   // Refresh data saat screen focus (user kembali dari AddBudgetScreen atau BudgetDetailScreen)
+  // Menggunakan ref untuk mencegah refresh berlebihan
+  const lastFocusTime = useRef<number>(0);
+
   useFocusEffect(
     React.useCallback(() => {
       if (user?.id) {
-        // Force refresh dengan delay untuk memastikan database sudah ter-update
-        const refreshData = async () => {
-          try {
-            // Clear existing budgets untuk force refresh
-            setBudgets([]);
-            clearBudgets();
+        const now = Date.now();
+        // Hanya refresh jika sudah lebih dari 1 detik sejak focus terakhir
+        if (now - lastFocusTime.current > 1000) {
+          lastFocusTime.current = now;
 
-            // Refresh store data dari database
-            await fetchBudgets(user.id);
+          const refreshData = async () => {
+            try {
+              // Jangan clear budgets jika sudah ada data untuk mencegah flicker
+              if (budgets.length === 0) {
+                setIsLoading(true);
+              }
 
-            // Tunggu sebentar untuk memastikan store ter-update
-            await new Promise(resolve => setTimeout(resolve, 300));
+              // Refresh store data dari database tanpa clear
+              await fetchBudgets(user.id);
 
-            // Reload categories jika diperlukan
-            await loadCategories();
-          } catch (error) {
-            // Error handled silently, fallback to normal load
-            await loadBudgets();
-          }
-        };
+              // Reload categories jika diperlukan
+              if (Object.keys(categoryMap).length === 0) {
+                await loadCategories();
+              }
+            } catch (error) {
+              // Error handled silently, fallback to normal load
+              if (budgets.length === 0) {
+                await loadBudgets();
+              }
+            } finally {
+              setIsLoading(false);
+            }
+          };
 
-        refreshData();
+          refreshData();
+        }
       }
-    }, [user?.id, fetchBudgets, loadBudgets, clearBudgets])
+    }, [user?.id, fetchBudgets, loadBudgets, budgets.length, categoryMap])
   );
 
   // Listen untuk perubahan data budget dari store dengan improved logic
@@ -282,16 +290,27 @@ export const BudgetScreen = () => {
     const processStoreBudgets = async () => {
       // Pastikan categoryMap sudah ter-load
       if (!categoryMap || Object.keys(categoryMap).length === 0) {
+        // Jika categoryMap belum ready, load categories
+        if (user?.id) {
+          await loadCategories();
+        }
         return;
       }
 
-      // Jika tidak ada budget di store, set empty array
+      // Jika tidak ada budget di store, set empty array hanya jika tidak sedang loading
       if (supabaseBudgets.length === 0) {
-        setBudgets([]);
+        if (!isLoading && !isRefreshing && !isProcessingPeriodChange) {
+          setBudgets([]);
+        }
         return;
       }
 
       try {
+        // Set processing period change saat mulai filter
+        if (isProcessingPeriodChange) {
+          setIsProcessingPeriodChange(true);
+        }
+
         // Menghitung pengeluaran untuk setiap anggaran
         const displayBudgets = await calculateSpending(supabaseBudgets);
 
@@ -303,14 +322,31 @@ export const BudgetScreen = () => {
 
         // Update state dengan data yang sudah difilter
         setBudgets(filteredBudgets);
+
+        // Set loading false setelah data berhasil diproses
+        if (isLoading) {
+          setIsLoading(false);
+        }
+
+        // Reset processing period change
+        if (isProcessingPeriodChange) {
+          setIsProcessingPeriodChange(false);
+        }
       } catch (error) {
-        // Jika ada error, set empty array
-        setBudgets([]);
+        // Jika ada error, set empty array hanya jika tidak sedang loading
+        if (!isLoading && !isRefreshing && !isProcessingPeriodChange) {
+          setBudgets([]);
+        }
+
+        // Reset processing period change
+        if (isProcessingPeriodChange) {
+          setIsProcessingPeriodChange(false);
+        }
       }
     };
 
     processStoreBudgets();
-  }, [supabaseBudgets, categoryMap, selectedPeriod, calculateSpending]);
+  }, [supabaseBudgets, categoryMap, selectedPeriod, calculateSpending, isLoading, isRefreshing, isProcessingPeriodChange, user?.id]);
 
   // Render item untuk FlatList dengan enhanced category data
   const renderItem = ({ item }: { item: BudgetDisplay }) => {
@@ -337,13 +373,44 @@ export const BudgetScreen = () => {
     );
   };
 
-  // Fungsi untuk menghitung jumlah budget per periode dengan fallback
+  // Fungsi untuk menghitung jumlah budget per periode dengan fallback - optimized dengan useMemo
+  const budgetCountsByPeriod = useMemo(() => {
+    const counts = {
+      daily: 0,
+      weekly: 0,
+      monthly: 0,
+      yearly: 0
+    };
+
+    supabaseBudgets.forEach(budget => {
+      const budgetPeriod = budget.period || 'monthly';
+      if (Object.prototype.hasOwnProperty.call(counts, budgetPeriod)) {
+        counts[budgetPeriod as keyof typeof counts]++;
+      }
+    });
+
+    return counts;
+  }, [supabaseBudgets]);
+
   const getBudgetCountByPeriod = (period: string) => {
-    return supabaseBudgets.filter(budget => {
-      const budgetPeriod = budget.period || 'monthly'; // Default ke monthly jika tidak ada period
-      return budgetPeriod === period;
-    }).length;
+    return budgetCountsByPeriod[period as keyof typeof budgetCountsByPeriod] || 0;
   };
+
+  // Handler untuk perubahan periode yang lebih smooth
+  const handlePeriodChange = useCallback((newPeriod: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+    if (newPeriod !== selectedPeriod) {
+      setIsProcessingPeriodChange(true);
+      setSelectedPeriod(newPeriod);
+    }
+  }, [selectedPeriod]);
+
+  // Optimized filtered budgets dengan useMemo untuk mencegah re-calculation
+  const filteredBudgetsForPeriod = useMemo(() => {
+    return budgets.filter(budget => {
+      const budgetPeriod = budget.period || selectedPeriod;
+      return budgetPeriod === selectedPeriod;
+    });
+  }, [budgets, selectedPeriod]);
 
   // Render periode buttons dengan responsivitas dan perfect center alignment
   const renderPeriodButtons = () => {
@@ -406,7 +473,7 @@ export const BudgetScreen = () => {
       }]}>
         <TouchableOpacity
           style={getResponsivePeriodButtonStyle(selectedPeriod === 'daily')}
-          onPress={() => setSelectedPeriod('daily')}
+          onPress={() => handlePeriodChange('daily')}
           activeOpacity={0.8}
         >
           <Typography
@@ -426,7 +493,7 @@ export const BudgetScreen = () => {
 
         <TouchableOpacity
           style={getResponsivePeriodButtonStyle(selectedPeriod === 'weekly')}
-          onPress={() => setSelectedPeriod('weekly')}
+          onPress={() => handlePeriodChange('weekly')}
           activeOpacity={0.8}
         >
           <Typography
@@ -446,7 +513,7 @@ export const BudgetScreen = () => {
 
         <TouchableOpacity
           style={getResponsivePeriodButtonStyle(selectedPeriod === 'monthly')}
-          onPress={() => setSelectedPeriod('monthly')}
+          onPress={() => handlePeriodChange('monthly')}
           activeOpacity={0.8}
         >
           <Typography
@@ -466,7 +533,7 @@ export const BudgetScreen = () => {
 
         <TouchableOpacity
           style={getResponsivePeriodButtonStyle(selectedPeriod === 'yearly')}
-          onPress={() => setSelectedPeriod('yearly')}
+          onPress={() => handlePeriodChange('yearly')}
           activeOpacity={0.8}
         >
           <Typography
@@ -487,10 +554,17 @@ export const BudgetScreen = () => {
     );
   };
 
+  // Optimized calculation dengan useMemo
+  const summaryData = useMemo(() => {
+    const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+    const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
+    const percentage = totalBudget > 0 ? totalSpent / totalBudget : 0;
+    return { totalBudget, totalSpent, percentage };
+  }, [budgets]);
+
   // Render summary dengan responsivitas
   const renderSummary = () => {
-    const { totalBudget, totalSpent } = calculateTotals();
-    const percentage = totalBudget > 0 ? totalSpent / totalBudget : 0;
+    const { totalBudget, totalSpent, percentage } = summaryData;
 
     // Responsive summary item styling
     const getResponsiveSummaryItemStyle = () => ({
@@ -568,7 +642,7 @@ export const BudgetScreen = () => {
 
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['right', 'left', 'top']}>
       {/* Header Section */}
       <View style={[styles.headerContainer, {
         paddingTop: responsiveSpacing(theme.spacing.md),
@@ -611,12 +685,15 @@ export const BudgetScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={budgets}
+          data={filteredBudgetsForPeriod}
           renderItem={renderItem}
           keyExtractor={item => item.id}
+          style={styles.flatList}
           contentContainerStyle={[styles.listContent, {
             padding: responsiveSpacing(theme.spacing.layout.sm),
+            paddingBottom: responsiveSpacing(theme.spacing.layout.lg),
           }]}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -625,7 +702,7 @@ export const BudgetScreen = () => {
             />
           }
           // Force re-render saat data berubah
-          extraData={budgets.length}
+          extraData={filteredBudgetsForPeriod.length}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <LinearGradient
@@ -653,8 +730,8 @@ export const BudgetScreen = () => {
                   style={styles.emptyTitle}
                 >
                   {user ?
-                    (isLoading ? 'Memuat Anggaran...' :
-                      'Mulai Kelola Anggaran') :
+                    ((isLoading || isRefreshing || isProcessingPeriodChange) ? 'Memuat Anggaran...' :
+                      filteredBudgetsForPeriod.length === 0 ? 'Mulai Kelola Anggaran' : 'Memuat Anggaran...') :
                     'Silakan Login Terlebih Dahulu'
                   }
                 </Typography>
@@ -666,7 +743,7 @@ export const BudgetScreen = () => {
                   style={styles.emptyText}
                 >
                   {user ?
-                    (isLoading ? 'Sedang mengambil data anggaran Anda...' :
+                    ((isLoading || isRefreshing || isProcessingPeriodChange) ? 'Sedang mengambil data anggaran Anda...' :
                       `Buat anggaran ${selectedPeriod === 'daily' ? 'harian' :
                        selectedPeriod === 'weekly' ? 'mingguan' :
                        selectedPeriod === 'monthly' ? 'bulanan' : 'tahunan'} untuk mengontrol pengeluaran dan mencapai tujuan finansial Anda.`) :
@@ -674,7 +751,7 @@ export const BudgetScreen = () => {
                   }
                 </Typography>
 
-                {user && !isLoading && budgets.length === 0 && (
+                {user && !isLoading && !isRefreshing && !isProcessingPeriodChange && filteredBudgetsForPeriod.length === 0 && (
                   <View style={styles.emptyFeatures}>
                     <View style={styles.featureItem}>
                       <View style={styles.featureIcon}>
@@ -703,7 +780,7 @@ export const BudgetScreen = () => {
                   </View>
                 )}
 
-                {user && !isLoading && budgets.length === 0 && (
+                {user && !isLoading && !isRefreshing && !isProcessingPeriodChange && filteredBudgetsForPeriod.length === 0 && (
                   <TouchableOpacity style={styles.emptyActionButton} onPress={handleAddBudget}>
                     <LinearGradient
                       colors={[theme.colors.primary[500], theme.colors.primary[700]]}
@@ -723,7 +800,7 @@ export const BudgetScreen = () => {
       )}
 
       {/* Floating Action Button - Hanya tampil jika ada data budget */}
-      {user && budgets.length > 0 && (
+      {user && filteredBudgetsForPeriod.length > 0 && (
         <TouchableOpacity
           style={{
             ...styles.fab,
@@ -823,6 +900,10 @@ const styles = StyleSheet.create({
   },
   listContent: {
     // Responsive values will be applied inline
+  },
+  flatList: {
+    flex: 1,
+    backgroundColor: theme.colors.neutral[50],
   },
   loadingContainer: {
     flex: 1,

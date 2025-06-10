@@ -187,7 +187,6 @@ export const SuperiorDialog: React.FC<SuperiorDialogProps> = ({
         style={[
           styles.actionButton,
           action.loading && styles.disabledButton,
-          index === 0 && actions.length > 1 && styles.firstButton,
         ]}
         onPress={() => handleActionPress(action)}
         disabled={action.loading}
@@ -335,19 +334,16 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   dialogActions: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.lg,
     gap: theme.spacing.sm,
   },
   actionButton: {
-    flex: 1,
+    width: '100%',
     borderRadius: theme.borderRadius.lg,
     overflow: 'hidden',
     ...theme.elevation.sm,
-  },
-  firstButton: {
-    marginRight: theme.spacing.xs,
   },
   actionButtonGradient: {
     paddingVertical: theme.spacing.md,

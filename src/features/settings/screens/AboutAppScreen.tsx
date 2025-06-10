@@ -47,16 +47,10 @@ export const AboutAppScreen = () => {
   }, [fadeAnim, slideAnim]);
 
   const handleContactSupport = () => {
-    Linking.openURL('mailto:support@budgetwise.com?subject=Dukungan BudgetWise&body=Halo tim BudgetWise,%0D%0A%0D%0ASaya memerlukan bantuan dengan:%0D%0A%0D%0A[Jelaskan masalah Anda di sini]%0D%0A%0D%0AInformasi Perangkat:%0D%0A- Platform: ' + Platform.OS + '%0D%0A- Versi App: 1.0.0%0D%0A%0D%0ATerima kasih!');
+    Linking.openURL('https://github.com/batarah07d0/Financial-Planner-MCP-Project');
   };
 
-  const handleRateApp = () => {
-    // Implementasi rating app
-    const storeUrl = Platform.OS === 'ios'
-      ? 'https://apps.apple.com/app/budgetwise'
-      : 'https://play.google.com/store/apps/details?id=com.budgetwise';
-    Linking.openURL(storeUrl);
-  };
+
 
   const AppInfoCard = () => (
     <Card style={styles.appInfoCard}>
@@ -71,7 +65,7 @@ export const AboutAppScreen = () => {
               style={styles.logoGradient}
             >
               <Image
-                source={require('../../../../assets/icon.png')}
+                source={require('../../../../assets/BudgetWiseLogo.png')}
                 style={styles.appLogo}
                 resizeMode="contain"
               />
@@ -121,7 +115,7 @@ export const AboutAppScreen = () => {
           { icon: 'analytics-outline', title: 'Analisis Keuangan', desc: 'Laporan dan grafik keuangan yang detail dan interaktif', color: theme.colors.success[500] },
           { icon: 'trophy-outline', title: 'Tantangan Menabung', desc: 'Gamifikasi untuk meningkatkan kebiasaan menabung', color: theme.colors.warning[500] },
           { icon: 'shield-checkmark-outline', title: 'Keamanan Tinggi', desc: 'Enkripsi data dan autentikasi biometrik untuk perlindungan maksimal', color: theme.colors.info[500] },
-          { icon: 'scan-outline', title: 'Scan Barcode & Struk', desc: 'Teknologi AI untuk memindai dan mencatat transaksi otomatis', color: theme.colors.secondary[500] },
+
           { icon: 'location-outline', title: 'Peta Pengeluaran', desc: 'Visualisasi lokasi pengeluaran untuk analisis pola belanja', color: theme.colors.danger[500] },
         ].map((feature, index) => (
           <View key={index} style={styles.featureItem}>
@@ -269,15 +263,15 @@ export const AboutAppScreen = () => {
 
       <View style={styles.contactCardContent}>
         <Typography variant="body1" color={theme.colors.neutral[700]} style={styles.contactText}>
-          Butuh bantuan atau memiliki pertanyaan? Tim kami siap membantu Anda!
+          Butuh bantuan atau memiliki pertanyaan? Kunjungi repository GitHub kami untuk mendapatkan dukungan!
         </Typography>
 
         <TouchableOpacity style={styles.contactMainButton} onPress={handleContactSupport}>
           <LinearGradient
-            colors={[theme.colors.secondary[500], theme.colors.secondary[600]]}
+            colors={[theme.colors.neutral[800], theme.colors.neutral[900]]}
             style={styles.contactButtonGradient}
           >
-            <Ionicons name="mail-outline" size={20} color="white" />
+            <Ionicons name="logo-github" size={20} color="white" />
             <Typography variant="body1" color="white" weight="600">
               Hubungi Dukungan
             </Typography>
@@ -287,39 +281,7 @@ export const AboutAppScreen = () => {
     </Card>
   );
 
-  const ActionCard = () => (
-    <Card style={styles.actionCard}>
-      <View style={styles.cardHeader}>
-        <View style={styles.headerIcon}>
-          <LinearGradient
-            colors={[theme.colors.warning[500], theme.colors.warning[600]]}
-            style={styles.iconGradient}
-          >
-            <Ionicons name="heart" size={24} color="white" />
-          </LinearGradient>
-        </View>
-        <Typography variant="h5" weight="600">Dukung Kami</Typography>
-      </View>
 
-      <View style={styles.actionContent}>
-        <Typography variant="body1" color={theme.colors.neutral[700]} style={styles.actionText}>
-          Bantu kami terus berkembang dengan memberikan rating dan ulasan di app store.
-        </Typography>
-
-        <TouchableOpacity style={styles.rateButton} onPress={handleRateApp}>
-          <LinearGradient
-            colors={[theme.colors.warning[500], theme.colors.warning[600]]}
-            style={styles.rateButtonGradient}
-          >
-            <Ionicons name="star" size={20} color="white" />
-            <Typography variant="body1" color="white" weight="600">
-              Beri Rating
-            </Typography>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </Card>
-  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -345,7 +307,6 @@ export const AboutAppScreen = () => {
         <TeamIntroCard />
         <DeveloperCards />
         <ContactCard />
-        <ActionCard />
 
         <View style={styles.footer}>
           <Typography variant="caption" color={theme.colors.neutral[500]} style={styles.footerText}>
@@ -417,8 +378,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   appLogo: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
   },
   appInfoContent: {
     alignItems: 'center',
@@ -491,29 +452,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     paddingHorizontal: theme.spacing.sm,
-  },
-  actionCard: {
-    marginBottom: theme.spacing.lg,
-    padding: theme.spacing.lg,
-  },
-  actionContent: {
-    alignItems: 'center',
-  },
-  actionText: {
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: theme.spacing.lg,
-  },
-  rateButton: {
-    borderRadius: theme.borderRadius.lg,
-    overflow: 'hidden',
-  },
-  rateButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
   },
   footer: {
     alignItems: 'center',

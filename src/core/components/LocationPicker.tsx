@@ -324,9 +324,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       startEntranceAnimationRef.current();
     }
 
-    if (__DEV__) {
-      // console.log('Map loaded successfully');
-    }
+    // Map loaded successfully (logging dihapus)
   }, []);
 
 
@@ -354,9 +352,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       mapLoadingTimeout = setTimeout(() => {
         if (isMounted) {
           setIsMapLoading(false);
-          if (__DEV__) {
-            // console.log('Map loading timeout - forcing completion');
-          }
+          // Map loading timeout - forcing completion (logging dihapus)
         }
       }, MAPS_CONFIG.TIMEOUTS.MAP_LOADING);
 
@@ -391,9 +387,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             }
           }
         } catch (error) {
-          if (__DEV__) {
-            // console.log('Error getting initial location:', error);
-          }
+          // Error getting initial location (logging dihapus)
         }
       }
     };

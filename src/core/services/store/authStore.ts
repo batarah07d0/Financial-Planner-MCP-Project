@@ -13,6 +13,7 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
+  isInitialized: boolean; // Tambahan untuk tracking initialization
   error: string | null;
 
   // Actions
@@ -24,20 +25,22 @@ interface AuthState {
   }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  setOnboardingComplete: (completed: boolean) => void;
+  setOnboardingComplete: (completed: boolean) => Promise<void>;
   clearError: () => void;
   initializeOnboardingStatus: () => Promise<void>;
+  initializeAuth: () => Promise<void>; // Tambahan untuk auto login
 
   // State setters
   setUser: (user: User | null) => void;
   setIsAuthenticated: (isAuthenticated: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, _get) => ({
   user: null,
   isLoading: false,
   isAuthenticated: false,
   hasCompletedOnboarding: false,
+  isInitialized: false,
   error: null,
 
   login: async (email, password) => {
@@ -245,6 +248,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ isLoading: true, error: null });
 
+      // Clear stored credentials untuk biometric login
+      try {
+        const { clearStoredCredentials } = await import('../security/credentialService');
+        await clearStoredCredentials();
+      } catch (credentialError) {
+        // Ignore credential clearing errors
+      }
+
       const { error } = await supabase.auth.signOut();
 
       if (error) throw error;
@@ -300,6 +311,60 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       // Default ke false jika error
       set({ hasCompletedOnboarding: false });
+    }
+  },
+
+  // Fungsi untuk inisialisasi auth (auto login)
+  initializeAuth: async () => {
+    try {
+      set({ isLoading: true });
+
+      // Cek session yang ada
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        // Jika ada error dengan session, clear session
+        await supabase.auth.signOut();
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isInitialized: true
+        });
+        return;
+      }
+
+      if (session?.user) {
+        // Session valid, set user
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email || null,
+          name: session.user.user_metadata?.name,
+        };
+
+        set({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          isInitialized: true,
+        });
+      } else {
+        // Tidak ada session
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          isInitialized: true
+        });
+      }
+    } catch (error) {
+      // Error handling
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        isInitialized: true
+      });
     }
   },
 

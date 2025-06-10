@@ -298,26 +298,23 @@ export const getBackupHistory = async (userId: string): Promise<BackupHistory[]>
 export const createBackupRecord = async (
   userId: string,
   backupType: 'manual' | 'automatic' | 'scheduled'
-): Promise<string | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('backup_history')
-      .insert({
-        user_id: userId,
-        backup_type: backupType,
-        backup_status: 'pending',
-      })
-      .select('id')
-      .single();
+): Promise<string> => {
+  const { data, error } = await supabase
+    .from('backup_history')
+    .insert({
+      user_id: userId,
+      backup_type: backupType,
+      backup_status: 'pending',
+      started_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
 
-    if (error) {
-      return null;
-    }
-
-    return data.id;
-  } catch (error) {
-    return null;
+  if (error) {
+    throw new Error(`Failed to create backup record: ${error.message}`);
   }
+
+  return data.id;
 };
 
 export const updateBackupRecord = async (

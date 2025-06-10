@@ -8,4 +8,3 @@ export { TABLES } from '../supabase-tables';
 export * from './budget-adapter';
 export * from './category-adapter';
 export * from './transaction-adapter';
-export * from './sync-queue-adapter';

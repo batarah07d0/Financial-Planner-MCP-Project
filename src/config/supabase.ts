@@ -12,5 +12,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // Session akan berlaku selama 30 hari (2592000 detik)
+    // Refresh token akan berlaku selama 30 hari
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'budgetwise-mobile',
+    },
   },
 });

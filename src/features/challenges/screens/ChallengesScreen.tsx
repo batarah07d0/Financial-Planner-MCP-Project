@@ -117,9 +117,12 @@ export const ChallengesScreen = () => {
       })
     ]).start();
 
-    // Kembali ke halaman sebelumnya setelah animasi selesai
+    // Kembali ke Dashboard setelah animasi selesai
     setTimeout(() => {
-      navigation.goBack();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main', params: { screen: 'Dashboard' } }],
+      });
     }, 150);
   };
 

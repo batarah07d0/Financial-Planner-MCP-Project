@@ -24,7 +24,6 @@ import {
   getChallengeWithUserProgress,
   updateChallengeProgress,
   completeChallenge,
-  startChallenge,
   ChallengeWithProgress
 } from '../services/challengeService';
 import { useSuperiorDialog } from '../../../core/hooks';
@@ -57,6 +56,44 @@ export const ChallengeDetailScreen = () => {
   // Animasi
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
+
+  // Fungsi untuk mengecek apakah masih ada tantangan
+  const checkRemainingChallenges = useCallback(async () => {
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_challenges')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (error) return false;
+      return data && data.length > 0;
+    } catch (error) {
+      return false;
+    }
+  }, [user]);
+
+  // Fungsi untuk navigasi aman - ke challenges jika ada data, ke dashboard jika tidak ada
+  const navigateToChallenge = useCallback(async () => {
+    const hasRemainingChallenges = await checkRemainingChallenges();
+
+    if (hasRemainingChallenges) {
+      navigation.navigate('Challenges');
+    } else {
+      // Jika tidak ada tantangan tersisa, kembali ke Dashboard
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main', params: { screen: 'Dashboard' } }],
+      });
+    }
+  }, [navigation, checkRemainingChallenges]);
+
+  // Wrapper function untuk button onPress
+  const handleNavigateBack = useCallback(() => {
+    navigateToChallenge();
+  }, [navigateToChallenge]);
 
   // Fungsi untuk format input dengan pemisah ribuan
   const formatInputValue = (value: string): string => {
@@ -106,6 +143,10 @@ export const ChallengeDetailScreen = () => {
 
       if (error) {
         showError('Error', 'Gagal memuat data tantangan');
+        // Jika error, kembali ke halaman challenges setelah delay
+        setTimeout(async () => {
+          await navigateToChallenge();
+        }, 2000);
         return;
       }
 
@@ -118,6 +159,12 @@ export const ChallengeDetailScreen = () => {
         // Update progress percentage
         const percentage = Math.min((currentAmount / data[0].target_amount) * 100, 100);
         setProgressPercentage(percentage);
+      } else {
+        // Jika data tidak ditemukan, tampilkan error dan kembali ke challenges
+        showError('Error', 'Tantangan tidak ditemukan atau telah dihapus');
+        setTimeout(async () => {
+          await navigateToChallenge();
+        }, 2000);
       }
     } catch (error) {
       showError('Error', 'Terjadi kesalahan saat memuat data');
@@ -125,11 +172,19 @@ export const ChallengeDetailScreen = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user, challengeId, showError]);
+  }, [user, challengeId, showError, navigateToChallenge]);
 
   // Function untuk menghapus tantangan
   const handleDeleteChallenge = async () => {
-    if (!challenge || !user || !challenge.user_challenge?.id) return;
+    if (!challenge || !user) {
+      return;
+    }
+
+    // Dengan struktur baru, challenge.id adalah user_challenge.id
+    if (!challenge.id) {
+      showError('Error', 'Tantangan tidak dapat dihapus karena ID tidak valid');
+      return;
+    }
 
     await authenticateDelete(
       'tantangan',
@@ -142,27 +197,50 @@ export const ChallengeDetailScreen = () => {
 
   // Function untuk menghapus data dari Supabase
   const deleteChallenge = async () => {
-    if (!challenge?.user_challenge?.id) return;
+    if (!challenge?.id || !user?.id) {
+      showError('Error', 'Data tidak valid untuk penghapusan');
+      return;
+    }
 
     try {
       setIsLoading(true);
 
-      const { error } = await supabase
+      // Pastikan user memiliki akses untuk menghapus tantangan ini
+      const { data: verifyData, error: verifyError } = await supabase
         .from('user_challenges')
-        .delete()
-        .eq('id', challenge.user_challenge.id);
+        .select('*')
+        .eq('id', challenge.id)
+        .eq('user_id', user.id)
+        .single();
 
-      if (error) {
-        showError('Error', 'Gagal menghapus tantangan');
+      if (verifyError || !verifyData) {
+        showError('Error', 'Tantangan tidak ditemukan atau Anda tidak memiliki akses');
+        return;
+      }
+
+      // Lakukan delete dengan kondisi user_id untuk keamanan
+      const { error: deleteError, count } = await supabase
+        .from('user_challenges')
+        .delete({ count: 'exact' })
+        .eq('id', challenge.id)
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        showError('Error', `Gagal menghapus tantangan: ${deleteError.message}`);
+        return;
+      }
+
+      if (count === 0) {
+        showError('Error', 'Tidak ada data yang dihapus. Tantangan mungkin sudah tidak ada.');
         return;
       }
 
       showSuccess('✅ Berhasil', 'Tantangan berhasil dihapus');
 
-      // Kembali ke halaman challenges setelah 1 detik
-      setTimeout(() => {
-        navigation.navigate('Challenges');
-      }, 1000);
+      // Navigasi kembali ke halaman challenges
+      setTimeout(async () => {
+        await navigateToChallenge();
+      }, 1500);
 
     } catch (error) {
       showError('Error', 'Terjadi kesalahan saat menghapus tantangan');
@@ -190,25 +268,9 @@ export const ChallengeDetailScreen = () => {
 
     setIsUpdating(true);
     try {
-      // Jika belum ada user_challenge, buat dulu
-      let userChallengeId = challenge.user_challenge?.id;
+      // Dengan struktur baru, challenge.id adalah user_challenge.id
+      const userChallengeId = challenge.id;
 
-      if (!userChallengeId) {
-        // Start challenge terlebih dahulu
-        const { data: newUserChallenge, error: startError } = await startChallenge(
-          user.id,
-          challenge.id
-        );
-
-        if (startError || !newUserChallenge) {
-          showError('Error', 'Gagal memulai tantangan');
-          return;
-        }
-
-        userChallengeId = newUserChallenge.id;
-      }
-
-      // Update progress
       if (!userChallengeId) {
         showError('Error', 'ID tantangan tidak valid');
         return;
@@ -243,9 +305,9 @@ export const ChallengeDetailScreen = () => {
             },
             {
               text: 'Lihat Tantangan Lain',
-              onPress: () => {
+              onPress: async () => {
                 hideDialog();
-                navigation.navigate('Challenges');
+                await navigateToChallenge();
               },
               style: 'primary',
             },
@@ -289,6 +351,8 @@ export const ChallengeDetailScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      // Reset challenge state saat focus untuk memastikan data fresh
+      setChallenge(null);
       loadChallenge();
     }, [loadChallenge])
   );
@@ -435,7 +499,7 @@ export const ChallengeDetailScreen = () => {
           <Button
             title="Kembali"
             variant="primary"
-            onPress={() => navigation.goBack()}
+            onPress={handleNavigateBack}
             style={styles.backButton}
           />
         </View>
@@ -449,7 +513,7 @@ export const ChallengeDetailScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={handleNavigateBack}
           activeOpacity={0.7}
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
@@ -474,7 +538,7 @@ export const ChallengeDetailScreen = () => {
           Detail Tantangan
         </Typography>
         {/* Delete button untuk menghapus tantangan */}
-        {challenge?.user_challenge && (
+        {challenge?.id && (
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={handleDeleteChallenge}

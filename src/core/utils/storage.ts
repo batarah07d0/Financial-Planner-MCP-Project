@@ -2,12 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Simple logger untuk production-ready logging
 const logger = {
-  error: (message: string, error?: unknown) => {
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.error(message, error);
-    }
+  error: (_message: string, _error?: unknown) => {
     // Dalam production, ini bisa dikirim ke service logging seperti Sentry
+    // Logging dihapus untuk mengurangi noise di console
   }
 };
 

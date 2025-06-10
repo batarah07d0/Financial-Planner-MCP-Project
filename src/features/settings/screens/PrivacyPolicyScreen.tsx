@@ -6,6 +6,7 @@ import {
   Animated,
   StatusBar,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -304,22 +305,25 @@ export const PrivacyPolicyScreen = () => {
 
         <PolicySection title="Kontak Kami" icon="mail-outline">
           <Typography variant="body1" color={theme.colors.neutral[700]} style={styles.paragraph}>
-            Jika Anda memiliki pertanyaan tentang kebijakan privasi ini, silakan hubungi kami:
+            Jika Anda memiliki pertanyaan tentang kebijakan privasi ini atau memerlukan bantuan, silakan hubungi kami melalui:
           </Typography>
-          <View style={styles.contactInfo}>
-            <View style={styles.contactItem}>
-              <Ionicons name="mail" size={16} color={theme.colors.primary[500]} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                privacy@budgetwise.com
+          <TouchableOpacity
+            style={styles.githubContactButton}
+            onPress={() => Linking.openURL('https://github.com/batarah07d0/Financial-Planner-MCP-Project')}
+          >
+            <LinearGradient
+              colors={[theme.colors.neutral[800], theme.colors.neutral[900]]}
+              style={styles.githubButtonGradient}
+            >
+              <Ionicons name="logo-github" size={20} color="white" />
+              <Typography variant="body1" color="white" weight="600">
+                GitHub Repository
               </Typography>
-            </View>
-            <View style={styles.contactItem}>
-              <Ionicons name="call" size={16} color={theme.colors.primary[500]} />
-              <Typography variant="body2" color={theme.colors.neutral[600]}>
-                +62 21 1234 5678
-              </Typography>
-            </View>
-          </View>
+            </LinearGradient>
+          </TouchableOpacity>
+          <Typography variant="body2" color={theme.colors.neutral[600]} style={styles.githubDescription}>
+            Kunjungi repository GitHub kami untuk melaporkan masalah, memberikan feedback, atau mengajukan pertanyaan terkait kebijakan privasi.
+          </Typography>
         </PolicySection>
 
         <View style={styles.footer}>
@@ -509,6 +513,23 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary[50],
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
+  },
+  githubContactButton: {
+    borderRadius: theme.borderRadius.lg,
+    overflow: 'hidden',
+    marginBottom: theme.spacing.md,
+  },
+  githubButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
+    gap: theme.spacing.sm,
+  },
+  githubDescription: {
+    textAlign: 'center',
+    lineHeight: 20,
   },
   footer: {
     marginTop: theme.spacing.xl,

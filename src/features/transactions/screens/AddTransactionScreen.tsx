@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,9 +9,11 @@ import {
   Modal,
   ActivityIndicator,
   Text,
+  StatusBar,
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../../core/navigation/types';
 import { useForm, Controller } from 'react-hook-form';
 // Removed unused import: Button as PaperButton
@@ -119,10 +121,7 @@ export const AddTransactionScreen = () => {
         setCategories(data as Category[]);
       }
     } catch (error) {
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error loading categories:', error);
-      }
+      // Error loading categories (logging dihapus)
     } finally {
       setIsLoadingCategories(false);
     }
@@ -132,6 +131,45 @@ export const AddTransactionScreen = () => {
   React.useEffect(() => {
     loadCategories();
   }, []);
+
+  // Setup status bar dan system UI
+  useEffect(() => {
+    // Konfigurasi status bar
+    StatusBar.setBarStyle('dark-content');
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(theme.colors.white);
+      StatusBar.setTranslucent(false);
+    }
+
+    // Handle app state changes untuk memastikan system UI tetap konsisten
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        // Reset status bar ketika app kembali aktif
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor(theme.colors.white);
+          StatusBar.setTranslucent(false);
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  // Pastikan status bar dikonfigurasi ulang ketika screen difokuskan
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle('dark-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(theme.colors.white);
+        StatusBar.setTranslucent(false);
+      }
+    }, [])
+  );
 
   // const { getCurrentLocation } = useLocation();
 
@@ -189,18 +227,12 @@ export const AddTransactionScreen = () => {
         location_name: data.location?.address || null,
       };
 
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('Submitting transaction to Supabase:', transactionData);
-      }
+      // Submitting transaction to Supabase (logging dihapus)
 
       // Simpan ke Supabase menggunakan service
-      const savedTransaction = await createTransaction(transactionData);
+      await createTransaction(transactionData);
 
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('Transaction saved successfully:', savedTransaction);
-      }
+      // Transaction saved successfully (logging dihapus)
 
       // Refresh transaction store untuk update data di halaman lain
       if (user) {
@@ -229,10 +261,7 @@ export const AddTransactionScreen = () => {
         }
       }, 1500);
     } catch (error) {
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error submitting transaction:', error);
-      }
+      // Error submitting transaction (logging dihapus)
       showError('Error', 'Terjadi kesalahan saat menyimpan transaksi');
     } finally {
       setIsSubmitting(false);
@@ -381,6 +410,7 @@ export const AddTransactionScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.white} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}

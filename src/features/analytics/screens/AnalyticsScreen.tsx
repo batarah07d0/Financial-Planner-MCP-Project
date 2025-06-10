@@ -683,7 +683,7 @@ export const AnalyticsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['right', 'left', 'top']}>
       <Animated.View
         style={[
           styles.headerContainer,
@@ -746,7 +746,11 @@ export const AnalyticsScreen = () => {
           </View>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}
+        >
           {renderSummary()}
           {renderExpenseCategoriesChart()}
         </ScrollView>
@@ -866,6 +870,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: theme.spacing.layout.sm,
+    paddingBottom: theme.spacing.layout.lg,
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: theme.colors.neutral[50],
   },
   chartCard: {
     padding: theme.spacing.layout.sm,

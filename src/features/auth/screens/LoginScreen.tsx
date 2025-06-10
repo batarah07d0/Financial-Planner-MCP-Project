@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../../core/navigation/types';
-import { Button, Input, Typography, Card } from '../../../core/components';
+import { Button, Input, Typography, Card, BudgetWiseLogo } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
@@ -253,7 +253,7 @@ export const LoginScreen = () => {
                 borderRadius: LOGO_SIZE / 2,
               }
             ]}>
-              <Ionicons name="wallet-outline" size={LOGO_SIZE * 0.5} color={theme.colors.primary[500]} />
+              <BudgetWiseLogo size={LOGO_SIZE * 0.65} variant="login" />
             </View>
             <Typography
               variant={isSmallDevice ? "h3" : "h2"}
@@ -405,6 +405,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing.md,
+    padding: theme.spacing.sm, // Tambahkan padding internal
     ...theme.elevation.sm,
   },
   appName: {
@@ -465,13 +466,14 @@ const styles = StyleSheet.create({
   },
   biometricButton: {
     marginTop: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 1,
     borderColor: theme.colors.primary[300],
     backgroundColor: theme.colors.primary[50],
     alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.elevation.sm,
   },
   biometricContent: {
     flexDirection: 'row',
@@ -480,5 +482,6 @@ const styles = StyleSheet.create({
   },
   biometricText: {
     fontWeight: '500',
+    fontSize: 16,
   },
 });

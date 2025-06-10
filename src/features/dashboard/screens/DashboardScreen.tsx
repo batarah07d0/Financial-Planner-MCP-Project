@@ -6,6 +6,8 @@ import {
   StatusBar,
   Animated,
   ActivityIndicator,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography, Card, TransactionCard, SuperiorDialog, PrivacyProtectedText } from '../../../core/components';
@@ -18,7 +20,7 @@ import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { useSuperiorDialog } from '../../../core/hooks';
 
 import { supabase } from '../../../config/supabase';
-import { DailyVisitService } from '../../../core/services/dailyVisitService';
+import { PeriodVisitService } from '../../../core/services/periodVisitService';
 import { formatCardCurrency, needsExplanation, getCurrencyExplanation } from '../../../core/utils';
 import {
   getLocalTimeInfo,
@@ -31,7 +33,7 @@ import { Transaction } from '../../../core/services/supabase/types';
 export const DashboardScreen = () => {
   const [scrollY] = useState(new Animated.Value(0));
   const [greetingMessage, setGreetingMessage] = useState('');
-  const [dailyVisitCount, setDailyVisitCount] = useState(0);
+  const [periodVisitCount, setPeriodVisitCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
@@ -46,6 +48,7 @@ export const DashboardScreen = () => {
   // Refs untuk mencegah infinite re-render dan throttling
   const lastFocusTime = useRef<number>(0);
   const greetingInitialized = useRef<boolean>(false);
+  const appState = useRef(AppState.currentState);
   const lastGreetingUpdate = useRef<number>(0);
   const currentGreetingType = useRef<string>('');
 
@@ -238,8 +241,8 @@ export const DashboardScreen = () => {
 
     }
 
-    // Tentukan tipe greeting berdasarkan daily visit count dan waktu
-    const greetingType = getGreetingType(dailyVisitCount, hour);
+    // Tentukan tipe greeting berdasarkan period visit count dan waktu
+    const greetingType = getGreetingType(periodVisitCount, hour);
 
     // Pilih messages berdasarkan tipe greeting
     const messagesToUse = greetingMessages[greetingType];
@@ -248,30 +251,33 @@ export const DashboardScreen = () => {
     const messageIndex = getConsistentMessageIndex(user?.id, dateKey, messagesToUse.length);
 
     return messagesToUse[messageIndex];
-  }, [greetingMessages, dailyVisitCount, user?.id]);
+  }, [greetingMessages, periodVisitCount, user?.id]);
 
-  // Effect untuk load dan update daily visit count - hanya sekali saat mount
+  // Effect untuk load dan update period visit count - hanya sekali saat mount
   useEffect(() => {
-    const loadDailyVisitCount = async () => {
+    const loadPeriodVisitCount = async () => {
       if (!user?.id) return;
 
       try {
-        // Load dan update daily visit count
-        const newDailyCount = await DailyVisitService.incrementDailyVisitCount(user.id);
-        setDailyVisitCount(newDailyCount);
+        // Migrasi dari daily visit count ke period visit count jika diperlukan
+        await PeriodVisitService.migrateToPeriodVisitCount(user.id);
 
-        // Cleanup old data setiap 10 kunjungan harian
-        if (newDailyCount % 10 === 0) {
-          await DailyVisitService.cleanupOldVisitData(user.id);
+        // Load dan update period visit count
+        const newPeriodCount = await PeriodVisitService.incrementPeriodVisitCount(user.id);
+        setPeriodVisitCount(newPeriodCount);
+
+        // Cleanup old data setiap 10 kunjungan periode
+        if (newPeriodCount % 10 === 0) {
+          await PeriodVisitService.cleanupOldPeriodData(user.id);
         }
       } catch (error) {
         // Error handling tanpa console.error untuk menghindari ESLint warning
-        setDailyVisitCount(1);
+        setPeriodVisitCount(1);
       }
     };
 
     if (user && !greetingInitialized.current) {
-      loadDailyVisitCount();
+      loadPeriodVisitCount();
     }
   }, [user]);
 
@@ -284,29 +290,59 @@ export const DashboardScreen = () => {
 
   // Effect untuk update greeting message ketika userDisplayName berubah
   useEffect(() => {
-    if (userDisplayName && dailyVisitCount > 0) {
+    if (userDisplayName && periodVisitCount > 0) {
       const newMessage = getGreetingMessage();
       setGreetingMessage(newMessage);
     }
-  }, [userDisplayName, dailyVisitCount, getGreetingMessage]);
+  }, [userDisplayName, periodVisitCount, getGreetingMessage]);
 
-  // Effect untuk update greeting message berdasarkan perubahan waktu (setiap 30 menit)
+  // Effect untuk update greeting message berdasarkan perubahan periode waktu
   useEffect(() => {
     if (!user || !userDisplayName) return;
 
-    const updateGreeting = () => {
-      const newMessage = getGreetingMessage();
-      setGreetingMessage(newMessage);
+    const updateGreetingAndPeriodCount = async () => {
+      try {
+        // Update period visit count jika periode berubah
+        const newPeriodCount = await PeriodVisitService.getPeriodVisitCount(user.id);
+        setPeriodVisitCount(newPeriodCount);
+
+        // Update greeting message
+        const newMessage = getGreetingMessage();
+        setGreetingMessage(newMessage);
+      } catch (error) {
+        // Error handling
+        const newMessage = getGreetingMessage();
+        setGreetingMessage(newMessage);
+      }
     };
 
     // Update greeting pertama kali
-    updateGreeting();
+    updateGreetingAndPeriodCount();
 
     // Update greeting setiap 30 menit untuk responsivitas yang lebih baik
-    const interval = setInterval(updateGreeting, 30 * 60 * 1000); // 30 menit
+    // dan untuk mendeteksi perubahan periode waktu
+    const interval = setInterval(updateGreetingAndPeriodCount, 30 * 60 * 1000); // 30 menit
 
     return () => clearInterval(interval);
   }, [user, userDisplayName, getGreetingMessage]);
+
+  // Handle app state changes untuk mencegah bug layout
+  const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
+    if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      // App kembali ke foreground, hanya refresh data tanpa reset scroll position
+      // untuk mencegah bug positioning header
+      if (user) {
+        loadDashboardData();
+      }
+    }
+    appState.current = nextAppState;
+  }, [user, loadDashboardData]);
+
+  // Setup app state listener
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription?.remove();
+  }, [handleAppStateChange]);
 
   // Refresh data ketika halaman difokuskan dengan throttling
   useFocusEffect(
@@ -403,11 +439,16 @@ export const DashboardScreen = () => {
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'left']}>
+    <SafeAreaView style={styles.container} edges={['right', 'left', 'top']}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary[700]} />
 
       {/* Header Animasi */}
-      <Animated.View style={[styles.animatedHeader, { height: headerHeight }]}>
+      <Animated.View
+        key={`header-${user?.id || 'guest'}`}
+        style={[styles.animatedHeader, {
+          height: headerHeight
+        }]}
+      >
         <LinearGradient
           colors={[
             theme.colors.primary[800],
@@ -425,7 +466,9 @@ export const DashboardScreen = () => {
           <Animated.View style={[styles.headerContent, {
             opacity: headerOpacity,
             marginTop: responsiveSpacing(20),
-            paddingHorizontal: responsiveSpacing(theme.spacing.xs)
+            paddingHorizontal: responsiveSpacing(theme.spacing.xs),
+            justifyContent: 'center',
+            flex: 1
           }]}>
             <Typography variant="h3" color={theme.colors.white} weight="700" style={[styles.greetingText, {
               marginBottom: responsiveSpacing(theme.spacing.xs)
@@ -450,6 +493,7 @@ export const DashboardScreen = () => {
       </Animated.View>
 
       <Animated.ScrollView
+        key={`scroll-${user?.id || 'guest'}`}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
@@ -464,6 +508,8 @@ export const DashboardScreen = () => {
           { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
+        bounces={true}
+        alwaysBounceVertical={false}
       >
         {/* Kartu Saldo */}
         <Card style={[styles.balanceCard, {
@@ -921,6 +967,9 @@ const styles = StyleSheet.create({
   headerContent: {
     marginTop: 20,
     paddingHorizontal: theme.spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 100, // Memberikan tinggi minimum untuk stabilitas
   },
   greetingText: {
     textAlign: 'center',
@@ -945,11 +994,12 @@ const styles = StyleSheet.create({
   // ScrollView Styles
   scrollView: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: theme.colors.neutral[50],
   },
   scrollContent: {
     paddingTop: 240, // Header height + some extra space (akan di-override dengan responsif)
     paddingBottom: theme.spacing.layout.lg,
+    backgroundColor: theme.colors.neutral[50],
   },
 
   // Balance Card Styles

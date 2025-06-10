@@ -27,9 +27,9 @@ export const TabNavigator = () => {
           backgroundColor: theme.colors.white,
           borderTopWidth: 1,
           borderTopColor: theme.colors.neutral[200],
-          height: 65 + insets.bottom, // Tambahkan safe area bottom
-          paddingBottom: insets.bottom + 10, // Padding bottom dengan safe area
-          paddingTop: 10,
+          height: 75 + insets.bottom, // Tingkatkan height untuk memberikan ruang lebih
+          paddingBottom: insets.bottom + 8, // Kurangi padding bottom
+          paddingTop: 8, // Kurangi padding top
           elevation: 8,
           shadowColor: theme.colors.neutral[900],
           shadowOffset: { width: 0, height: -3 },
@@ -39,7 +39,12 @@ export const TabNavigator = () => {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
-          marginTop: 2,
+          marginTop: 4, // Tambahkan margin top
+          marginBottom: 4, // Tambahkan margin bottom untuk mencegah terpotong
+          paddingBottom: 2, // Tambahkan padding bottom kecil
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4, // Tambahkan padding vertikal pada item
         },
       }}
     >

@@ -1,14 +1,14 @@
 module.exports = {
   expo: {
-    name: "Financial-Planner-MCP-Project",
-    slug: "Financial-Planner-MCP-Project",
+    name: "BudgetWise",
+    slug: "budgetwise",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/BudgetWiseLogo.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
-      image: "./assets/splash-icon.png",
+      image: "./assets/BudgetForSplashandAdaptive.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
@@ -17,7 +17,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: "./assets/BudgetForSplashandAdaptive.png",
         backgroundColor: "#ffffff"
       },
       edgeToEdgeEnabled: true
@@ -30,18 +30,7 @@ module.exports = {
         "expo-location",
         {}
       ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Aplikasi memerlukan akses ke kamera Anda untuk fitur pemindaian barcode dan struk."
-        }
-      ],
-      [
-        "expo-barcode-scanner",
-        {
-          "cameraPermission": "Aplikasi memerlukan akses ke kamera Anda untuk fitur pemindaian barcode."
-        }
-      ],
+
       [
         "expo-media-library",
         {}
@@ -64,8 +53,8 @@ module.exports = {
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#ffffff",
+          "icon": "./assets/BudgetWiseLogo.png",
+          "color": "#3B82F6",
           "sounds": [
             "./assets/notification-sound.wav"
           ]

@@ -25,17 +25,12 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         const { error } = await supabase.from('health_check').select('*').limit(1);
         
         if (error) {
-          if (__DEV__) {
-            // eslint-disable-next-line no-console
-            console.warn('Tidak dapat terhubung ke Supabase:', error.message);
-          }
           // Tetap lanjutkan karena mungkin offline
+          // Logging dihapus untuk mengurangi noise di console
         }
 
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.log('Supabase connection initialized successfully');
-        }
+        // Supabase connection initialized successfully
+        // Logging dihapus untuk mengurangi noise di console
         setIsReady(true);
 
       } catch (err: unknown) {

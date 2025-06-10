@@ -5,11 +5,6 @@ export const TABLES = {
   CATEGORIES: 'categories',
   BUDGETS: 'budgets',
 
-  // Tabel untuk sinkronisasi
-  SYNC_QUEUE: 'sync_queue',
-
   // Tabel untuk pengguna
   PROFILES: 'profiles',
-
-
 };
