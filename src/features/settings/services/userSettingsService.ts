@@ -4,6 +4,10 @@ export interface UserSettings {
   notification_enabled: boolean;
   biometric_enabled: boolean;
   budget_alert_threshold: number;
+  daily_reminder_enabled: boolean;
+  weekly_summary_enabled: boolean;
+  saving_goal_alerts: boolean;
+  transaction_reminders: boolean;
 }
 
 export interface SecuritySettings {
@@ -13,6 +17,8 @@ export interface SecuritySettings {
   hide_transactions: boolean;
   hide_budgets: boolean;
   require_auth_for_sensitive_actions: boolean;
+  require_auth_for_edit: boolean;
+  require_auth_for_delete: boolean;
   auto_lock_timeout: number;
   failed_attempts_limit: number;
   session_timeout: number;
@@ -58,6 +64,10 @@ export const getUserSettings = async (userId: string): Promise<UserSettings | nu
           notification_enabled: true,
           biometric_enabled: false,
           budget_alert_threshold: 80,
+          daily_reminder_enabled: true,
+          weekly_summary_enabled: true,
+          saving_goal_alerts: true,
+          transaction_reminders: true,
         };
 
         await createUserSettings(userId, defaultSettings);
@@ -126,21 +136,8 @@ export const getSecuritySettings = async (userId: string): Promise<SecuritySetti
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // Tidak ada data, buat pengaturan default
-        const defaultSettings: SecuritySettings = {
-          security_level: 'medium',
-          privacy_mode: 'standard',
-          hide_balances: false,
-          hide_transactions: false,
-          hide_budgets: false,
-          require_auth_for_sensitive_actions: true,
-          auto_lock_timeout: 300,
-          failed_attempts_limit: 5,
-          session_timeout: 3600,
-        };
-
-        await createSecuritySettings(userId, defaultSettings);
-        return defaultSettings;
+        // Tidak ada data, return null agar UI menggunakan default
+        return null;
       }
 
       return null;
@@ -185,7 +182,8 @@ export const updateSecuritySettings = async (
         ...settings,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select();
 
     if (error) {
       return false;

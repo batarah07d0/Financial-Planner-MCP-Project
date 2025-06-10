@@ -8,13 +8,16 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { Region } from 'react-native-maps';
+import { EnhancedMapView } from './EnhancedMapView';
 import { Typography } from './Typography';
 import { theme } from '../theme';
 import { useLocation, LocationData, LocationAddress } from '../hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MAPS_CONFIG } from '../../config/maps';
+// Hapus import Location - tidak digunakan lagi
 
 interface LocationPickerProps {
   initialLocation?: {
@@ -53,10 +56,10 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
     initialLocation?.address || undefined
   );
   const [mapRegion] = useState<Region>({
-    latitude: initialLocation?.latitude || -6.2088,  // Default: Jakarta
-    longitude: initialLocation?.longitude || 106.8456,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
+    latitude: initialLocation?.latitude || MAPS_CONFIG.DEFAULT_REGION.latitude,
+    longitude: initialLocation?.longitude || MAPS_CONFIG.DEFAULT_REGION.longitude,
+    latitudeDelta: MAPS_CONFIG.DEFAULT_REGION.latitudeDelta,
+    longitudeDelta: MAPS_CONFIG.DEFAULT_REGION.longitudeDelta,
   });
 
   const {
@@ -68,52 +71,79 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
+
+  // State untuk tracking current region untuk zoom
+  const [currentRegion, setCurrentRegion] = useState<Region>(mapRegion);
+
+  // State untuk tracking location loading
+  const [isTrackingLocation, setIsTrackingLocation] = useState<boolean>(false);
+
+  // State untuk user location yang stabil - ini adalah lokasi GPS aktual (SINGLE SOURCE OF TRUTH)
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
+
+  // Hapus state yang tidak digunakan - simplified untuk native controls only
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-50)).current;
 
-  // Fungsi untuk mendapatkan alamat dari koordinat
+  // Refs untuk kontrol lifecycle dan stabilitas
+  const isInitializedRef = useRef(false);
+  const getCurrentLocationRef = useRef(getCurrentLocation);
+  const getAddressFromCoordinatesRef = useRef(getAddressFromCoordinates);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleGetAddressRef = useRef<((lat: number, lng: number) => Promise<void>) | null>(null);
+  const startEntranceAnimationRef = useRef<(() => void) | null>(null);
+
+  // Update refs ketika fungsi berubah
+  useEffect(() => {
+    getCurrentLocationRef.current = getCurrentLocation;
+    getAddressFromCoordinatesRef.current = getAddressFromCoordinates;
+  }, [getCurrentLocation, getAddressFromCoordinates]);
+
+  // Update function refs
+  useEffect(() => {
+    handleGetAddressRef.current = handleGetAddress;
+    startEntranceAnimationRef.current = startEntranceAnimation;
+  });
+
+  // Fungsi untuk mendapatkan alamat dari koordinat dengan debounce
   const handleGetAddress = useCallback(async (latitude: number, longitude: number) => {
-    setIsAddressLoading(true);
+    // Clear previous debounce timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
 
-    try {
-      const addressData = await getAddressFromCoordinates(latitude, longitude);
+    // Cegah multiple concurrent requests
+    if (isAddressLoading) return;
 
-      if (addressData) {
-        // Format alamat
-        const formattedAddress = formatAddress(addressData);
-        setSelectedAddress(formattedAddress);
-      } else {
+    // Debounce untuk mengurangi API calls
+    debounceTimeoutRef.current = setTimeout(async () => {
+      setIsAddressLoading(true);
+
+      try {
+        const addressData = await getAddressFromCoordinatesRef.current(latitude, longitude);
+
+        if (addressData) {
+          // Format alamat
+          const formattedAddress = formatAddress(addressData);
+          setSelectedAddress(formattedAddress);
+        } else {
+          setSelectedAddress(undefined);
+        }
+      } catch (error) {
+        // Error getting address - silently fail
         setSelectedAddress(undefined);
+      } finally {
+        setIsAddressLoading(false);
       }
-    } catch (error) {
-      // Error getting address - silently fail
-      setSelectedAddress(undefined);
-    } finally {
-      setIsAddressLoading(false);
-    }
-  }, [getAddressFromCoordinates]);
+    }, 500); // 500ms debounce
+  }, [isAddressLoading]);
 
-  // Fungsi untuk mendapatkan lokasi saat ini
-  const handleGetCurrentLocation = useCallback(async () => {
-    const currentLocation = await getCurrentLocation();
+  // Hapus utility functions - simplified untuk native controls only
 
-    if (currentLocation) {
-      setSelectedLocation(currentLocation);
+  // Hapus handleGetCurrentLocation - biarkan menggunakan native location controls
 
-      // Pindahkan peta ke lokasi saat ini
-      if (mapRef.current) {
-        mapRef.current.animateToRegion({
-          latitude: currentLocation.latitude,
-          longitude: currentLocation.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-      }
-
-      // Dapatkan alamat dari koordinat
-      await handleGetAddress(currentLocation.latitude, currentLocation.longitude);
-    }
-  }, [getCurrentLocation, handleGetAddress]);
+  // Hapus custom zoom functions - biarkan menggunakan native Google Maps controls
 
   // Fungsi untuk memformat alamat
   const formatAddress = (address: LocationAddress): string => {
@@ -150,51 +180,122 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
     return parts.join(', ');
   };
 
-  // Fungsi untuk menangani klik pada peta
-  const handleMapPress = (event: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
-    const { coordinate } = event.nativeEvent;
+  // Fungsi untuk menangani perubahan region map
+  const handleRegionChangeComplete = useCallback((region: Region) => {
+    // Update current region untuk tracking zoom
+    setCurrentRegion(region);
 
-    setSelectedLocation({
-      latitude: coordinate.latitude,
-      longitude: coordinate.longitude,
+    // HANYA update selected location jika tidak ada user location aktif
+    // Ini mencegah konflik dengan GPS location yang sudah akurat
+    if (!userLocation && !isTrackingLocation) {
+      const centerLocation: LocationData = {
+        latitude: region.latitude,
+        longitude: region.longitude,
+        accuracy: undefined,
+        altitude: undefined,
+        heading: undefined,
+        speed: undefined,
+        timestamp: Date.now()
+      };
+
+      setSelectedLocation(centerLocation);
+
+      // Dapatkan alamat dari koordinat dengan debounce yang lebih lama
+      setTimeout(() => {
+        if (!userLocation && !isTrackingLocation) {
+          handleGetAddress(region.latitude, region.longitude);
+        }
+      }, 500); // Increase debounce untuk mengurangi API calls
+    }
+  }, [userLocation, isTrackingLocation, handleGetAddress]);
+
+  // Fungsi untuk menangani tap pada peta - update center dan alamat saja (tanpa marker tambahan)
+  const handleMapPress = useCallback(async (event: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
+    const { coordinate } = event.nativeEvent;
+    const { latitude, longitude } = coordinate;
+
+    // Update selectedLocation untuk alamat, tapi tetap prioritaskan userLocation untuk display
+    const newLocation: LocationData = {
+      latitude,
+      longitude,
       accuracy: undefined,
       altitude: undefined,
       heading: undefined,
       speed: undefined,
-      timestamp: undefined
-    });
+      timestamp: Date.now()
+    };
+
+    // Hanya update selectedLocation untuk alamat, jangan ubah userLocation
+    setSelectedLocation(newLocation);
+
+    // Update region untuk center ke posisi baru dengan zoom yang sesuai
+    const newRegion: Region = {
+      latitude,
+      longitude,
+      latitudeDelta: currentRegion.latitudeDelta,
+      longitudeDelta: currentRegion.longitudeDelta
+    };
+
+    setCurrentRegion(newRegion);
+
+    // Animasikan map ke lokasi yang diklik
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(newRegion, 500);
+    }
 
     // Dapatkan alamat dari koordinat
-    handleGetAddress(coordinate.latitude, coordinate.longitude);
-  };
+    await handleGetAddress(latitude, longitude);
+  }, [currentRegion, handleGetAddress]);
 
-  // Fungsi untuk menangani konfirmasi lokasi
-  const handleConfirm = () => {
-    if (selectedLocation) {
+  // Fungsi untuk menangani konfirmasi lokasi - prioritas userLocation (blue dot)
+  const handleConfirm = useCallback(() => {
+    // Prioritas MUTLAK: userLocation (blue dot GPS) untuk akurasi maksimal
+    // Fallback: selectedLocation jika tidak ada GPS
+    const finalLocation = userLocation || selectedLocation;
+
+    if (finalLocation) {
       onLocationSelected({
-        latitude: selectedLocation.latitude,
-        longitude: selectedLocation.longitude,
+        latitude: finalLocation.latitude,
+        longitude: finalLocation.longitude,
         address: selectedAddress,
       });
     } else {
       onLocationSelected(null);
     }
-  };
+  }, [userLocation, selectedLocation, selectedAddress, onLocationSelected]);
 
   // Fungsi untuk menangani pembatalan
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (onCancel) {
       onCancel();
     }
-  };
+  }, [onCancel]);
 
-  // Fungsi untuk menangani reset lokasi
-  const handleReset = () => {
+  // Fungsi untuk menangani reset lokasi - simplified
+  const handleReset = useCallback(() => {
+    // Reset semua state location
+    setUserLocation(null);
     setSelectedLocation(null);
     setSelectedAddress(undefined);
-  };
 
-  // Fungsi untuk animasi masuk
+    // Reset loading states
+    setIsTrackingLocation(false);
+    setIsAddressLoading(false);
+
+    // Clear any pending debounce
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+
+    // Reset region ke initial dengan smooth animation
+    setCurrentRegion(mapRegion);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(mapRegion, 1500);
+    }
+  }, [mapRegion]);
+
+  // Fungsi untuk animasi masuk - menggunakan useRef untuk stabilitas
   const startEntranceAnimation = useCallback(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -216,21 +317,117 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   };
 
   // Fungsi untuk handle map ready
-  const handleMapReady = () => {
+  const handleMapReady = useCallback(() => {
     setIsMapLoading(false);
-    startEntranceAnimation();
-  };
 
-  // Dapatkan lokasi saat ini saat komponen dimount jika tidak ada lokasi awal
-  useEffect(() => {
-    if (!initialLocation) {
-      handleGetCurrentLocation();
+    if (startEntranceAnimationRef.current) {
+      startEntranceAnimationRef.current();
     }
-    // Start entrance animation
-    setTimeout(() => {
-      startEntranceAnimation();
-    }, 100);
-  }, [initialLocation, handleGetCurrentLocation, startEntranceAnimation]);
+
+    if (__DEV__) {
+      // console.log('Map loaded successfully');
+    }
+  }, []);
+
+
+
+  // Effect untuk inisialisasi komponen - hanya dijalankan sekali
+  useEffect(() => {
+    // Cegah multiple initialization
+    if (isInitializedRef.current) return;
+
+    let isMounted = true;
+    let animationTimeout: ReturnType<typeof setTimeout>;
+    let mapLoadingTimeout: ReturnType<typeof setTimeout>;
+
+    const initializeComponent = async () => {
+      isInitializedRef.current = true;
+
+      // Start entrance animation
+      animationTimeout = setTimeout(() => {
+        if (isMounted && startEntranceAnimationRef.current) {
+          startEntranceAnimationRef.current();
+        }
+      }, 100);
+
+      // Set timeout untuk loading peta (fallback jika onMapReady tidak dipanggil)
+      mapLoadingTimeout = setTimeout(() => {
+        if (isMounted) {
+          setIsMapLoading(false);
+          if (__DEV__) {
+            // console.log('Map loading timeout - forcing completion');
+          }
+        }
+      }, MAPS_CONFIG.TIMEOUTS.MAP_LOADING);
+
+      // Dapatkan lokasi saat ini jika tidak ada lokasi awal
+      if (!initialLocation && isMounted) {
+        try {
+          const currentLocation = await getCurrentLocationRef.current();
+          if (currentLocation && isMounted) {
+            const locationWithTimestamp = {
+              ...currentLocation,
+              timestamp: Date.now()
+            };
+
+            setUserLocation(locationWithTimestamp);
+            setSelectedLocation(locationWithTimestamp);
+
+            // Pindahkan peta ke lokasi saat ini
+            if (mapRef.current) {
+              const newRegion = {
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
+              };
+              setCurrentRegion(newRegion);
+              mapRef.current.animateToRegion(newRegion);
+            }
+
+            // Dapatkan alamat dari koordinat
+            if (handleGetAddressRef.current) {
+              await handleGetAddressRef.current(currentLocation.latitude, currentLocation.longitude);
+            }
+          }
+        } catch (error) {
+          if (__DEV__) {
+            // console.log('Error getting initial location:', error);
+          }
+        }
+      }
+    };
+
+    initializeComponent();
+
+    return () => {
+      isMounted = false;
+      if (animationTimeout) {
+        clearTimeout(animationTimeout);
+      }
+      if (mapLoadingTimeout) {
+        clearTimeout(mapLoadingTimeout);
+      }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [initialLocation]); // Hanya dependency yang benar-benar diperlukan
+
+  // Effect untuk cleanup saat unmount
+  useEffect(() => {
+    return () => {
+      // Reset loading states
+      setIsAddressLoading(false);
+      setIsMapLoading(false);
+
+      // Clear debounce timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -261,7 +458,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
 
             <View style={styles.headerTitleContainer}>
               <Typography
-                variant="h3"
+                variant="h5"
                 color={theme.colors.white}
                 weight="600"
               >
@@ -270,9 +467,9 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               <Typography
                 variant="body2"
                 color={theme.colors.white}
-                style={{ opacity: 0.9 }}
+                style={{ opacity: 0.9, textAlign: 'center' }}
               >
-                Ketuk pada peta untuk memilih lokasi
+                Tap pada peta untuk memilih
               </Typography>
             </View>
 
@@ -328,75 +525,69 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
 
       {/* Map Container */}
       <View style={styles.mapContainer}>
-        <MapView
+        <EnhancedMapView
           ref={mapRef}
           style={styles.map}
-          provider={PROVIDER_GOOGLE}
           initialRegion={mapRegion}
           onPress={handleMapPress}
+          onRegionChangeComplete={handleRegionChangeComplete}
           onMapReady={handleMapReady}
-          showsUserLocation
-          showsMyLocationButton={false}
-          showsCompass={false}
+          showsUserLocation={true} // Gunakan marker bawaan Google Maps untuk akurasi maksimal
+          followsUserLocation={false}
+          showsCompass={true}
+          showsScale={true}
+          showsBuildings={true}
           rotateEnabled={true}
           zoomEnabled={true}
           scrollEnabled={true}
           pitchEnabled={true}
+          loadingEnabled={true}
+          cacheEnabled={true}
+          customMapStyle="auto"
+          enhancedVisuals={true}
+
         >
-          {selectedLocation && (
-            <Marker
-              coordinate={{
-                latitude: selectedLocation.latitude,
-                longitude: selectedLocation.longitude,
-              }}
-            >
-              <View style={styles.customMarker}>
-                <View style={styles.markerInner}>
-                  <Ionicons
-                    name="location"
-                    size={20}
-                    color={theme.colors.white}
-                  />
-                </View>
-                <View style={styles.markerShadow} />
-              </View>
-            </Marker>
-          )}
-        </MapView>
+          {/*
+            TIDAK ADA MARKER TAMBAHAN - Hanya gunakan blue dot native Google Maps
+            Ini memberikan akurasi maksimal dan pengalaman yang clean
+          */}
+        </EnhancedMapView>
+
+
 
         {/* Map Loading Overlay */}
         {isMapLoading && (
           <View style={styles.mapLoadingOverlay}>
-            <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-            <Typography
-              variant="body2"
-              color={theme.colors.neutral[600]}
-              style={styles.loadingText}
-            >
-              Memuat peta...
-            </Typography>
+            <View style={styles.loadingContent}>
+              <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+              <Typography
+                variant="body1"
+                color={theme.colors.neutral[700]}
+                weight="500"
+                style={styles.loadingTitle}
+              >
+                Memuat Peta
+              </Typography>
+              <Typography
+                variant="body2"
+                color={theme.colors.neutral[500]}
+                style={styles.loadingSubtitle}
+              >
+                Mohon tunggu sebentar...
+              </Typography>
+              <View style={styles.loadingProgress}>
+                <View style={styles.progressBar}>
+                  <View style={styles.progressFill} />
+                </View>
+              </View>
+            </View>
           </View>
         )}
 
-        {/* Floating Action Buttons */}
-        <Animated.View
-          style={[
-            styles.floatingButtons,
-            { opacity: fadeAnim }
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.floatingButton}
-            onPress={handleGetCurrentLocation}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="locate"
-              size={24}
-              color={theme.colors.primary[500]}
-            />
-          </TouchableOpacity>
-        </Animated.View>
+        {/*
+          HAPUS SEMUA CUSTOM CONTROLS - Biarkan menggunakan native Google Maps controls
+          Ini memberikan konsistensi dan behavior yang optimal
+        */}
       </View>
 
       {/* Address Display Card */}
@@ -448,9 +639,9 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               color={theme.colors.neutral[400]}
               style={styles.addressPlaceholder}
             >
-              {selectedLocation
+              {(userLocation || selectedLocation)
                 ? 'Alamat tidak ditemukan'
-                : 'Belum ada lokasi yang dipilih'}
+                : 'Tap pada peta atau gunakan tombol lokasi'}
             </Typography>
           )}
         </View>
@@ -507,15 +698,15 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
           style={[
             styles.actionButton,
             styles.confirmButton,
-            !selectedLocation && styles.disabledButton
+            !(userLocation || selectedLocation) && styles.disabledButton
           ]}
           onPress={handleConfirm}
-          disabled={!selectedLocation}
+          disabled={!(userLocation || selectedLocation)}
           activeOpacity={0.8}
         >
           <LinearGradient
             colors={
-              selectedLocation
+              (userLocation || selectedLocation)
                 ? [theme.colors.primary[500], theme.colors.primary[600]]
                 : [theme.colors.neutral[300], theme.colors.neutral[400]]
             }
@@ -561,9 +752,9 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
+    position: 'relative',
   },
   closeButton: {
     width: 40,
@@ -572,11 +763,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    left: theme.spacing.lg,
+    zIndex: 1,
   },
   headerTitleContainer: {
     flex: 1,
     alignItems: 'center',
-    marginHorizontal: theme.spacing.md,
+    justifyContent: 'center',
+    paddingHorizontal: 60, // Space for buttons on both sides
   },
   searchButton: {
     width: 40,
@@ -585,6 +780,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    right: theme.spacing.lg,
+    zIndex: 1,
   },
 
   // Search Styles
@@ -635,49 +833,40 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: theme.spacing.sm,
   },
-
-  // Custom Marker Styles
-  customMarker: {
+  loadingContent: {
     alignItems: 'center',
     justifyContent: 'center',
+    padding: theme.spacing.xl,
   },
-  markerInner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  loadingTitle: {
+    marginTop: theme.spacing.md,
+    textAlign: 'center',
+  },
+  loadingSubtitle: {
+    marginTop: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  loadingProgress: {
+    marginTop: theme.spacing.lg,
+    width: 200,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: theme.colors.neutral[200],
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    width: '60%',
     backgroundColor: theme.colors.primary[500],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: theme.colors.white,
-    ...theme.elevation.md,
-  },
-  markerShadow: {
-    position: 'absolute',
-    bottom: -5,
-    width: 20,
-    height: 10,
-    borderRadius: 10,
-    backgroundColor: theme.colors.black,
-    opacity: 0.2,
+    borderRadius: 2,
   },
 
-  // Floating Button Styles
-  floatingButtons: {
-    position: 'absolute',
-    top: theme.spacing.lg,
-    right: theme.spacing.lg,
-  },
-  floatingButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: theme.colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.sm,
-    ...theme.elevation.md,
-  },
+  // Crosshair Styles (menggantikan marker)
+
+
+  // Hapus floating button styles - tidak digunakan lagi
 
   // Address Card Styles
   addressCard: {
@@ -729,7 +918,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
     marginHorizontal: theme.spacing.xs,
-    minHeight: 50,
+    height: 50, // Fixed height instead of minHeight
   },
   cancelButton: {
     backgroundColor: theme.colors.neutral[100],
@@ -752,7 +941,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
-    minHeight: 50,
+    height: 50, // Fixed height instead of minHeight
   },
   disabledButton: {
     opacity: 0.6,

@@ -590,9 +590,9 @@ export const BackupRestoreScreen = () => {
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600">Backup & Restore</Typography>
+        <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 18, textAlign: 'center' }}>Backup & Restore</Typography>
         <View style={styles.headerRight} />
       </View>
 
@@ -619,11 +619,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg, // Diperbesar dari md ke lg
     paddingHorizontal: theme.spacing.layout.sm,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    minHeight: 64, // Tambahkan minimum height
     ...theme.elevation.sm,
   },
   backButton: {

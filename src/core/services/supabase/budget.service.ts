@@ -164,13 +164,21 @@ export const getBudgetSpending = async (
     .gte('date', startDate)
     .lte('date', endDate);
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
-  if (!data) {
+  if (!data || data.length === 0) {
     return 0;
   }
 
-  return data.reduce((sum, transaction) => sum + transaction.amount, 0);
+  // Pastikan amount dikonversi ke number dengan benar
+  const total = data.reduce((sum, transaction) => {
+    const amount = Number(transaction.amount) || 0;
+    return sum + amount;
+  }, 0);
+
+  return total;
 };
 
 /**

@@ -99,6 +99,19 @@ export const getUserChallengesByStatus = async (
 };
 
 /**
+ * Mengambil jumlah tantangan aktif pengguna untuk badge notifikasi
+ */
+export const getActiveChallengesCount = async (userId: string): Promise<{ count: number; error: PostgrestError | null }> => {
+  const { count, error } = await supabase
+    .from('user_challenges')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'active'); // Hanya hitung tantangan yang statusnya 'active'
+
+  return { count: count || 0, error };
+};
+
+/**
  * Mengambil semua tantangan dengan progress pengguna (jika ada)
  */
 export const getChallengesWithUserProgress = async (
@@ -135,6 +148,45 @@ export const getChallengesWithUserProgress = async (
   });
 
   return { data: challengesWithProgress, error: null };
+};
+
+/**
+ * Mengambil satu tantangan dengan progress pengguna (jika ada)
+ */
+export const getChallengeWithUserProgress = async (
+  userId: string,
+  challengeId: string
+): Promise<{ data: ChallengeWithProgress[] | null; error: PostgrestError | null }> => {
+  // Ambil tantangan berdasarkan ID
+  const { data: challenge, error: challengeError } = await getChallengeById(challengeId);
+  if (challengeError || !challenge) {
+    return { data: null, error: challengeError };
+  }
+
+  // Ambil tantangan pengguna untuk challenge ini
+  const { data: userChallenge, error: userChallengeError } = await supabase
+    .from('user_challenges')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('challenge_id', challengeId)
+    .single();
+
+  // Jika ada error selain 'not found', return error
+  if (userChallengeError && userChallengeError.code !== 'PGRST116') {
+    return { data: null, error: userChallengeError };
+  }
+
+  // Gabungkan data tantangan dengan progress pengguna
+  const challengeWithProgress: ChallengeWithProgress = userChallenge ? {
+    ...challenge,
+    user_challenge: userChallenge,
+    current_amount: userChallenge.current_amount,
+    status: userChallenge.status,
+    start_date: userChallenge.start_date,
+    end_date: userChallenge.end_date,
+  } : challenge;
+
+  return { data: [challengeWithProgress], error: null };
 };
 
 /**

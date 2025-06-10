@@ -29,7 +29,7 @@ export class SavingGoalTrackerService {
   public async trackAllGoalsProgress(userId: string): Promise<SavingGoalProgress[]> {
     try {
       const userSettings = await getUserSettings(userId);
-      if (!userSettings?.notification_enabled) {
+      if (!userSettings?.notification_enabled || !userSettings?.saving_goal_alerts) {
         return [];
       }
 
@@ -41,11 +41,21 @@ export class SavingGoalTrackerService {
       const progressList: SavingGoalProgress[] = [];
 
       for (const goal of savingGoals) {
+        // Filter out test data - skip goals with test names
+        const isTestData = goal.name.toLowerCase().includes('test') ||
+                          goal.name.toLowerCase().includes('laptop baru') ||
+                          goal.description?.toLowerCase().includes('test') ||
+                          goal.description?.toLowerCase().includes('testing');
+
+        if (isTestData) {
+          continue; // Skip test data
+        }
+
         const progress = this.calculateProgress(goal);
-        
+
         // Check milestone dan kirim notifikasi jika perlu
         const shouldNotify = await this.checkMilestoneAndNotify(userId, goal, progress);
-        
+
         progressList.push({
           ...progress,
           shouldNotify,
@@ -165,7 +175,7 @@ export class SavingGoalTrackerService {
   ): Promise<boolean> {
     try {
       const userSettings = await getUserSettings(userId);
-      if (!userSettings?.notification_enabled) {
+      if (!userSettings?.notification_enabled || !userSettings?.saving_goal_alerts) {
         return false;
       }
 
@@ -191,7 +201,7 @@ export class SavingGoalTrackerService {
   ): Promise<boolean> {
     try {
       const userSettings = await getUserSettings(userId);
-      if (!userSettings?.notification_enabled) {
+      if (!userSettings?.notification_enabled || !userSettings?.saving_goal_alerts) {
         return false;
       }
 

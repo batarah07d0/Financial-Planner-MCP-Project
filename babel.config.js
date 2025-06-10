@@ -21,15 +21,10 @@ module.exports = function (api) {
         'module-resolver',
         {
           alias: {
-            // Alias untuk paket yang bermasalah
+            // Alias untuk paket yang bermasalah (hanya yang diperlukan)
             'ws': './src/mocks/ws.js',
             'dns.js': './src/mocks/dns.js',
             'dgram': './src/mocks/dgram.js',
-            'react-native-maps': './src/mocks/react-native-maps.tsx',
-            'react-native-maps/src/createFabricMap': './src/mocks/createFabricMap.tsx',
-            'react-native-maps/src/specs/NativeComponentMapView': './src/mocks/NativeComponentMapView.ts',
-            'react-native-maps/src/ComponentType': './src/mocks/ComponentType.js',
-            'react-native-maps/src/specs/NativeComponentGoogleMapView': './src/mocks/NativeComponentGoogleMapView.ts'
           },
         },
       ],

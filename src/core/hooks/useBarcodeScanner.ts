@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera as ExpoCamera, BarcodeScanningResult, CameraView } from 'expo-camera';
 import { BarcodeScanStatus, BarcodeScanResult } from '../../features/transactions/models/Barcode';
 import { searchBarcode } from '../../features/transactions/services/barcodeService';
@@ -53,23 +53,23 @@ export const useBarcodeScanner = (options: BarcodeScannerOptions = {}) => {
   }, []);
 
   // Fungsi untuk memulai pemindaian
-  const startScanning = () => {
+  const startScanning = useCallback(() => {
     setIsScanning(true);
     setScanResult({
       status: BarcodeScanStatus.SCANNING,
     });
-  };
+  }, []);
 
   // Fungsi untuk menghentikan pemindaian
-  const stopScanning = () => {
+  const stopScanning = useCallback(() => {
     setIsScanning(false);
     setScanResult({
       status: BarcodeScanStatus.READY,
     });
-  };
+  }, []);
 
   // Fungsi untuk menangani hasil pemindaian barcode
-  const handleBarCodeScanned = async ({ type: _type, data }: BarcodeScanningResult) => {
+  const handleBarCodeScanned = useCallback(async ({ type: _type, data }: BarcodeScanningResult) => {
     // Periksa apakah sedang dalam mode pemindaian
     if (!isScanning) return;
 
@@ -160,7 +160,7 @@ export const useBarcodeScanner = (options: BarcodeScannerOptions = {}) => {
       // Jika autoSearch dinonaktifkan, panggil callback langsung dengan hasil awal
       onBarcodeScanned(initialResult);
     }
-  };
+  }, [isScanning, vibrate, autoSearch, searchDelay, sources, onBarcodeScanned]);
 
   // Fungsi untuk mencari data barcode secara manual
   const searchBarcodeData = async (barcode: string) => {
@@ -215,14 +215,14 @@ export const useBarcodeScanner = (options: BarcodeScannerOptions = {}) => {
   };
 
   // Fungsi untuk mengganti tipe kamera
-  const toggleCameraType = () => {
+  const toggleCameraType = useCallback(() => {
     setCameraType(current =>
       current === 'back' ? 'front' : 'back'
     );
-  };
+  }, []);
 
   // Fungsi untuk mengganti mode flash
-  const toggleFlashMode = () => {
+  const toggleFlashMode = useCallback(() => {
     setFlashMode(current => {
       switch (current) {
         case 'off':
@@ -235,7 +235,7 @@ export const useBarcodeScanner = (options: BarcodeScannerOptions = {}) => {
           return 'off';
       }
     });
-  };
+  }, []);
 
   return {
     hasPermission,

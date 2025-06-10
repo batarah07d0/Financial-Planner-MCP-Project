@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Animated,
   Keyboard,
   KeyboardAvoidingView,
@@ -17,15 +16,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, Card, Input, Button } from '../../../core/components';
+import { Typography, Card, Input, Button, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
 import { useNotificationManager } from '../../../core/hooks/useNotificationManager';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 export const ChangePasswordScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuthStore();
   const { sendAccountUpdateNotification } = useNotificationManager();
+  const { dialogState, showDialog, hideDialog } = useSuperiorDialog();
 
   // State untuk form
   const [currentPassword, setCurrentPassword] = useState('');
@@ -85,7 +86,18 @@ export const ChangePasswordScreen = () => {
       Keyboard.dismiss();
 
       if (!user) {
-        Alert.alert('Error', 'Anda harus login untuk mengubah password');
+        showDialog({
+          type: 'error',
+          title: 'Error Autentikasi',
+          message: 'Anda harus login untuk mengubah password. Silakan login kembali.',
+          actions: [
+            {
+              text: 'OK',
+              onPress: hideDialog,
+              style: 'primary',
+            },
+          ],
+        });
         return;
       }
 
@@ -123,30 +135,54 @@ export const ChangePasswordScreen = () => {
       // Kirim notifikasi sukses
       await sendAccountUpdateNotification('password', true);
 
-      Alert.alert(
-        'Sukses',
-        'Password berhasil diubah',
-        [
+      // Tampilkan dialog sukses dengan desain custom
+      showDialog({
+        type: 'success',
+        title: '🎉 Password Berhasil Diubah!',
+        message: 'Password Anda telah berhasil diperbarui. Sekarang Anda dapat menggunakan password baru untuk login.',
+        icon: 'shield-checkmark',
+        actions: [
           {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
+            text: 'Kembali ke Pengaturan',
+            onPress: () => {
+              hideDialog();
+              navigation.goBack();
+            },
+            style: 'primary',
           },
-        ]
-      );
+        ],
+        autoClose: 5000, // Auto close setelah 5 detik
+      });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       // Kirim notifikasi error
       await sendAccountUpdateNotification('password', false);
 
-      // Handle specific error messages
+      // Tampilkan dialog error dengan desain custom
+      let customErrorMessage = 'Terjadi kesalahan saat mengubah password. Silakan coba lagi.';
+
       if (errorMessage.includes('Invalid login credentials')) {
-        setError('Password saat ini tidak valid');
+        customErrorMessage = 'Password saat ini tidak valid. Pastikan Anda memasukkan password yang benar.';
       } else if (errorMessage.includes('auth')) {
-        setError('Terjadi kesalahan autentikasi');
-      } else {
-        setError('Gagal mengubah password. Silakan coba lagi.');
+        customErrorMessage = 'Terjadi kesalahan autentikasi. Silakan logout dan login kembali.';
+      } else if (errorMessage.includes('network')) {
+        customErrorMessage = 'Koneksi internet bermasalah. Periksa koneksi Anda dan coba lagi.';
       }
+
+      showDialog({
+        type: 'error',
+        title: '❌ Gagal Mengubah Password',
+        message: customErrorMessage,
+        icon: 'alert-circle',
+        actions: [
+          {
+            text: 'Coba Lagi',
+            onPress: hideDialog,
+            style: 'primary',
+          },
+        ],
+      });
     } finally {
       setIsLoading(false);
     }
@@ -164,9 +200,25 @@ export const ChangePasswordScreen = () => {
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
-          <Typography variant="h4" weight="600">Ubah Password</Typography>
+          <Typography
+            variant="h5"
+            weight="700"
+            color={theme.colors.primary[500]}
+            style={{
+              fontSize: 18,
+              textAlign: 'center',
+              lineHeight: 22,
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+            }}
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.8}
+          >
+            Ubah Password
+          </Typography>
           <View style={styles.headerRight} />
         </View>
 
@@ -273,6 +325,17 @@ export const ChangePasswordScreen = () => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };
@@ -289,11 +352,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg, // Diperbesar dari md ke lg
     paddingHorizontal: theme.spacing.layout.sm,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    minHeight: 64, // Tambahkan minimum height
     ...theme.elevation.sm,
   },
   backButton: {

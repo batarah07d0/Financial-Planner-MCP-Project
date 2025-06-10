@@ -26,7 +26,6 @@ config.resolver = {
         os: require.resolve('os-browserify/browser'),
         dns: require.resolve('./src/mocks/dns.js'),
         dgram: require.resolve('./src/mocks/dgram.js'),
-        'react-native-maps': require.resolve('./src/mocks/react-native-maps.tsx'),
         // Tambahkan mock untuk xmlhttprequest dan ws
         'xmlhttprequest': require.resolve('./src/mocks/xmlhttprequest.js'),
         'ws': require.resolve('./src/mocks/ws.js'),

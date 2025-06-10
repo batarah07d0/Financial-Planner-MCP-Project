@@ -294,12 +294,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initializeOnboardingStatus: async () => {
     try {
-      // COMMENTED FOR PRESENTATION: Always show onboarding for demo
-      // const completed = await AsyncStorage.getItem('@onboarding_completed');
-      // set({ hasCompletedOnboarding: completed === 'true' });
-
-      // FOR PRESENTATION: Always set to false to show onboarding
-      set({ hasCompletedOnboarding: false });
+      // Check if onboarding has been completed
+      const completed = await AsyncStorage.getItem('@onboarding_completed');
+      set({ hasCompletedOnboarding: completed === 'true' });
     } catch (error) {
       // Default ke false jika error
       set({ hasCompletedOnboarding: false });

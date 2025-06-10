@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Typography, TransactionCard, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Transaction } from '../../../core/services/supabase/types';
+import { useSensitiveActionAuth } from '../../../core/hooks/useSensitiveActionAuth';
 import { RootStackParamList, TabParamList } from '../../../core/navigation/types';
 import { useTransactionStore, useAuthStore } from '../../../core/services/store';
 import { supabase } from '../../../config/supabase';
@@ -69,7 +70,11 @@ export const TransactionsScreen = () => {
   const [filteredCategoryId] = useState<string | undefined>(routeCategoryId);
   const [error, setError] = useState<string | null>(null);
 
-  const { dialogState, showError, showDelete, showSuccess, hideDialog } = useSuperiorDialog();
+  const { dialogState, showError, showSuccess, showConfirm, hideDialog } = useSuperiorDialog();
+  const { authenticateDelete } = useSensitiveActionAuth({
+    showConfirm,
+    showError,
+  });
 
   // Responsive icon button size
   const getIconButtonSize = () => {
@@ -179,10 +184,17 @@ export const TransactionsScreen = () => {
   };
 
   // Fungsi untuk menghapus transaksi
-  const handleDeleteTransaction = (id: string) => {
-    showDelete(
-      'Hapus Transaksi',
-      'Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.',
+  const handleDeleteTransaction = async (id: string) => {
+    // Cari transaksi untuk mendapatkan informasi kategori
+    const transaction = transactions.find(t => t.id === id);
+    const categoryName = transaction ? categoryMap[transaction.category_id] || 'Lainnya' : 'transaksi ini';
+    const transactionName = transaction
+      ? `${transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} ${categoryName}`
+      : 'transaksi ini';
+
+    await authenticateDelete(
+      'transaksi',
+      transactionName,
       async () => {
         try {
           await deleteTransaction(id);
@@ -217,21 +229,7 @@ export const TransactionsScreen = () => {
   const handleScanBarcode = () => {
     // Navigasi ke halaman pemindai barcode
     navigateTo(navigation, 'BarcodeScanner', {
-      onScanComplete: (data: {
-        productName: string;
-        amount: number;
-        category: string;
-        barcode: string;
-      }) => {
-        // Navigasi ke halaman tambah transaksi dengan data dari pemindaian
-        navigateTo(navigation, 'AddTransaction', {
-          scannedData: {
-            description: data.productName,
-            amount: data.amount,
-            // Catatan: category tidak ada dalam tipe scannedData, jadi kita tidak menyertakannya
-          },
-        });
-      },
+      returnTo: 'Transactions',
     });
 
     // Navigation handled by navigateTo function
@@ -311,7 +309,7 @@ export const TransactionsScreen = () => {
         description={item.description}
         date={item.date}
         onPress={handleTransactionPress}
-        onDelete={() => handleDeleteTransaction(item.id)}
+        onDelete={async () => await handleDeleteTransaction(item.id)}
       />
     );
   };
@@ -396,7 +394,7 @@ export const TransactionsScreen = () => {
       <View style={styles.headerContainer}>
         {/* Header Title and Add Button */}
         <View style={styles.header}>
-          <Typography variant="h4" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>
             Transaksi
           </Typography>
         </View>
@@ -571,13 +569,14 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.layout.sm,
     marginBottom: theme.spacing.md,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 20,
+    textAlign: 'center',
   },
 
   headerActions: {

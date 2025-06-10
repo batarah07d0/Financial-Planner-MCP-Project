@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabParamList } from './types';
 import { theme } from '../theme';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -14,6 +15,8 @@ import { MoreScreen } from '../../features/more/screens';
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export const TabNavigator = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -24,8 +27,8 @@ export const TabNavigator = () => {
           backgroundColor: theme.colors.white,
           borderTopWidth: 1,
           borderTopColor: theme.colors.neutral[200],
-          height: 65,
-          paddingBottom: 10,
+          height: 65 + insets.bottom, // Tambahkan safe area bottom
+          paddingBottom: insets.bottom + 10, // Padding bottom dengan safe area
           paddingTop: 10,
           elevation: 8,
           shadowColor: theme.colors.neutral[900],

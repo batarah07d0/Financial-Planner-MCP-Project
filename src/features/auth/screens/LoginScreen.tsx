@@ -17,8 +17,14 @@ import { Button, Input, Typography, Card } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
+import { useBiometrics } from '../../../core/hooks/useBiometrics';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  storeCredentials,
+  getBiometricLoginCredentials,
+  isBiometricLoginEnabled
+} from '../../../core/services/security/credentialService';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 type LoginScreenRouteProp = RouteProp<AuthStackParamList, 'Login'>;
@@ -49,6 +55,13 @@ export const LoginScreen = () => {
   // State untuk form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showBiometricOption, setShowBiometricOption] = useState(false);
+
+  // Hook untuk biometrik
+  const {
+    isAvailable: biometricAvailable,
+    authenticate
+  } = useBiometrics();
 
   // Responsive logo size berdasarkan device dan orientasi
   const getLogoSize = () => {
@@ -106,6 +119,21 @@ export const LoginScreen = () => {
     ]).start();
   }, [route.params, fadeAnim, slideAnim]);
 
+  // Check biometric availability saat mount
+  useEffect(() => {
+    const checkBiometricOption = async () => {
+      // Tampilkan tombol biometric jika tersedia di perangkat DAN ada credentials tersimpan
+      if (biometricAvailable) {
+        const biometricEnabled = await isBiometricLoginEnabled();
+        setShowBiometricOption(biometricEnabled);
+      } else {
+        setShowBiometricOption(false);
+      }
+    };
+
+    checkBiometricOption();
+  }, [biometricAvailable]);
+
   const handleLogin = async () => {
     if (!email.trim()) {
       // Tampilkan error jika email kosong
@@ -116,7 +144,59 @@ export const LoginScreen = () => {
       return;
     }
 
-    await login(email, password);
+    try {
+      await login(email, password);
+
+      // Jika login berhasil (tidak ada error), simpan credentials untuk biometric login
+      // Kita akan menggunakan setTimeout untuk memastikan user sudah ter-update di store
+      setTimeout(async () => {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          try {
+            await storeCredentials(email, password, currentUser.id);
+          } catch (error) {
+            // Failed to store credentials for biometric login - silently handled
+          }
+        }
+      }, 100);
+    } catch (error) {
+      // Error akan ditangani oleh useAuthStore
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      // Clear any existing errors first
+      clearError();
+
+      // Periksa apakah biometric login diaktifkan dan ada credentials tersimpan
+      const biometricEnabled = await isBiometricLoginEnabled();
+      if (!biometricEnabled) {
+        // Jika belum ada credentials tersimpan, return silently
+        return;
+      }
+
+      const authSuccess = await authenticate({
+        promptMessage: 'Gunakan biometrik untuk masuk',
+        fallbackLabel: 'Gunakan PIN',
+      });
+
+      if (authSuccess) {
+        // Ambil credentials yang tersimpan
+        const credentials = await getBiometricLoginCredentials();
+
+        if (credentials) {
+          // Login menggunakan credentials yang tersimpan
+          await login(credentials.email, credentials.password);
+        } else {
+          // No stored credentials found - fallback ke login manual
+        }
+      } else {
+        // Biometric authentication gagal - silently handled
+      }
+    } catch (error) {
+      // Biometric login error - error akan ditampilkan di UI jika login gagal
+    }
   };
 
   const navigateToRegister = () => {
@@ -253,6 +333,30 @@ export const LoginScreen = () => {
                 variant="gradient"
               />
 
+              {/* Tombol Biometric Login */}
+              {showBiometricOption && (
+                <TouchableOpacity
+                  style={styles.biometricButton}
+                  onPress={handleBiometricLogin}
+                  disabled={isLoading}
+                >
+                  <View style={styles.biometricContent}>
+                    <Ionicons
+                      name="finger-print"
+                      size={24}
+                      color={theme.colors.primary[500]}
+                    />
+                    <Typography
+                      variant="body2"
+                      color={theme.colors.primary[500]}
+                      style={styles.biometricText}
+                    >
+                      Masuk dengan Biometrik
+                    </Typography>
+                  </View>
+                </TouchableOpacity>
+              )}
+
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
                 <Typography variant="body2" color={theme.colors.neutral[500]} style={styles.dividerText}>
@@ -358,5 +462,23 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary[500],
     height: 50,
     borderRadius: 25,
+  },
+  biometricButton: {
+    marginTop: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary[300],
+    backgroundColor: theme.colors.primary[50],
+    alignItems: 'center',
+  },
+  biometricContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  biometricText: {
+    fontWeight: '500',
   },
 });

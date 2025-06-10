@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Animated, GestureResponderEvent } from 'react-native';
 import { Card } from './Card';
 import { Typography } from './Typography';
+import { PrivacyProtectedText } from './PrivacyProtectedText';
 import { theme } from '../theme';
 import { formatCurrency, formatDate } from '../utils';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,6 +58,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   const handleDelete = (e: GestureResponderEvent) => {
     e.stopPropagation();
     if (onDelete) {
+      // Langsung panggil onDelete, autentikasi akan ditangani di parent component
       onDelete(id);
     }
   };
@@ -156,17 +158,23 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             </View>
 
             <View style={styles.rightContent}>
-              <Typography
-                variant="body1"
-                weight="700"
-                color={
-                  type === 'income'
-                    ? theme.colors.success[500]
-                    : theme.colors.danger[500]
-                }
+              <PrivacyProtectedText
+                type="transaction"
+                fallbackText="••••••"
+                showToggle={false}
               >
-                {type === 'income' ? '+' : '-'} {formatCurrency(amount)}
-              </Typography>
+                <Typography
+                  variant="body1"
+                  weight="700"
+                  color={
+                    type === 'income'
+                      ? theme.colors.success[500]
+                      : theme.colors.danger[500]
+                  }
+                >
+                  {type === 'income' ? '+' : '-'} {formatCurrency(amount)}
+                </Typography>
+              </PrivacyProtectedText>
               {onDelete && (
                 <TouchableOpacity
                   onPress={handleDelete}

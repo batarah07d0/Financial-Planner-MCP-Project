@@ -9,7 +9,9 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../core/navigation/types';
 import { Typography, ChallengeCard } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { ChallengeProps } from '../../../core/components/ChallengeCard';
@@ -21,6 +23,8 @@ import {
   ChallengeWithProgress
 } from '../services/challengeService';
 
+type ChallengesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 // Fungsi untuk mengkonversi data dari Supabase ke format ChallengeProps
 const mapChallengeToChallengeProps = (challenge: ChallengeWithProgress): ChallengeProps => {
   // Tentukan tipe tantangan berdasarkan icon
@@ -31,15 +35,29 @@ const mapChallengeToChallengeProps = (challenge: ChallengeWithProgress): Challen
     type = 'tracking';
   }
 
-  // Tentukan jumlah peserta (random untuk demo)
-  const participants = Math.floor(Math.random() * 200) + 50;
 
-  // Tentukan poin reward berdasarkan difficulty
-  let points = 200;
-  if (challenge.difficulty === 'medium') {
-    points = 300;
-  } else if (challenge.difficulty === 'hard') {
-    points = 500;
+
+  // Tentukan iconType berdasarkan nama ikon
+  let iconType: 'MaterialCommunityIcons' | 'FontAwesome5' | 'Ionicons' = 'MaterialCommunityIcons';
+
+  // Ikon MaterialCommunityIcons yang umum
+  const materialCommunityIcons = [
+    'piggy-bank', 'wallet', 'cash', 'bank', 'credit-card', 'currency-usd',
+    'chart-line', 'trending-up', 'account-cash', 'calculator', 'calendar-month'
+  ];
+
+  // Ikon FontAwesome5 yang umum
+  const fontAwesome5Icons = [
+    'calendar-week', 'chart-bar', 'coins', 'dollar-sign', 'euro-sign'
+  ];
+
+  // Tentukan iconType berdasarkan nama ikon
+  if (materialCommunityIcons.some(icon => challenge.icon.includes(icon))) {
+    iconType = 'MaterialCommunityIcons';
+  } else if (fontAwesome5Icons.some(icon => challenge.icon.includes(icon))) {
+    iconType = 'FontAwesome5';
+  } else {
+    iconType = 'Ionicons';
   }
 
   return {
@@ -52,15 +70,17 @@ const mapChallengeToChallengeProps = (challenge: ChallengeWithProgress): Challen
     startDate: challenge.start_date || new Date().toISOString(),
     endDate: challenge.end_date || new Date(Date.now() + challenge.duration_days * 24 * 60 * 60 * 1000).toISOString(),
     reward: {
-      points,
+      points: 0, // Tidak digunakan lagi
     },
-    participants,
     isCompleted: challenge.status === 'completed',
+    icon: challenge.icon,
+    iconType,
+    color: challenge.color,
   };
 };
 
 export const ChallengesScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<ChallengesScreenNavigationProp>();
   const { user } = useAuthStore();
   const [challenges, setChallenges] = useState<ChallengeProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -144,16 +164,15 @@ export const ChallengesScreen = () => {
   };
 
   // Fungsi untuk menangani klik pada tantangan
-  const handleChallengePress = (_challenge: ChallengeProps) => {
+  const handleChallengePress = (challenge: ChallengeProps) => {
     // Navigasi ke halaman detail tantangan
-    // Challenge pressed - handle navigation here
-    // navigation.navigate('ChallengeDetail', { id: challenge.id });
+    navigation.navigate('ChallengeDetail', { id: challenge.id });
   };
 
   // Fungsi untuk menangani klik pada tombol tambah tantangan
   const handleAddChallenge = () => {
     // Navigasi ke halaman tambah tantangan
-    navigation.navigate('AddChallenge' as never);
+    navigation.navigate('AddChallenge');
   };
 
   // Fungsi untuk memfilter tantangan
@@ -172,6 +191,13 @@ export const ChallengesScreen = () => {
   useEffect(() => {
     loadChallenges();
   }, [loadChallenges]);
+
+  // Memuat ulang data setiap kali halaman difokuskan (untuk refresh setelah add challenge)
+  useFocusEffect(
+    useCallback(() => {
+      loadChallenges();
+    }, [loadChallenges])
+  );
 
   // Render item untuk FlatList
   const renderItem = ({ item }: { item: ChallengeProps }) => (
@@ -410,17 +436,12 @@ export const ChallengesScreen = () => {
             </TouchableOpacity>
           </Animated.View>
 
-          <View style={styles.titleContainer}>
-            <Ionicons
-              name="trophy"
-              size={24}
-              color={theme.colors.primary[500]}
-              style={styles.headerIcon}
-            />
-            <Typography variant="h4" style={styles.headerTitle}>Tantangan</Typography>
-          </View>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={styles.headerTitle}>
+            Tantangan
+          </Typography>
 
-          {/* Tombol tambah di header dihapus */}
+          {/* Header spacer untuk balance */}
+          <View style={styles.headerSpacer} />
         </View>
 
         <View style={styles.filterContainer}>
@@ -533,7 +554,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.md,
   },
   backButtonContainer: {
-    marginRight: theme.spacing.sm,
+    // Container untuk animasi back button
   },
   backButton: {
     width: 40,
@@ -542,17 +563,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // Menghapus borderRadius, backgroundColor, dan elevation untuk membuat tombol transparan
   },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-  headerIcon: {
-    marginRight: theme.spacing.sm,
-  },
   headerTitle: {
-    color: theme.colors.neutral[800],
+    textAlign: 'center',
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  headerSpacer: {
+    width: 40,
+    height: 40,
   },
   // Style untuk tombol tambah di header telah dihapus karena tidak digunakan lagi
   filterContainer: {

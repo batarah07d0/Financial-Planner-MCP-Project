@@ -41,19 +41,19 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       // Error handling tanpa console.error
     }
 
-    // Mendapatkan jumlah saving zones
-    const { count: savingZones, error: savingZonesError } = await supabase
-      .from('saving_zones')
+    // Mendapatkan jumlah tujuan tabungan (saving goals)
+    const { count: savingGoals, error: savingGoalsError } = await supabase
+      .from('saving_goals')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
-    if (savingZonesError) {
+    if (savingGoalsError) {
       // Error handling tanpa console.error
     }
 
-    // Mendapatkan total tabungan dari user_challenges
+    // Mendapatkan total tabungan dari saving_goals
     const { data: savingData, error: savingError } = await supabase
-      .from('user_challenges')
+      .from('saving_goals')
       .select('current_amount')
       .eq('user_id', userId);
 
@@ -69,7 +69,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       transactionCount: transactionCount || 0,
       challengeCount: challengeCount || 0,
       completedChallenges: completedChallenges || 0,
-      savingZones: savingZones || 0,
+      savingZones: savingGoals || 0, // Menggunakan jumlah saving goals
       totalSavings,
     };
   } catch (error) {
@@ -77,7 +77,7 @@ export const getUserStats = async (userId: string): Promise<UserStats> => {
       transactionCount: 0,
       challengeCount: 0,
       completedChallenges: 0,
-      savingZones: 0,
+      savingZones: 0, // Jumlah tujuan tabungan
       totalSavings: 0,
     };
   }

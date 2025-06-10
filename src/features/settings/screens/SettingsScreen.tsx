@@ -229,20 +229,20 @@ export const SettingsScreen = () => {
         color: theme.colors.primary[500],
       },
       {
-        icon: 'trophy-outline',
-        title: 'Tantangan',
-        value: stats.challengeCount,
+        icon: 'flag-outline',
+        title: 'Tujuan Tabungan',
+        value: stats.savingZones,
         color: theme.colors.success[500],
       },
       {
         icon: 'checkmark-circle-outline',
-        title: 'Selesai',
+        title: 'Tantangan Selesai',
         value: stats.completedChallenges,
         color: theme.colors.warning[500],
       },
       {
         icon: 'wallet-outline',
-        title: 'Tabungan',
+        title: 'Total Tabungan',
         value: formatCurrency(stats.totalSavings),
         color: theme.colors.info[500],
       },
@@ -259,9 +259,25 @@ export const SettingsScreen = () => {
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600">Pengaturan</Typography>
+        <Typography
+          variant="h5"
+          weight="700"
+          color={theme.colors.primary[500]}
+          style={{
+            fontSize: 20,
+            textAlign: 'center',
+            lineHeight: 24,
+            includeFontPadding: false,
+            textAlignVertical: 'center',
+          }}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
+        >
+          Pengaturan
+        </Typography>
         <View style={styles.headerRight} />
       </View>
 
@@ -319,6 +335,8 @@ export const SettingsScreen = () => {
             onPress={() => navigation.navigate('BackupRestore')}
           />
         </SettingSection>
+
+
 
         <SettingSection title="Tentang" delay={800}>
           <SettingItem
@@ -510,11 +528,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.layout.sm,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    minHeight: 64,
     ...theme.elevation.sm,
   },
   backButton: {

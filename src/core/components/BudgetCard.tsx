@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography } from './Typography';
+import { PrivacyProtectedText } from './PrivacyProtectedText';
 import { theme } from '../theme';
 import { formatCurrency, formatPercentage } from '../utils';
 import { useAppDimensions } from '../hooks/useAppDimensions';
@@ -18,7 +19,7 @@ interface BudgetCardProps {
   onPress?: (id: string) => void;
 }
 
-export const BudgetCard: React.FC<BudgetCardProps> = ({
+export const BudgetCard: React.FC<BudgetCardProps> = React.memo(({
   id,
   category,
   amount,
@@ -269,26 +270,38 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
               </Typography>
             </View>
             <View style={styles.amountRow}>
-              <Typography
-                variant="h6"
-                weight="700"
-                color={percentage >= 1 ? theme.colors.danger[500] : theme.colors.neutral[800]}
-                style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
-                }}
+              <PrivacyProtectedText
+                type="budget"
+                fallbackText="••••••"
+                showToggle={false}
               >
-                {formatCurrency(spent)}
-              </Typography>
-              <Typography
-                variant="h6"
-                weight="600"
-                color={theme.colors.primary[600]}
-                style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
-                }}
+                <Typography
+                  variant="h6"
+                  weight="700"
+                  color={percentage >= 1 ? theme.colors.danger[500] : theme.colors.neutral[800]}
+                  style={{
+                    fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
+                  }}
+                >
+                  {formatCurrency(spent)}
+                </Typography>
+              </PrivacyProtectedText>
+              <PrivacyProtectedText
+                type="budget"
+                fallbackText="••••••"
+                showToggle={false}
               >
-                {formatCurrency(amount)}
-              </Typography>
+                <Typography
+                  variant="h6"
+                  weight="600"
+                  color={theme.colors.primary[600]}
+                  style={{
+                    fontSize: responsiveFontSize(isSmallDevice ? 16 : 18),
+                  }}
+                >
+                  {formatCurrency(amount)}
+                </Typography>
+              </PrivacyProtectedText>
             </View>
           </View>
 
@@ -347,17 +360,23 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
               >
                 Sisa Anggaran
               </Typography>
-              <Typography
-                variant="body2"
-                weight="600"
-                color={percentage >= 0.9 ? theme.colors.danger[500] : theme.colors.success[600]}
-                style={{
-                  fontSize: responsiveFontSize(isSmallDevice ? 13 : 15),
-                  marginTop: responsiveSpacing(2),
-                }}
+              <PrivacyProtectedText
+                type="budget"
+                fallbackText="••••••"
+                showToggle={false}
               >
-                {formatCurrency(Math.max(amount - spent, 0))}
-              </Typography>
+                <Typography
+                  variant="body2"
+                  weight="600"
+                  color={percentage >= 0.9 ? theme.colors.danger[500] : theme.colors.success[600]}
+                  style={{
+                    fontSize: responsiveFontSize(isSmallDevice ? 13 : 15),
+                    marginTop: responsiveSpacing(2),
+                  }}
+                >
+                  {formatCurrency(Math.max(amount - spent, 0))}
+                </Typography>
+              </PrivacyProtectedText>
             </View>
 
             <View style={styles.chevronContainer}>
@@ -372,7 +391,9 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
       </TouchableOpacity>
     </Animated.View>
   );
-};
+});
+
+BudgetCard.displayName = 'BudgetCard';
 
 const styles = StyleSheet.create({
   cardContainer: {

@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Animated,
   KeyboardAvoidingView,
@@ -17,13 +16,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { RootStackParamList } from '../../../core/navigation/types';
-import { Typography, Card, Input, Button } from '../../../core/components';
+import { Typography, Card, Input, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { useAuthStore } from '../../../core/services/store';
+import { useSuperiorDialog } from '../../../core/hooks';
 
 export const AccountInfoScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuthStore();
+  const { dialogState, showSuccess, showError, showConfirm, hideDialog } = useSuperiorDialog();
 
   // State untuk form
   const [fullName, setFullName] = useState('');
@@ -89,7 +90,7 @@ export const AccountInfoScreen = () => {
 
       // Validasi input
       if (!fullName.trim()) {
-        Alert.alert('Error', 'Nama lengkap tidak boleh kosong');
+        showError('Error', 'Nama lengkap tidak boleh kosong');
         return;
       }
 
@@ -108,10 +109,21 @@ export const AccountInfoScreen = () => {
         throw error;
       }
 
-      Alert.alert('Sukses', 'Informasi akun berhasil diperbarui');
-      setIsEditing(false);
+      // Tampilkan success dialog dengan navigasi
+      showSuccess(
+        '✅ Berhasil!',
+        'Informasi akun berhasil diperbarui dengan sempurna',
+        1500 // Auto close after 1.5 seconds
+      );
+
+      // Set timeout untuk navigasi setelah dialog tertutup
+      setTimeout(() => {
+        setIsEditing(false);
+        navigation.navigate('Main' as never);
+      }, 1600);
+
     } catch (error) {
-      Alert.alert('Error', 'Gagal memperbarui informasi akun');
+      showError('❌ Gagal', 'Terjadi kesalahan saat memperbarui informasi akun. Silakan coba lagi.');
     } finally {
       setIsSaving(false);
     }
@@ -120,22 +132,15 @@ export const AccountInfoScreen = () => {
   const toggleEditMode = () => {
     if (isEditing) {
       // Jika sedang dalam mode edit, konfirmasi batal
-      Alert.alert(
-        'Konfirmasi',
-        'Apakah Anda yakin ingin membatalkan perubahan?',
-        [
-          {
-            text: 'Tidak',
-            style: 'cancel',
-          },
-          {
-            text: 'Ya',
-            onPress: () => {
-              fetchProfile(); // Reset data
-              setIsEditing(false);
-            },
-          },
-        ]
+      showConfirm(
+        '⚠️ Konfirmasi',
+        'Apakah Anda yakin ingin membatalkan perubahan yang telah dibuat?',
+        () => {
+          fetchProfile(); // Reset data
+          setIsEditing(false);
+        },
+        'Ya, Batalkan',
+        'Tidak'
       );
     } else {
       // Masuk ke mode edit
@@ -155,9 +160,9 @@ export const AccountInfoScreen = () => {
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
-          <Typography variant="h4" weight="600">Informasi Akun</Typography>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 18, textAlign: 'center' }}>Informasi Akun</Typography>
           <TouchableOpacity
             style={styles.editButton}
             onPress={toggleEditMode}
@@ -229,17 +234,28 @@ export const AccountInfoScreen = () => {
 
                   {isEditing && (
                     <View style={styles.buttonContainer}>
-                      <Button
-                        title="SIMPAN PERUBAHAN"
-                        variant="primary"
-                        size="large"
-                        fullWidth
-                        loading={isSaving}
-                        onPress={handleSave}
-                        leftIcon={<Ionicons name="save-outline" size={22} color={theme.colors.white} />}
+                      <TouchableOpacity
                         style={styles.saveButton}
-                        textStyle={styles.saveButtonText}
-                      />
+                        onPress={handleSave}
+                        activeOpacity={0.8}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <ActivityIndicator color={theme.colors.white} size="small" />
+                        ) : (
+                          <View style={styles.saveButtonContent}>
+                            <Ionicons
+                              name="save"
+                              size={20}
+                              color={theme.colors.white}
+                              style={{ marginRight: 8 }}
+                            />
+                            <Typography variant="body1" weight="700" color={theme.colors.white}>
+                              SIMPAN PERUBAHAN
+                            </Typography>
+                          </View>
+                        )}
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -248,6 +264,18 @@ export const AccountInfoScreen = () => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Superior Dialog */}
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };
@@ -264,11 +292,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.layout.sm,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    minHeight: 64,
     ...theme.elevation.sm,
   },
   backButton: {
@@ -340,15 +369,17 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.neutral[200],
   },
   saveButton: {
-    backgroundColor: theme.colors.primary[500],
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#2196F3',
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
     ...theme.elevation.md,
   },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    color: theme.colors.white,
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

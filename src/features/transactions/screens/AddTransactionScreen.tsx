@@ -239,6 +239,28 @@ export const AddTransactionScreen = () => {
     }
   };
 
+  // Fungsi untuk memformat alamat agar lebih pendek dan readable
+  const formatLocationAddress = (address: string): string => {
+    if (!address) return '';
+
+    // Split alamat berdasarkan koma
+    const parts = address.split(',').map(part => part.trim());
+
+    // Untuk device kecil, format lebih agresif
+    if (isSmallDevice && parts.length > 2) {
+      // Ambil jalan dan kota/negara saja
+      return `${parts[0]}, ${parts[parts.length - 1]}`;
+    }
+
+    // Untuk device medium/large, ambil 3 bagian penting
+    if (parts.length > 3) {
+      // Ambil jalan, area, dan negara
+      return `${parts[0]}, ${parts[1]}, ${parts[parts.length - 1]}`;
+    }
+
+    return address;
+  };
+
   // Fungsi untuk menangani pemilihan lokasi
   const handleLocationSelect = (location: {
     latitude: number;
@@ -391,9 +413,10 @@ export const AddTransactionScreen = () => {
             </TouchableOpacity>
 
             <Typography
-              variant={isSmallDevice ? "h6" : "h5"}
-              color={theme.colors.primary[700]}
-              weight="600"
+              variant="h5"
+              color={theme.colors.primary[500]}
+              weight="700"
+              style={{ fontSize: 20, textAlign: 'center' }}
             >
               Tambah Transaksi
             </Typography>
@@ -470,16 +493,20 @@ export const AddTransactionScreen = () => {
                   </Typography>
                 </View>
                 <View style={styles.pickerValueContainer}>
-                  <Typography
-                    variant="body1"
-                    color={selectedCategory ? theme.colors.neutral[900] : theme.colors.neutral[400]}
-                  >
-                    {selectedCategory ? getCategoryName(selectedCategory) : 'Pilih kategori'}
-                  </Typography>
+                  <View style={styles.valueTextContainer}>
+                    <Typography
+                      variant="body1"
+                      color={selectedCategory ? theme.colors.neutral[700] : theme.colors.neutral[400]}
+                      style={styles.valueText}
+                    >
+                      {selectedCategory ? getCategoryName(selectedCategory) : 'Pilih kategori'}
+                    </Typography>
+                  </View>
                   <Ionicons
                     name="chevron-forward"
                     size={20}
                     color={theme.colors.neutral[400]}
+                    style={styles.chevronIcon}
                   />
                 </View>
               </TouchableOpacity>
@@ -545,13 +572,20 @@ export const AddTransactionScreen = () => {
                   </Typography>
                 </View>
                 <View style={styles.pickerValueContainer}>
-                  <Typography variant="body1" color={theme.colors.neutral[900]}>
-                    {formatDate(selectedDate, { format: 'medium' })}
-                  </Typography>
+                  <View style={styles.valueTextContainer}>
+                    <Typography
+                      variant="body1"
+                      color={theme.colors.neutral[700]}
+                      style={styles.valueText}
+                    >
+                      {formatDate(selectedDate, { format: 'medium' })}
+                    </Typography>
+                  </View>
                   <Ionicons
                     name="chevron-forward"
                     size={20}
                     color={theme.colors.neutral[400]}
+                    style={styles.chevronIcon}
                   />
                 </View>
               </TouchableOpacity>
@@ -589,16 +623,32 @@ export const AddTransactionScreen = () => {
                   </Typography>
                 </View>
                 <View style={styles.pickerValueContainer}>
-                  <Typography
-                    variant="body1"
-                    color={selectedLocation ? theme.colors.neutral[900] : theme.colors.neutral[400]}
-                  >
-                    {selectedLocation ? (selectedLocation.address !== null ? selectedLocation.address : 'Lokasi dipilih') : 'Pilih lokasi (opsional)'}
-                  </Typography>
+                  <View style={styles.valueTextContainer}>
+                    {selectedLocation ? (
+                      <Typography
+                        variant="body1"
+                        color={theme.colors.neutral[700]}
+                        style={styles.valueText}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {selectedLocation.address ? formatLocationAddress(selectedLocation.address) : 'Lokasi dipilih'}
+                      </Typography>
+                    ) : (
+                      <Typography
+                        variant="body1"
+                        color={theme.colors.neutral[400]}
+                        style={styles.valueText}
+                      >
+                        Pilih lokasi (opsional)
+                      </Typography>
+                    )}
+                  </View>
                   <Ionicons
                     name="chevron-forward"
                     size={20}
                     color={theme.colors.neutral[400]}
+                    style={styles.chevronIcon}
                   />
                 </View>
               </TouchableOpacity>
@@ -705,14 +755,18 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 12,
+    position: 'relative',
   },
   backButton: {
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'absolute',
+    left: theme.spacing.layout.sm, // Tambahkan margin kiri
+    zIndex: 1,
   },
   headerRight: {
     width: 40,
@@ -774,23 +828,47 @@ const styles = StyleSheet.create({
   pickerButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'center', // Changed back to center for proper alignment
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
     marginBottom: 8,
+    minHeight: 50,
   },
   pickerLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
+    minWidth: 100, // Increased for better spacing
+    marginRight: 12, // Add margin for spacing
   },
   pickerValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between', // Ensure proper spacing
+    flex: 1,
+    minHeight: 44,
   },
   pickerIcon: {
     marginRight: 8,
     color: theme.colors.primary[500],
+  },
+
+  // Value Text Container - For consistent alignment
+  valueTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  valueText: {
+    fontSize: 14,
+    textAlign: 'left',
+  },
+
+  // Chevron Icon Style
+  chevronIcon: {
+    flexShrink: 0,
+    marginLeft: 8,
   },
 
 

@@ -11,6 +11,7 @@ import {
   Switch,
   Modal,
   ActivityIndicator,
+  Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -80,6 +81,7 @@ const fallbackDifficultyLevels: DifficultyLevel[] = [
   {
     id: 'medium',
     name: 'Sedang',
+    
     description: 'Membutuhkan usaha lebih',
     icon: 'star-half-outline',
     color: theme.colors.warning[500],
@@ -156,7 +158,7 @@ const AddChallengeScreenComponent = () => {
   const [targetAmount, setTargetAmount] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>('saving'); // Default ke menabung
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
-  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<string | number | null>(null);
   const [isFeatured, setIsFeatured] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -281,6 +283,18 @@ const AddChallengeScreenComponent = () => {
     navigation.goBack();
   };
 
+  // Fungsi untuk menangani pemilihan durasi dengan feedback
+  const handleDurationSelect = (durationId: string | number, _durationDays: number) => {
+    // Haptic feedback untuk memberikan respons sentuhan
+    if (Platform.OS === 'ios') {
+      Vibration.vibrate(10); // Vibration ringan untuk iOS
+    } else {
+      Vibration.vibrate(50); // Vibration untuk Android
+    }
+
+    setSelectedDuration(durationId);
+  };
+
   // Fungsi untuk validasi form
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -322,7 +336,6 @@ const AddChallengeScreenComponent = () => {
   // Fungsi untuk menyimpan tantangan
   const handleSave = async () => {
     if (!validateForm()) {
-      // Scroll ke error pertama
       return;
     }
 
@@ -345,12 +358,38 @@ const AddChallengeScreenComponent = () => {
       // Format nama dan deskripsi dengan proper case
       const formattedName = name.trim().charAt(0).toUpperCase() + name.trim().slice(1);
 
+      // Cari durasi yang dipilih untuk mendapatkan jumlah hari
+      const selectedDurationObj = durationOptions.find(d => d.id === selectedDuration);
+      const durationDays = selectedDurationObj ? selectedDurationObj.days : 30;
+
+      // Cari difficulty object untuk mendapatkan nilai difficulty yang benar
+      const selectedDifficultyObj = difficultyOptions.find(d => d.id === selectedDifficulty);
+
+      // Tentukan nilai difficulty berdasarkan ID atau nama
+      let difficultyValue: 'easy' | 'medium' | 'hard' = 'medium';
+      if (selectedDifficultyObj) {
+        // Jika menggunakan fallback data, ID sudah berupa 'easy', 'medium', 'hard'
+        if (selectedDifficultyObj.id === 'easy' || selectedDifficultyObj.id === 'medium' || selectedDifficultyObj.id === 'hard') {
+          difficultyValue = selectedDifficultyObj.id as 'easy' | 'medium' | 'hard';
+        } else {
+          // Jika menggunakan data dari Supabase (UUID), tentukan berdasarkan nama
+          const name = selectedDifficultyObj.name.toLowerCase();
+          if (name.includes('mudah') || name.includes('easy')) {
+            difficultyValue = 'easy';
+          } else if (name.includes('sulit') || name.includes('hard')) {
+            difficultyValue = 'hard';
+          } else {
+            difficultyValue = 'medium';
+          }
+        }
+      }
+
       const challengeInput: ChallengeInput = {
         name: formattedName,
         description: description.trim(),
         target_amount: Number(targetAmount),
-        duration_days: selectedDuration || 30,
-        difficulty: (selectedDifficulty as 'easy' | 'medium' | 'hard') || 'medium',
+        duration_days: durationDays,
+        difficulty: difficultyValue,
         icon: selectedTypeObj.icon,
         color: selectedTypeObj.color,
         is_featured: isFeatured,
@@ -360,7 +399,6 @@ const AddChallengeScreenComponent = () => {
       const { data: newChallenge, error } = await addChallenge(challengeInput);
 
       if (error || !newChallenge) {
-        // Error adding challenge - silently handled
         showError('Error', 'Gagal menambahkan tantangan');
         setIsLoading(false);
         return;
@@ -379,7 +417,7 @@ const AddChallengeScreenComponent = () => {
       } else {
         // Setup reminder notifikasi untuk tantangan
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() + (selectedDuration || 30));
+        endDate.setDate(endDate.getDate() + durationDays);
         await setupChallengeReminders(formattedName, endDate.toISOString());
 
         showSuccess(
@@ -423,7 +461,7 @@ const AddChallengeScreenComponent = () => {
             <Ionicons name="chevron-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
 
-          <Typography variant="h5" style={styles.headerTitle}>
+          <Typography variant="h5" weight="700" color={theme.colors.primary[500]} style={{ fontSize: 20, textAlign: 'center' }}>
             Tambah Tantangan
           </Typography>
 
@@ -644,7 +682,7 @@ const AddChallengeScreenComponent = () => {
                       styles.durationCard,
                       selectedDuration === duration.id && styles.selectedDurationCard,
                     ]}
-                    onPress={() => setSelectedDuration(Number(duration.id))}
+                    onPress={() => handleDurationSelect(duration.id, duration.days)}
                     activeOpacity={0.7}
                   >
                     <View style={styles.durationIconContainer}>
@@ -676,6 +714,11 @@ const AddChallengeScreenComponent = () => {
                     >
                       {duration.description}
                     </Typography>
+                    {selectedDuration === duration.id && (
+                      <View style={styles.selectedDurationIndicator}>
+                        <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary[500]} />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -713,16 +756,28 @@ const AddChallengeScreenComponent = () => {
 
             {/* Tombol Simpan */}
             <View style={styles.saveButtonContainer}>
-              <Button
-                title="Simpan"
-                variant="primary"
-                loading={isLoading}
+              <TouchableOpacity
+                style={styles.saveButton}
                 onPress={handleSave}
-                style={styles.saveButtonLarge}
-                textStyle={styles.saveButtonText}
-                leftIcon={<MaterialCommunityIcons name="piggy-bank" size={22} color={theme.colors.white} />}
-                fullWidth
-              />
+                activeOpacity={0.8}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={theme.colors.white} size="small" />
+                ) : (
+                  <View style={styles.saveButtonContent}>
+                    <Ionicons
+                      name="save"
+                      size={20}
+                      color={theme.colors.white}
+                      style={{ marginRight: 8 }}
+                    />
+                    <Typography variant="body1" weight="700" color={theme.colors.white}>
+                      SIMPAN
+                    </Typography>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </ScrollView>
@@ -1065,6 +1120,7 @@ const styles = StyleSheet.create({
     ...theme.elevation.sm,
     borderWidth: 1,
     borderColor: theme.colors.neutral[200],
+    position: 'relative', // Menambahkan position relative untuk indikator
   },
   durationIconContainer: {
     marginBottom: theme.spacing.sm,
@@ -1074,6 +1130,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: theme.colors.primary[50],
     ...theme.elevation.md,
+  },
+  selectedDurationIndicator: {
+    position: 'absolute',
+    top: theme.spacing.xs,
+    right: theme.spacing.xs,
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    padding: 2,
+    ...theme.elevation.sm,
   },
   optionsCard: {
     marginTop: theme.spacing.md,
@@ -1108,16 +1173,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0, // Menghapus padding horizontal agar sejajar dengan card-card
     marginHorizontal: theme.spacing.layout.sm, // Menggunakan margin yang sama dengan scrollViewContent
   },
-  saveButtonLarge: {
-    paddingVertical: theme.spacing.sm,
-    height: 48, // Ukuran standar tombol untuk mobile (48dp)
-    backgroundColor: theme.colors.success[500],
-    borderColor: theme.colors.success[600],
+  saveButton: {
+    backgroundColor: '#2196F3',
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
     ...theme.elevation.md,
   },
-  saveButtonText: {
-    fontSize: 16, // Ukuran font standar untuk tombol
-    fontWeight: '600',
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

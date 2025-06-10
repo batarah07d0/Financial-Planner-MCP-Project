@@ -20,7 +20,7 @@ export class TransactionReminderService {
   public async setupDailyReminder(userId: string): Promise<boolean> {
     try {
       const userSettings = await getUserSettings(userId);
-      if (!userSettings?.notification_enabled) {
+      if (!userSettings?.notification_enabled || !userSettings?.daily_reminder_enabled) {
         return false;
       }
 
@@ -80,7 +80,7 @@ export class TransactionReminderService {
   public async sendSmartReminder(userId: string): Promise<boolean> {
     try {
       const userSettings = await getUserSettings(userId);
-      if (!userSettings?.notification_enabled) {
+      if (!userSettings?.notification_enabled || !userSettings?.transaction_reminders) {
         return false;
       }
 
@@ -94,27 +94,26 @@ export class TransactionReminderService {
       // Check if user has recorded transactions today
       const hasTransactionsToday = await this.checkTodayTransactions(userId);
 
-      if (!hasTransactionsToday) {
-        // Send reminder only if no transactions recorded today
+      // Hanya kirim reminder jika:
+      // 1. User belum mencatat transaksi hari ini
+      // 2. Sudah lewat jam 6 sore (18:00) - waktu yang wajar untuk reminder
+      const currentHour = new Date().getHours();
+      const isAppropriateTime = currentHour >= 18 && currentHour <= 22;
+
+      if (!hasTransactionsToday && isAppropriateTime) {
+        // Send reminder only if no transactions recorded today and it's appropriate time
         const success = await notificationService.sendTransactionReminder(userId);
 
         if (success) {
           this.lastReminderDate = today;
-          if (__DEV__) {
-            // eslint-disable-next-line no-console
-            console.log('Smart transaction reminder sent');
-          }
+          // Smart transaction reminder sent successfully
         }
 
         return success;
       }
 
-      return false; // No reminder needed, user already recorded transactions
+      return false; // No reminder needed
     } catch (error) {
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.error('Error sending smart reminder:', error);
-      }
       return false;
     }
   }
@@ -123,7 +122,7 @@ export class TransactionReminderService {
   public async sendWeeklySummary(userId: string): Promise<boolean> {
     try {
       const userSettings = await getUserSettings(userId);
-      if (!userSettings?.notification_enabled) {
+      if (!userSettings?.notification_enabled || !userSettings?.weekly_summary_enabled) {
         return false;
       }
 
@@ -177,7 +176,7 @@ export class TransactionReminderService {
   public async setupWeeklySummary(userId: string): Promise<boolean> {
     try {
       const userSettings = await getUserSettings(userId);
-      if (!userSettings?.notification_enabled) {
+      if (!userSettings?.notification_enabled || !userSettings?.weekly_summary_enabled) {
         return false;
       }
 

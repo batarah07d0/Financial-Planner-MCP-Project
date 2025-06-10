@@ -34,12 +34,7 @@ interface ExpenseCategory {
   icon: string;
 }
 
-// Tipe data untuk tren pengeluaran
-interface ExpenseTrend {
-  month: string;
-  income: number;
-  expense: number;
-}
+
 
 // Warna untuk kategori pengeluaran
 const categoryColors = [
@@ -55,8 +50,7 @@ const categoryColors = [
 
 export const AnalyticsScreen = () => {
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
-  const [expenseTrends, setExpenseTrends] = useState<ExpenseTrend[]>([]);
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]); // Untuk summary
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]); // Untuk summary berdasarkan periode
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
   const { user } = useAuthStore();
@@ -65,7 +59,6 @@ export const AnalyticsScreen = () => {
   const [animatedValues] = useState({
     summary: new Animated.Value(0),
     categories: new Animated.Value(0),
-    trends: new Animated.Value(0),
     header: new Animated.Value(0),
     periodButtons: new Animated.Value(0),
   });
@@ -86,9 +79,9 @@ export const AnalyticsScreen = () => {
 
   // Fungsi untuk menghitung ukuran chart yang responsif
   const getResponsiveChartSizes = () => {
-    const baseChartSize = Math.min(width * 0.55, 240); // Maksimal 240px, minimal 55% dari lebar layar
-    const centerSize = baseChartSize * 0.41; // 41% dari ukuran chart
-    const fontSize = responsiveFontSize(isSmallDevice ? 14 : isMediumDevice ? 16 : 18);
+    const baseChartSize = Math.min(width * 0.6, 260); // Perbaikan: Ukuran yang lebih besar untuk visibility
+    const centerSize = baseChartSize * 0.42; // 42% dari ukuran chart
+    const fontSize = responsiveFontSize(isSmallDevice ? 12 : isMediumDevice ? 14 : 16);
     const lineHeight = fontSize * 1.3;
 
     return {
@@ -154,11 +147,6 @@ export const AnalyticsScreen = () => {
         duration: 500,
         useNativeDriver: true,
       }),
-      Animated.timing(animatedValues.trends, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
     ]).start();
   }, [animatedValues]);
 
@@ -182,34 +170,37 @@ export const AnalyticsScreen = () => {
 
       if (allError) throw allError;
 
-      // Simpan semua transaksi untuk summary
-      setAllTransactions(allTransactions || []);
-
-      // Hitung tanggal mulai berdasarkan periode yang dipilih untuk tren dan kategori
+      // Perbaikan: Hitung tanggal mulai berdasarkan periode yang dipilih dengan logika yang lebih akurat
       const today = new Date();
       const startDate = new Date();
 
       switch (selectedPeriod) {
         case 'weekly':
-          startDate.setDate(today.getDate() - 7);
+          // Ambil data 8 minggu terakhir untuk tren yang lebih baik
+          startDate.setDate(today.getDate() - (8 * 7));
           break;
         case 'monthly':
-          startDate.setMonth(today.getMonth() - 1);
+          // Ambil data 6 bulan terakhir
+          startDate.setMonth(today.getMonth() - 6);
           break;
         case 'yearly':
-          startDate.setFullYear(today.getFullYear() - 1);
+          // Perbaikan: Ambil data mulai dari awal tahun 2025 karena aplikasi baru dibuat 2025
+          startDate.setFullYear(2025, 0, 1); // 1 Januari 2025
           break;
         default:
           startDate.setMonth(today.getMonth() - 6); // Default 6 bulan
       }
 
       // Filter transaksi berdasarkan periode untuk tren dan kategori
-      const filteredTransactions = allTransactions?.filter(t => {
+      const periodFilteredTransactions = allTransactions?.filter(t => {
         const transactionDate = new Date(t.date);
-        return transactionDate >= startDate;
+        return transactionDate >= startDate && transactionDate <= today;
       }) || [];
 
-      const transactions = filteredTransactions;
+      // Simpan filtered transactions untuk summary
+      setFilteredTransactions(periodFilteredTransactions);
+
+      const transactions = periodFilteredTransactions;
 
       if (transactions) {
         // Mengelompokkan transaksi berdasarkan kategori untuk kategori pengeluaran
@@ -235,81 +226,7 @@ export const AnalyticsScreen = () => {
           index,
         })).sort((a, b) => b.amount - a.amount));
 
-        // Mengelompokkan transaksi berdasarkan periode untuk tren pengeluaran
-        const trendsByPeriod: Record<string, { income: number, expense: number }> = {};
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-        // Inisialisasi periode berdasarkan selectedPeriod
-        const today = new Date();
-        let periodCount = 6;
-        let periodUnit = 'month';
-
-        switch (selectedPeriod) {
-          case 'weekly':
-            periodCount = 7;
-            periodUnit = 'week';
-            break;
-          case 'monthly':
-            periodCount = 6;
-            periodUnit = 'month';
-            break;
-          case 'yearly':
-            periodCount = 5;
-            periodUnit = 'year';
-            break;
-        }
-
-        // Inisialisasi periode
-        for (let i = periodCount - 1; i >= 0; i--) {
-          let periodKey = '';
-          const date = new Date(today);
-
-          if (periodUnit === 'week') {
-            date.setDate(today.getDate() - (i * 7));
-            periodKey = `Minggu ${periodCount - i}`;
-          } else if (periodUnit === 'month') {
-            date.setMonth(today.getMonth() - i);
-            periodKey = months[date.getMonth()];
-          } else if (periodUnit === 'year') {
-            date.setFullYear(today.getFullYear() - i);
-            periodKey = date.getFullYear().toString();
-          }
-
-          trendsByPeriod[periodKey] = { income: 0, expense: 0 };
-        }
-
-        transactions.forEach(transaction => {
-          const date = new Date(transaction.date);
-          let periodKey = '';
-
-          if (periodUnit === 'week') {
-            const weeksDiff = Math.floor((today.getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
-            if (weeksDiff < periodCount) {
-              periodKey = `Minggu ${periodCount - weeksDiff}`;
-            }
-          } else if (periodUnit === 'month') {
-            periodKey = months[date.getMonth()];
-          } else if (periodUnit === 'year') {
-            periodKey = date.getFullYear().toString();
-          }
-
-          if (trendsByPeriod[periodKey]) {
-            if (transaction.type === 'income') {
-              trendsByPeriod[periodKey].income += transaction.amount;
-            } else {
-              trendsByPeriod[periodKey].expense += transaction.amount;
-            }
-          }
-        });
-
-        // Membuat data tren pengeluaran
-        const trends: ExpenseTrend[] = Object.keys(trendsByPeriod).map(period => ({
-          month: period,
-          income: trendsByPeriod[period].income,
-          expense: trendsByPeriod[period].expense,
-        }));
-
-        setExpenseTrends(trends);
 
         // Jalankan animasi setelah data dimuat
         runAnimations();
@@ -522,10 +439,15 @@ export const AnalyticsScreen = () => {
                 height: chartSizes.chartSize
               }]}>
                 {expenseCategories.map((category, index) => {
-                  // Hitung ukuran berdasarkan persentase dengan ukuran responsif
-                  const baseSize = chartSizes.chartSize * 0.73; // 73% dari ukuran chart
-                  const sizeMultiplier = Math.sqrt(category.percentage);
-                  const segmentSize = Math.max(baseSize * sizeMultiplier, chartSizes.chartSize * 0.18); // Minimum 18% dari chart
+                  // Perbaikan: Hitung ukuran dengan algoritma yang lebih baik untuk menampilkan semua kategori
+                  const minSize = chartSizes.chartSize * 0.25; // Minimum 25% dari chart
+                  const maxSize = chartSizes.chartSize * 0.85; // Maximum 85% dari chart
+
+                  // Gunakan logarithmic scaling untuk distribusi yang lebih baik
+                  const logPercentage = Math.log(category.percentage * 100 + 1) / Math.log(101);
+                  const sizeRange = maxSize - minSize;
+                  const segmentSize = minSize + (sizeRange * logPercentage);
+
                   const offset = (chartSizes.chartSize - segmentSize) / 2;
 
                   return (
@@ -538,7 +460,7 @@ export const AnalyticsScreen = () => {
                           height: segmentSize,
                           borderRadius: segmentSize / 2,
                           backgroundColor: category.color,
-                          opacity: 0.9 - (index * 0.05),
+                          opacity: 0.95 - (index * 0.03), // Perbaikan: Opacity yang lebih subtle
                           top: offset,
                           left: offset,
                           zIndex: expenseCategories.length - index,
@@ -633,163 +555,16 @@ export const AnalyticsScreen = () => {
     );
   };
 
-  // Render bar chart untuk tren pengeluaran
-  const renderExpenseTrendsChart = () => {
-    // Cek apakah ada data yang tidak kosong
-    const hasData = expenseTrends.length > 0 && expenseTrends.some(trend => trend.income > 0 || trend.expense > 0);
-    const maxValue = Math.max(
-      ...expenseTrends.map(trend => Math.max(trend.income, trend.expense)),
-      1 // Minimum value untuk menghindari pembagian dengan 0
-    );
 
-    return (
-      <Animated.View style={{
-        opacity: animatedValues.trends,
-        transform: [{
-          translateY: animatedValues.trends.interpolate({
-            inputRange: [0, 1],
-            outputRange: [20, 0]
-          })
-        }]
-      }}>
-        <Card style={styles.chartCard} elevation="lg">
-          <View style={styles.cardHeader}>
-            <Ionicons name="bar-chart" size={24} color={theme.colors.primary[500]} />
-            <Typography variant="h5" color={theme.colors.primary[700]} weight="600" style={styles.chartTitle}>
-              Tren Pemasukan & Pengeluaran
-            </Typography>
-          </View>
-
-          {hasData ? (
-            <View style={styles.barChartContainer}>
-              <View style={styles.barChartHeader}>
-                <View style={styles.barAxisLabels}>
-                  <Typography variant="caption" color={theme.colors.neutral[600]} weight="500">
-                    Rp
-                  </Typography>
-                </View>
-              </View>
-              <View style={styles.barChart}>
-                {expenseTrends.map((trend, index) => {
-                  // Hitung tinggi bar, jika 0 maka tidak tampil
-                  const incomeHeight = trend.income > 0 ? Math.max((trend.income / maxValue) * 150, 8) : 0;
-                  const expenseHeight = trend.expense > 0 ? Math.max((trend.expense / maxValue) * 150, 8) : 0;
-
-                  return (
-                    <Animated.View
-                      key={index}
-                      style={styles.barGroup}
-                    >
-                      <View style={styles.barPair}>
-                        <View style={styles.barContainer}>
-                          {incomeHeight > 0 && (
-                            <LinearGradient
-                              colors={[theme.colors.success[300], theme.colors.success[600]]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 0, y: 1 }}
-                              style={[
-                                styles.bar,
-                                {
-                                  height: incomeHeight,
-                                }
-                              ]}
-                            />
-                          )}
-                        </View>
-                        <View style={styles.barContainer}>
-                          {expenseHeight > 0 && (
-                            <LinearGradient
-                              colors={[theme.colors.danger[300], theme.colors.danger[600]]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 0, y: 1 }}
-                              style={[
-                                styles.bar,
-                                {
-                                  height: expenseHeight,
-                                }
-                              ]}
-                            />
-                          )}
-                        </View>
-                      </View>
-                      <View style={styles.barLabelContainer}>
-                        <Typography variant="caption" color={theme.colors.neutral[700]} weight="500">
-                          {trend.month}
-                        </Typography>
-                      </View>
-                    </Animated.View>
-                  );
-                })}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.emptyChartContainer}>
-              <View style={styles.emptyChartIconContainer}>
-                <LinearGradient
-                  colors={[theme.colors.neutral[100], theme.colors.neutral[50]]}
-                  style={styles.emptyChartIconBackground}
-                >
-                  <Ionicons name="analytics-outline" size={48} color={theme.colors.neutral[400]} />
-                </LinearGradient>
-              </View>
-              <Typography variant="h6" color={theme.colors.neutral[700]} weight="600" style={{ textAlign: 'center', marginBottom: theme.spacing.xs }}>
-                Belum Ada Data Transaksi
-              </Typography>
-              <Typography variant="body2" color={theme.colors.neutral[500]} style={{ textAlign: 'center', lineHeight: 20 }}>
-                Mulai tambahkan transaksi pemasukan dan pengeluaran untuk melihat tren keuangan Anda
-              </Typography>
-              <View style={styles.emptyChartPlaceholder}>
-                <View style={styles.placeholderBars}>
-                  {['Des', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei'].map((month) => (
-                    <View key={month} style={styles.placeholderBarGroup}>
-                      <View style={styles.placeholderBarPair}>
-                        <View style={[styles.placeholderBar, styles.placeholderIncomeBar]} />
-                        <View style={[styles.placeholderBar, styles.placeholderExpenseBar]} />
-                      </View>
-                      <Typography variant="caption" color={theme.colors.neutral[400]} style={styles.placeholderLabel}>
-                        {month}
-                      </Typography>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.barLegendContainer}>
-            <View style={styles.barLegendItem}>
-              <LinearGradient
-                colors={[theme.colors.success[300], theme.colors.success[600]]}
-                style={styles.barLegendColor}
-              />
-              <Typography variant="body2" weight="600" color={theme.colors.neutral[800]}>
-                Pemasukan
-              </Typography>
-            </View>
-
-            <View style={styles.barLegendItem}>
-              <LinearGradient
-                colors={[theme.colors.danger[300], theme.colors.danger[600]]}
-                style={styles.barLegendColor}
-              />
-              <Typography variant="body2" weight="600" color={theme.colors.neutral[800]}>
-                Pengeluaran
-              </Typography>
-            </View>
-          </View>
-        </Card>
-      </Animated.View>
-    );
-  };
 
   // Render summary
   const renderSummary = () => {
-    // Hitung total dari SEMUA transaksi (seperti Dashboard)
-    const totalIncome = allTransactions
+    // Perbaikan: Hitung total dari transaksi yang difilter berdasarkan periode yang dipilih
+    const totalIncome = filteredTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
-    const totalExpense = allTransactions
+    const totalExpense = filteredTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
@@ -925,7 +700,7 @@ export const AnalyticsScreen = () => {
       >
         <View style={styles.header}>
           <Typography
-            variant="h3"
+            variant="h5"
             color={theme.colors.primary[500]}
             weight="700"
             style={styles.headerTitle}
@@ -974,7 +749,6 @@ export const AnalyticsScreen = () => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {renderSummary()}
           {renderExpenseCategoriesChart()}
-          {renderExpenseTrendsChart()}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -995,15 +769,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: theme.spacing.layout.sm,
     paddingTop: theme.spacing.layout.xs,
     paddingBottom: theme.spacing.layout.sm,
   },
   headerTitle: {
-    textAlign: 'left',
-    paddingLeft: theme.spacing.sm,
-    fontSize: 28,
-    lineHeight: 34,
+    textAlign: 'center',
+    fontSize: 20,
+    lineHeight: 24,
   },
   periodContainer: {
     flexDirection: 'row',
@@ -1182,54 +956,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...theme.elevation.xs,
   },
-  emptyChartPlaceholder: {
-    marginTop: theme.spacing.lg,
-    width: '100%',
-    alignItems: 'center',
-  },
-  placeholderBars: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    height: 80,
-    width: '100%',
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    ...theme.elevation.xs,
-  },
-  placeholderBarGroup: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    height: '100%',
-    flex: 1,
-  },
-  placeholderBarPair: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    height: '80%',
-    width: '100%',
-  },
-  placeholderBar: {
-    width: 8,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-    marginHorizontal: 2,
-    opacity: 0.3,
-  },
-  placeholderIncomeBar: {
-    height: 20,
-    backgroundColor: theme.colors.success[300],
-  },
-  placeholderExpenseBar: {
-    height: 15,
-    backgroundColor: theme.colors.danger[300],
-  },
-  placeholderLabel: {
-    marginTop: theme.spacing.xs,
-    textAlign: 'center',
-  },
+
   legendContainer: {
     marginTop: theme.spacing.layout.xs,
     backgroundColor: theme.colors.neutral[50],
@@ -1265,86 +992,7 @@ const styles = StyleSheet.create({
   percentageText: {
     marginLeft: theme.spacing.sm,
   },
-  barChartContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: theme.spacing.layout.sm,
-    height: 250,
-  },
-  barChartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    width: '100%',
-    paddingHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
-  },
-  barAxisLabels: {
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-  },
-  barChart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    height: '90%',
-    width: '100%',
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.neutral[50],
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-  },
-  barGroup: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    height: '100%',
-    flex: 1,
-  },
-  barLabelContainer: {
-    marginTop: theme.spacing.sm,
-    alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
-  },
-  barPair: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    height: '90%',
-    width: '100%',
-  },
-  barContainer: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    height: '100%',
-    width: 24,
-    marginHorizontal: 4,
-  },
-  bar: {
-    width: '100%',
-    minHeight: 5,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    ...theme.elevation.xs,
-  },
-  barLegendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: theme.spacing.md,
-    backgroundColor: theme.colors.neutral[50],
-    padding: theme.spacing.md,
-    borderRadius: theme.spacing.md,
-  },
-  barLegendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: theme.spacing.md,
-  },
-  barLegendColor: {
-    width: 18,
-    height: 18,
-    borderRadius: theme.borderRadius.sm,
-    marginRight: theme.spacing.sm,
-    ...theme.elevation.xs,
-  },
+
   // Styles lama (tetap dipertahankan untuk kompatibilitas)
   summaryRow: {
     flexDirection: 'row',

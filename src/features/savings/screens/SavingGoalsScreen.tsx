@@ -300,9 +300,9 @@ export const SavingGoalsScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
         </TouchableOpacity>
-        <Typography variant="h4" weight="600" color={theme.colors.neutral[800]}>
+        <Typography variant="h4" weight="700" color={theme.colors.primary[500]}>
           Tujuan Tabungan
         </Typography>
         <View style={styles.headerSpacer} />
@@ -444,11 +444,16 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
+    ...theme.elevation.sm,
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.round,
     backgroundColor: 'transparent',
+    marginLeft: theme.spacing.xs, // Proper spacing from left edge
   },
   headerSpacer: {
     width: 40,

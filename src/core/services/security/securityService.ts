@@ -147,10 +147,24 @@ export const setSensitiveDataSettings = async (settings: SensitiveData): Promise
 // Fungsi untuk memeriksa apakah tindakan memerlukan autentikasi
 export const requiresAuthentication = async (action: string): Promise<boolean> => {
   try {
-    // Dapatkan tingkat keamanan dan mode privasi
-    const securityLevel = await getSecurityLevel();
-    const privacyMode = await getPrivacyMode();
-    const sensitiveDataSettings = await getSensitiveDataSettings();
+    // Import di dalam fungsi untuk menghindari circular dependency
+    const { useAuthStore } = await import('../store');
+    const { getSecuritySettings } = await import('../../../features/settings/services/userSettingsService');
+
+    // Get current user
+    const { user } = useAuthStore.getState();
+    if (!user) return false;
+
+    // Get settings from database (most up-to-date)
+    const securitySettings = await getSecuritySettings(user.id);
+    if (!securitySettings) {
+      // Jika tidak ada settings, gunakan default yang aman
+      return true;
+    }
+
+    // Dapatkan tingkat keamanan dan mode privasi dari database
+    const securityLevel = securitySettings.security_level;
+    const privacyMode = securitySettings.privacy_mode;
     
     // Tindakan yang selalu memerlukan autentikasi pada tingkat keamanan tinggi
     const highSecurityActions = [
@@ -189,7 +203,7 @@ export const requiresAuthentication = async (action: string): Promise<boolean> =
       return true;
     }
     
-    if (sensitiveDataSettings.requireAuthForSensitiveActions && 
+    if (securitySettings.require_auth_for_sensitive_actions &&
         sensitiveActions.includes(action)) {
       return true;
     }
@@ -207,19 +221,31 @@ export const requiresAuthentication = async (action: string): Promise<boolean> =
 // Fungsi untuk memeriksa apakah data harus disembunyikan
 export const shouldHideData = async (dataType: 'balances' | 'transactions' | 'budgets'): Promise<boolean> => {
   try {
-    const sensitiveDataSettings = await getSensitiveDataSettings();
+    // Import di dalam fungsi untuk menghindari circular dependency
+    const { useAuthStore } = await import('../store');
+    const { getSecuritySettings } = await import('../../../features/settings/services/userSettingsService');
 
+    // Get current user
+    const { user } = useAuthStore.getState();
+    if (!user) return false;
+
+    // Get settings from database (most up-to-date)
+    const securitySettings = await getSecuritySettings(user.id);
+    if (!securitySettings) return false;
+
+    // Check based on data type
     switch (dataType) {
       case 'balances':
-        return sensitiveDataSettings.hideBalances;
+        return securitySettings.hide_balances;
       case 'transactions':
-        return sensitiveDataSettings.hideTransactions;
+        return securitySettings.hide_transactions;
       case 'budgets':
-        return sensitiveDataSettings.hideBudgets;
+        return securitySettings.hide_budgets;
       default:
         return false;
     }
   } catch (error) {
+    // Error checking if data should be hidden - silently handled
     return false;
   }
 };

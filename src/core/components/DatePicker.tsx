@@ -168,7 +168,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
             <View style={styles.headerTitleContainer}>
               <Typography
-                variant="h3"
+                variant="h5"
                 color={theme.colors.white}
                 weight="600"
               >
@@ -409,9 +409,9 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
+    position: 'relative',
   },
   closeButton: {
     width: 40,
@@ -420,11 +420,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    left: theme.spacing.lg,
+    zIndex: 1,
   },
   headerTitleContainer: {
     flex: 1,
     alignItems: 'center',
-    marginHorizontal: theme.spacing.md,
+    justifyContent: 'center',
+    paddingHorizontal: 60, // Space for buttons on both sides
   },
   todayButton: {
     width: 40,
@@ -433,6 +437,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    right: theme.spacing.lg,
+    zIndex: 1,
   },
 
   // Quick Select Styles
@@ -554,7 +561,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
     marginHorizontal: theme.spacing.xs,
-    minHeight: 50,
+    height: 50, // Fixed height instead of minHeight
   },
   cancelButton: {
     backgroundColor: theme.colors.neutral[100],
@@ -572,7 +579,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
-    minHeight: 50,
+    height: 50, // Fixed height instead of minHeight
   },
   buttonText: {
     marginLeft: theme.spacing.xs,

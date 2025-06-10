@@ -113,7 +113,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         }),
       ])
     ).start();
-  }, [isScanBoxAnimating, scanBoxAnimation, scanLineAnimation, pulseAnimation]);
+  }, [isScanBoxAnimating, pulseAnimation, scanBoxAnimation, scanLineAnimation]); // Tambahkan animated values yang diperlukan
 
   // Efek untuk menampilkan/menyembunyikan tip secara otomatis
   useEffect(() => {
@@ -124,11 +124,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     return () => clearTimeout(tipTimer);
   }, []);
 
-  // Mulai pemindaian dan animasi saat komponen dimount
+  // Mulai pemindaian saat komponen dimount
   useEffect(() => {
     if (hasPermission) {
       startScanning();
-      startScanAnimations();
 
       // Animasi fade in untuk UI
       Animated.timing(fadeAnimation, {
@@ -146,7 +145,14 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       stopScanning();
       StatusBar.setHidden(false);
     };
-  }, [hasPermission, startScanning, stopScanning, fadeAnimation, startScanAnimations]);
+  }, [hasPermission, startScanning, stopScanning, fadeAnimation]);
+
+  // Mulai animasi secara terpisah untuk menghindari dependency loop
+  useEffect(() => {
+    if (hasPermission) {
+      startScanAnimations();
+    }
+  }, [hasPermission, startScanAnimations]);
 
   // Fungsi untuk menangani tombol ambil gambar
   const handleCapture = async () => {

@@ -20,11 +20,14 @@ export const useNotificationManager = () => {
     notificationService.setNotificationHook(notificationHook);
   }, [notificationHook]);
 
-  // Setup daily reminder saat user login
+  // Setup daily reminder saat user login dan bersihkan notifikasi test
   useEffect(() => {
     if (user && notificationHook.hasPermission) {
-      // Setup daily reminder jam 8 malam
-      notificationService.setupDailyReminder(user.id, 20, 0);
+      // Bersihkan semua notifikasi terjadwal terlebih dahulu untuk menghapus notifikasi test
+      notificationService.cancelAllNotifications().then(() => {
+        // Setup daily reminder jam 8 malam setelah pembersihan
+        notificationService.setupDailyReminder(user.id, 20, 0);
+      });
     }
   }, [user, notificationHook.hasPermission]);
 

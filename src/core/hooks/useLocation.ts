@@ -76,7 +76,7 @@ export const useLocation = (options: UseLocationOptions = {}) => {
     }
   }, []);
 
-  // Fungsi untuk mendapatkan lokasi saat ini
+  // Fungsi untuk mendapatkan lokasi saat ini dengan akurasi maksimal
   const getCurrentLocation = async (): Promise<LocationData | null> => {
     setIsLoading(true);
     setErrorMsg(null);
@@ -89,8 +89,13 @@ export const useLocation = (options: UseLocationOptions = {}) => {
         return null;
       }
 
+      // Gunakan akurasi terbaik yang tersedia
+      const accuracy = enableHighAccuracy
+        ? Location.Accuracy.BestForNavigation
+        : Location.Accuracy.High;
+
       const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: enableHighAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
+        accuracy,
       });
 
       const locationData: LocationData = {
@@ -168,11 +173,16 @@ export const useLocation = (options: UseLocationOptions = {}) => {
         return false;
       }
 
+      // Gunakan akurasi terbaik untuk tracking
+      const accuracy = enableHighAccuracy
+        ? Location.Accuracy.BestForNavigation
+        : Location.Accuracy.High;
+
       const subscription = await Location.watchPositionAsync(
         {
-          accuracy: enableHighAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
-          timeInterval,
-          distanceInterval,
+          accuracy,
+          timeInterval: Math.max(timeInterval, 3000), // Minimal 3 detik untuk akurasi
+          distanceInterval: Math.max(distanceInterval, 5), // Minimal 5 meter untuk akurasi
         },
         (newLocation) => {
           const locationData: LocationData = {

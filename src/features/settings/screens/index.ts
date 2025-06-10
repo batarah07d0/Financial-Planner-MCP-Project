@@ -6,3 +6,4 @@ export * from './ChangePasswordScreen';
 export * from './AboutAppScreen';
 export * from './PrivacyPolicyScreen';
 export * from './TermsConditionsScreen';
+export * from './NotificationSettingsScreen';

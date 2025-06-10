@@ -8,36 +8,46 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography, Card, TransactionCard } from '../../../core/components';
+import { Typography, Card, TransactionCard, SuperiorDialog, PrivacyProtectedText } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../../../core/services/store';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSuperiorDialog } from '../../../core/hooks';
+
 import { supabase } from '../../../config/supabase';
-import { formatCurrency } from '../../../core/utils';
+import { DailyVisitService } from '../../../core/services/dailyVisitService';
+import { formatCardCurrency, needsExplanation, getCurrencyExplanation } from '../../../core/utils';
+import {
+  getLocalTimeInfo,
+  getGreetingType,
+  getConsistentMessageIndex,
+  shouldUpdateGreeting
+} from '../../../core/utils/timeUtils';
 import { Transaction } from '../../../core/services/supabase/types';
 
 export const DashboardScreen = () => {
   const [scrollY] = useState(new Animated.Value(0));
   const [greetingMessage, setGreetingMessage] = useState('');
-  const [visitCount, setVisitCount] = useState(0);
+  const [dailyVisitCount, setDailyVisitCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [monthlyExpense, setMonthlyExpense] = useState(0);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
+  const [userDisplayName, setUserDisplayName] = useState('');
   const navigation = useNavigation();
   const { user } = useAuthStore();
+  const { dialogState, showDialog, hideDialog } = useSuperiorDialog();
 
   // Refs untuk mencegah infinite re-render dan throttling
   const lastFocusTime = useRef<number>(0);
   const greetingInitialized = useRef<boolean>(false);
-  const currentHour = useRef<number>(new Date().getHours());
-  const selectedGreetingIndex = useRef<number>(0);
+  const lastGreetingUpdate = useRef<number>(0);
+  const currentGreetingType = useRef<string>('');
 
   // Hook responsif untuk mendapatkan dimensi dan breakpoint
   const {
@@ -46,6 +56,42 @@ export const DashboardScreen = () => {
     isSmallDevice,
     isLargeDevice
   } = useAppDimensions();
+
+  // Fungsi untuk memuat profil pengguna dan membatasi nama
+  const loadUserProfile = useCallback(async () => {
+    try {
+      if (!user) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, name')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        // Jika error, gunakan nama dari auth store sebagai fallback
+        const fallbackName = user?.name || 'Pengguna';
+        const limitedName = fallbackName.split(' ').slice(0, 2).join(' ');
+        setUserDisplayName(limitedName);
+        return;
+      }
+
+      if (data) {
+        // Prioritas: full_name > name > fallback
+        const fullName = data.full_name || data.name || user?.name || 'Pengguna';
+        // Batasi nama menjadi 2 kata pertama
+        const limitedName = fullName.split(' ').slice(0, 2).join(' ');
+        setUserDisplayName(limitedName);
+      }
+    } catch (error) {
+      // Error handling, gunakan fallback
+      const fallbackName = user?.name || 'Pengguna';
+      const limitedName = fallbackName.split(' ').slice(0, 2).join(' ');
+      setUserDisplayName(limitedName);
+    }
+  }, [user]);
 
   // Fungsi untuk memuat kategori
   const loadCategories = useCallback(async () => {
@@ -78,8 +124,11 @@ export const DashboardScreen = () => {
     try {
       setIsLoading(true);
 
-      // Memuat kategori terlebih dahulu
-      await loadCategories();
+      // Memuat profil pengguna dan kategori secara paralel
+      await Promise.all([
+        loadUserProfile(),
+        loadCategories()
+      ]);
 
       // Mendapatkan tanggal awal dan akhir bulan ini
       const now = new Date();
@@ -114,7 +163,8 @@ export const DashboardScreen = () => {
         ?.filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
-      setCurrentBalance(totalIncome - totalExpense);
+      const balance = totalIncome - totalExpense;
+      setCurrentBalance(balance);
 
       // Hitung ringkasan bulan ini
       const monthlyIncomeTotal = monthlyTransactions
@@ -138,11 +188,11 @@ export const DashboardScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, loadCategories]);
+  }, [user, loadCategories, loadUserProfile]);
 
   // Memoized greeting messages untuk mencegah re-render
   const greetingMessages = useMemo(() => {
-    const userName = user?.name || 'Pengguna';
+    const userName = userDisplayName || 'Pengguna';
     return {
       morning: [
         `Selamat Pagi, ${userName}!`,
@@ -167,67 +217,63 @@ export const DashboardScreen = () => {
         `Welcome back, ${userName}!`,
       ],
     };
-  }, [user?.name]);
+  }, [userDisplayName]);
 
-  // Fungsi untuk mendapatkan greeting message yang stabil
+  // Fungsi untuk mendapatkan greeting message yang konsisten dan akurat
   const getGreetingMessage = useCallback(() => {
-    const hour = new Date().getHours();
+    const timeInfo = getLocalTimeInfo();
+    const { hour, timeKey, timestamp, dateKey } = timeInfo;
 
-    // Hanya update jika jam berubah atau belum diinisialisasi
-    if (!greetingInitialized.current || currentHour.current !== hour) {
-      currentHour.current = hour;
+    // Cek apakah perlu update greeting (setiap 30 menit atau pertama kali)
+    const shouldUpdate = !greetingInitialized.current ||
+                        shouldUpdateGreeting(lastGreetingUpdate.current, timestamp) ||
+                        currentGreetingType.current !== timeKey;
 
-      let timeBasedMessages;
-      if (hour >= 5 && hour < 12) {
-        timeBasedMessages = greetingMessages.morning;
-      } else if (hour >= 12 && hour < 18) {
-        timeBasedMessages = greetingMessages.afternoon;
-      } else {
-        timeBasedMessages = greetingMessages.evening;
-      }
-
-      // Pilih pesan berdasarkan visit count dan gunakan index yang konsisten
-      const messagesToUse = visitCount > 2 ? greetingMessages.returnVisit : timeBasedMessages;
-
-      // Gunakan user ID untuk konsistensi random index (tidak berubah-ubah)
-      const userIdHash = user?.id ? user.id.charCodeAt(0) + user.id.charCodeAt(user.id.length - 1) : 0;
-      selectedGreetingIndex.current = userIdHash % messagesToUse.length;
-
+    if (shouldUpdate) {
+      // Update refs untuk tracking
+      currentGreetingType.current = timeKey;
+      lastGreetingUpdate.current = timestamp;
       greetingInitialized.current = true;
+
+
     }
 
-    const messagesToUse = visitCount > 2 ? greetingMessages.returnVisit :
-      (currentHour.current >= 5 && currentHour.current < 12) ? greetingMessages.morning :
-      (currentHour.current >= 12 && currentHour.current < 18) ? greetingMessages.afternoon :
-      greetingMessages.evening;
+    // Tentukan tipe greeting berdasarkan daily visit count dan waktu
+    const greetingType = getGreetingType(dailyVisitCount, hour);
 
-    return messagesToUse[selectedGreetingIndex.current];
-  }, [greetingMessages, visitCount, user?.id]);
+    // Pilih messages berdasarkan tipe greeting
+    const messagesToUse = greetingMessages[greetingType];
 
-  // Effect untuk load dan update visit count - hanya sekali saat mount
+    // Gunakan utility function untuk mendapatkan index yang konsisten
+    const messageIndex = getConsistentMessageIndex(user?.id, dateKey, messagesToUse.length);
+
+    return messagesToUse[messageIndex];
+  }, [greetingMessages, dailyVisitCount, user?.id]);
+
+  // Effect untuk load dan update daily visit count - hanya sekali saat mount
   useEffect(() => {
-    const loadVisitCount = async () => {
+    const loadDailyVisitCount = async () => {
+      if (!user?.id) return;
+
       try {
-        const storedCount = await AsyncStorage.getItem('dashboard_visit_count');
-        const currentCount = storedCount ? parseInt(storedCount, 10) : 0;
-        const newCount = currentCount + 1;
+        // Load dan update daily visit count
+        const newDailyCount = await DailyVisitService.incrementDailyVisitCount(user.id);
+        setDailyVisitCount(newDailyCount);
 
-        setVisitCount(newCount);
-        await AsyncStorage.setItem('dashboard_visit_count', newCount.toString());
-
-        // Update greeting message setelah visit count di-set
-        setGreetingMessage(getGreetingMessage());
+        // Cleanup old data setiap 10 kunjungan harian
+        if (newDailyCount % 10 === 0) {
+          await DailyVisitService.cleanupOldVisitData(user.id);
+        }
       } catch (error) {
         // Error handling tanpa console.error untuk menghindari ESLint warning
-        setVisitCount(1);
-        setGreetingMessage(getGreetingMessage());
+        setDailyVisitCount(1);
       }
     };
 
     if (user && !greetingInitialized.current) {
-      loadVisitCount();
+      loadDailyVisitCount();
     }
-  }, [user, getGreetingMessage]);
+  }, [user]);
 
   // Effect terpisah untuk load dashboard data
   useEffect(() => {
@@ -236,22 +282,31 @@ export const DashboardScreen = () => {
     }
   }, [user, loadDashboardData]);
 
-  // Effect untuk update greeting message berdasarkan perubahan waktu
+  // Effect untuk update greeting message ketika userDisplayName berubah
   useEffect(() => {
-    if (!user || !greetingInitialized.current) return;
+    if (userDisplayName && dailyVisitCount > 0) {
+      const newMessage = getGreetingMessage();
+      setGreetingMessage(newMessage);
+    }
+  }, [userDisplayName, dailyVisitCount, getGreetingMessage]);
+
+  // Effect untuk update greeting message berdasarkan perubahan waktu (setiap 30 menit)
+  useEffect(() => {
+    if (!user || !userDisplayName) return;
 
     const updateGreeting = () => {
       const newMessage = getGreetingMessage();
-      if (newMessage !== greetingMessage) {
-        setGreetingMessage(newMessage);
-      }
+      setGreetingMessage(newMessage);
     };
 
-    // Update greeting setiap jam
-    const interval = setInterval(updateGreeting, 60 * 60 * 1000); // 1 jam
+    // Update greeting pertama kali
+    updateGreeting();
+
+    // Update greeting setiap 30 menit untuk responsivitas yang lebih baik
+    const interval = setInterval(updateGreeting, 30 * 60 * 1000); // 30 menit
 
     return () => clearInterval(interval);
-  }, [user, getGreetingMessage, greetingMessage]);
+  }, [user, userDisplayName, getGreetingMessage]);
 
   // Refresh data ketika halaman difokuskan dengan throttling
   useFocusEffect(
@@ -262,9 +317,12 @@ export const DashboardScreen = () => {
         if (now - lastFocusTime.current > 3000) {
           lastFocusTime.current = now;
           loadDashboardData();
+        } else {
+          // Selalu refresh profil untuk memastikan nama terbaru
+          loadUserProfile();
         }
       }
-    }, [user, loadDashboardData])
+    }, [user, loadDashboardData, loadUserProfile])
   );
 
   // Fungsi navigasi
@@ -292,6 +350,30 @@ export const DashboardScreen = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigation as any).navigate('AddTransaction');
   }, [navigation]);
+
+  // Function untuk navigasi ke detail transaksi
+  const handleTransactionPress = useCallback((transactionId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigation as any).navigate('TransactionDetail', { id: transactionId });
+  }, [navigation]);
+
+  // Function untuk menampilkan detail saldo
+  const handleBalancePress = useCallback(() => {
+    if (needsExplanation(currentBalance)) {
+      showDialog({
+        type: 'info',
+        title: '💰 Detail Saldo',
+        message: getCurrencyExplanation(currentBalance),
+        actions: [
+          {
+            text: 'Tutup',
+            onPress: hideDialog,
+            style: 'default',
+          },
+        ],
+      });
+    }
+  }, [currentBalance, showDialog, hideDialog]);
 
   // Efek animasi untuk header dengan responsivitas
   const getResponsiveHeaderHeight = () => {
@@ -394,18 +476,34 @@ export const DashboardScreen = () => {
           <View style={[styles.balanceHeader, {
             marginBottom: responsiveSpacing(theme.spacing.md)
           }]}>
-            <View>
+            <TouchableOpacity onPress={handleBalancePress} activeOpacity={0.7}>
               <Typography variant="body2" color={theme.colors.neutral[600]}>
                 Saldo Saat Ini
               </Typography>
               {isLoading ? (
                 <ActivityIndicator size="small" color={theme.colors.primary[500]} />
               ) : (
-                <Typography variant="h3" color={theme.colors.primary[500]} weight="700">
-                  {formatCurrency(currentBalance)}
-                </Typography>
+                <PrivacyProtectedText
+                  type="balance"
+                  fallbackText="••••••••"
+                  showToggle={true}
+                  requireAuth={true}
+                  style={styles.balanceAmountContainer}
+                >
+                  <Typography variant="h3" color={theme.colors.primary[500]} weight="700">
+                    {formatCardCurrency(currentBalance)}
+                  </Typography>
+                  {needsExplanation(currentBalance) && (
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={20}
+                      color={theme.colors.primary[400]}
+                      style={styles.balanceInfoIcon}
+                    />
+                  )}
+                </PrivacyProtectedText>
               )}
-            </View>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.addButton, {
               width: responsiveSpacing(48),
               height: responsiveSpacing(48),
@@ -587,9 +685,15 @@ export const DashboardScreen = () => {
               {isLoading ? (
                 <ActivityIndicator size="small" color={theme.colors.success[500]} />
               ) : (
-                <Typography variant="h5" color={theme.colors.success[500]} weight="600">
-                  {formatCurrency(monthlyIncome)}
-                </Typography>
+                <PrivacyProtectedText
+                  type="balance"
+                  fallbackText="••••••"
+                  showToggle={false}
+                >
+                  <Typography variant="h5" color={theme.colors.success[500]} weight="600">
+                    {formatCardCurrency(monthlyIncome)}
+                  </Typography>
+                </PrivacyProtectedText>
               )}
             </Card>
 
@@ -621,9 +725,15 @@ export const DashboardScreen = () => {
               {isLoading ? (
                 <ActivityIndicator size="small" color={theme.colors.danger[500]} />
               ) : (
-                <Typography variant="h5" color={theme.colors.danger[500]} weight="600">
-                  {formatCurrency(monthlyExpense)}
-                </Typography>
+                <PrivacyProtectedText
+                  type="balance"
+                  fallbackText="••••••"
+                  showToggle={false}
+                >
+                  <Typography variant="h5" color={theme.colors.danger[500]} weight="600">
+                    {formatCardCurrency(monthlyExpense)}
+                  </Typography>
+                </PrivacyProtectedText>
               )}
             </Card>
           </View>
@@ -681,7 +791,7 @@ export const DashboardScreen = () => {
                   category={categoryMap[transaction.category_id] || 'Lainnya'}
                   description={transaction.description}
                   date={transaction.date}
-                  onPress={() => {}}
+                  onPress={handleTransactionPress}
                 />
               ))}
             </View>
@@ -772,6 +882,17 @@ export const DashboardScreen = () => {
           </Card>
         </View>
       </Animated.ScrollView>
+
+      <SuperiorDialog
+        visible={dialogState.visible}
+        type={dialogState.type}
+        title={dialogState.title}
+        message={dialogState.message}
+        actions={dialogState.actions}
+        onClose={hideDialog}
+        icon={dialogState.icon}
+        autoClose={dialogState.autoClose}
+      />
     </SafeAreaView>
   );
 };
@@ -851,6 +972,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing.md,
+  },
+  balanceAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+  },
+  balanceInfoIcon: {
+    marginLeft: theme.spacing.sm,
   },
   addButton: {
     width: 48,

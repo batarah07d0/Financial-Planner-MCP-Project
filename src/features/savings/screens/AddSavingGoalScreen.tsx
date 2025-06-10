@@ -410,9 +410,9 @@ export const AddSavingGoalScreen = () => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.neutral[800]} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary[500]} />
           </TouchableOpacity>
-          <Typography variant="h4" weight="600" color={theme.colors.neutral[800]}>
+          <Typography variant="h4" weight="700" color={theme.colors.primary[500]}>
             {'Tambah Tujuan Tabungan'}
           </Typography>
           <View style={styles.headerSpacer} />
@@ -703,17 +703,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: responsiveSpacing(theme.spacing.layout.md),
+    paddingHorizontal: responsiveSpacing(theme.spacing.layout.sm),
     paddingVertical: responsiveSpacing(theme.spacing.md),
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[100],
-    ...theme.elevation.xs,
+    ...theme.elevation.sm,
   },
   backButton: {
-    padding: responsiveSpacing(theme.spacing.xs),
+    width: responsiveSpacing(40),
+    height: responsiveSpacing(40),
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: responsiveSpacing(theme.borderRadius.round),
     backgroundColor: 'transparent',
+    marginLeft: responsiveSpacing(theme.spacing.xs), // Proper spacing from left edge
   },
   headerSpacer: {
     width: responsiveSpacing(40),
