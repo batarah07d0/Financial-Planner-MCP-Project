@@ -148,17 +148,36 @@ export const LoginScreen = () => {
       await login(email, password);
 
       // Jika login berhasil (tidak ada error), simpan credentials untuk biometric login
-      // Kita akan menggunakan setTimeout untuk memastikan user sudah ter-update di store
-      setTimeout(async () => {
+      // Gunakan Promise untuk memastikan proses selesai
+      const saveCredentials = async () => {
+        // Tunggu beberapa saat untuk memastikan user state sudah terupdate
+        await new Promise(resolve => setTimeout(resolve, 200));
+
         const currentUser = useAuthStore.getState().user;
+
         if (currentUser) {
           try {
-            await storeCredentials(email, password, currentUser.id);
+            const storeSuccess = await storeCredentials(email, password, currentUser.id);
+
+            if (storeSuccess) {
+              // Aktifkan biometric login jika penyimpanan berhasil
+              const { enableBiometricLogin } = await import('../../../core/services/security/credentialService');
+              const enableSuccess = await enableBiometricLogin();
+
+              // Refresh biometric option setelah credentials disimpan
+              if (enableSuccess) {
+                const biometricEnabled = await isBiometricLoginEnabled();
+                setShowBiometricOption(biometricEnabled && biometricAvailable);
+              }
+            }
           } catch (error) {
-            // Failed to store credentials for biometric login - silently handled
+            // Gagal menyimpan credentials - silently handled
           }
         }
-      }, 100);
+      };
+
+      // Jalankan penyimpanan credentials
+      saveCredentials();
     } catch (error) {
       // Error akan ditangani oleh useAuthStore
     }
@@ -208,6 +227,10 @@ export const LoginScreen = () => {
     clearError();
     navigation.navigate('ForgotPassword');
   };
+
+
+
+
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'left', 'top']}>
@@ -333,6 +356,8 @@ export const LoginScreen = () => {
                 variant="gradient"
               />
 
+
+
               {/* Tombol Biometric Login */}
               {showBiometricOption && (
                 <TouchableOpacity
@@ -356,6 +381,8 @@ export const LoginScreen = () => {
                   </View>
                 </TouchableOpacity>
               )}
+
+
 
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
@@ -405,7 +432,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing.md,
-    padding: theme.spacing.sm, // Tambahkan padding internal
+    padding: theme.spacing.sm, 
     ...theme.elevation.sm,
   },
   appName: {

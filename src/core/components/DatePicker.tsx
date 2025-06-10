@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.neutral[50],
   },
 
-  // Header Styles
+
   header: {
     zIndex: 1000,
   },
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 60, // Space for buttons on both sides
+    paddingHorizontal: 60, 
   },
   todayButton: {
     width: 40,
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  // Quick Select Styles
+
   quickSelectContainer: {
     flexDirection: 'row',
     paddingHorizontal: theme.spacing.lg,
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary[500],
   },
 
-  // Calendar Styles
+
   calendarContainer: {
     flex: 1,
     backgroundColor: theme.colors.white,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     opacity: 0.2,
   },
 
-  // Action Button Styles
+
   actionContainer: {
     flexDirection: 'row',
     paddingHorizontal: theme.spacing.lg,
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
     marginHorizontal: theme.spacing.xs,
-    height: 50, // Fixed height instead of minHeight
+    height: 50, 
   },
   cancelButton: {
     backgroundColor: theme.colors.neutral[100],
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.neutral[300],
   },
   confirmButton: {
-    flex: 1.5, // Slightly larger than cancel button
+    flex: 1.5, 
   },
   confirmGradient: {
     flex: 1,
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
-    height: 50, // Fixed height instead of minHeight
+    height: 50, 
   },
   buttonText: {
     marginLeft: theme.spacing.xs,

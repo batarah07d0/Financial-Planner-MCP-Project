@@ -32,7 +32,6 @@ export interface EnhancedMarkerProps {
   animationDelay?: number;
   onPress?: () => void;
   children?: React.ReactNode;
-  // Standard marker props
   title?: string;
   description?: string;
   draggable?: boolean;
@@ -40,7 +39,6 @@ export interface EnhancedMarkerProps {
   opacity?: number;
 }
 
-// Enhanced size configurations
 const SIZE_CONFIG = {
   small: {
     container: 36,

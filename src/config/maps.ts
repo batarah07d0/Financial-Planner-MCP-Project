@@ -1,4 +1,3 @@
-// Konfigurasi untuk Maps dengan styling yang indah
 export const MAPS_CONFIG = {
   // Default region (Jakarta, Indonesia)
   DEFAULT_REGION: {

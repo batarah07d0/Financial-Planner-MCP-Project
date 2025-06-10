@@ -664,7 +664,6 @@ export const SavingGoalDetailScreen = () => {
   );
 };
 
-// Modal styles
 const modalStyles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -787,7 +786,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: responsiveSpacing(theme.borderRadius.round),
     backgroundColor: 'transparent',
-    marginLeft: responsiveSpacing(theme.spacing.xs), // Proper spacing from left edge
+    marginLeft: responsiveSpacing(theme.spacing.xs), 
   },
   editButton: {
     padding: responsiveSpacing(theme.spacing.xs),
@@ -985,45 +984,44 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     paddingHorizontal: responsiveSpacing(theme.spacing.layout.md),
-    marginBottom: responsiveSpacing(theme.spacing.xl), // Increased bottom margin
-    marginTop: responsiveSpacing(theme.spacing.md), // Added top margin
+    marginBottom: responsiveSpacing(theme.spacing.xl), 
+    marginTop: responsiveSpacing(theme.spacing.md), 
   },
   addButton: {
     borderRadius: responsiveSpacing(theme.borderRadius.lg),
     paddingVertical: responsiveSpacing(theme.spacing.md),
   },
-  // Superior Add Button Styles
   superiorAddButton: {
     borderRadius: responsiveSpacing(theme.borderRadius.xl),
     overflow: 'hidden',
-    minHeight: responsiveSpacing(64), // Increased height
+    minHeight: responsiveSpacing(64), 
     ...theme.elevation.lg,
   },
   addButtonGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: responsiveSpacing(theme.spacing.xl), // Increased vertical padding
-    paddingHorizontal: responsiveSpacing(theme.spacing.xxl), // Increased horizontal padding
-    minHeight: responsiveSpacing(64), // Ensure minimum height
+    paddingVertical: responsiveSpacing(theme.spacing.xl), 
+    paddingHorizontal: responsiveSpacing(theme.spacing.xxl), 
+    minHeight: responsiveSpacing(64), 
   },
   addButtonContent: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: responsiveSpacing(32), // Ensure content has minimum height
+    minHeight: responsiveSpacing(32), 
   },
   addButtonText: {
-    textAlign: 'center', // Ensure horizontal center alignment
-    textAlignVertical: 'center', // Ensure vertical center alignment
-    letterSpacing: 0.8, // Slightly increased letter spacing
+    textAlign: 'center', 
+    textAlignVertical: 'center', 
+    letterSpacing: 0.8, 
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-    fontSize: responsiveFontSize(18), // Increased font size
-    lineHeight: responsiveFontSize(22), // Better line height
-    includeFontPadding: false, // Remove extra font padding for better centering
+    fontSize: responsiveFontSize(18), 
+    lineHeight: responsiveFontSize(22), 
+    includeFontPadding: false, 
   },
   dangerCard: {
     margin: responsiveSpacing(theme.spacing.layout.md),
@@ -1056,7 +1054,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.danger[500],
     borderRadius: responsiveSpacing(theme.borderRadius.lg),
   },
-  // Superior Delete Button Styles
   superiorDeleteButton: {
     borderRadius: responsiveSpacing(theme.borderRadius.xl),
     overflow: 'hidden',

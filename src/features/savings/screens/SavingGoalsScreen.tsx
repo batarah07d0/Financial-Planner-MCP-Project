@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: theme.borderRadius.round,
     backgroundColor: 'transparent',
-    marginLeft: theme.spacing.xs, // Proper spacing from left edge
+    marginLeft: theme.spacing.xs, 
   },
   headerSpacer: {
     width: 40,
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   goalItem: {
     marginBottom: 18,
-    marginHorizontal: 2, // Memberikan sedikit ruang di samping
+    marginHorizontal: 2, 
   },
   goalCard: {
     padding: 0,
@@ -522,19 +522,19 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     padding: 20,
-    paddingHorizontal: 18, // Sedikit lebih kecil untuk memberikan ruang lebih
+    paddingHorizontal: 18, 
   },
   goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
-    minHeight: 60, // Minimum height untuk konsistensi
+    minHeight: 60, 
   },
   goalInfo: {
     flexDirection: 'row',
     flex: 1,
-    minWidth: 0, // Memungkinkan flex shrink
+    minWidth: 0, 
     paddingRight: 8,
   },
   iconContainer: {
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-    flexShrink: 0, // Mencegah ikon mengecil
+    flexShrink: 0, 
     shadowColor: theme.colors.neutral[900],
     shadowOffset: {
       width: 0,
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
   },
   goalDetails: {
     flex: 1,
-    minWidth: 0, // Memungkinkan flex shrink
+    minWidth: 0, 
   },
   goalTitle: {
     flexWrap: 'wrap',

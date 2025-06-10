@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.sm,
   },
 
-  // Dialog Styles untuk Delete Account (masih menggunakan custom dialog)
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

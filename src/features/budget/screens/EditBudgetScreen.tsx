@@ -12,7 +12,6 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
-// formatCurrency removed as it's not used in this component
 import { useSuperiorDialog } from '../../../core/hooks';
 import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { getBudgetById, updateBudget } from '../../../core/services/supabase/budget.service';
@@ -419,7 +418,7 @@ export const EditBudgetScreen = () => {
           <View style={styles.categoryGrid}>
             {categories
               .sort((a, b) => {
-                // Urutkan kategori: "Lainnya" atau "Other" di paling bawah
+                
                 const aIsOther = a.name.toLowerCase().includes('lain') || a.name.toLowerCase().includes('other');
                 const bIsOther = b.name.toLowerCase().includes('lain') || b.name.toLowerCase().includes('other');
 
@@ -673,7 +672,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
-    minHeight: 64, // Tambahkan minimum height
+    minHeight: 64, 
     ...theme.elevation.xs,
   },
   backButton: {
@@ -726,7 +725,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   categoryGrid: {
-    // Container for category items
+    
   },
   categoryItem: {
     flexDirection: 'row',

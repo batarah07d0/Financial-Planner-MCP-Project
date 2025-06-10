@@ -1522,7 +1522,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressSection: {
-    // Container for progress
   },
   progressHeader: {
     flexDirection: 'row',
@@ -1537,7 +1536,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   warningMessage: {
-    // Warning message styling
   },
   warningHeader: {
     flexDirection: 'row',
@@ -1623,7 +1621,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[100],
   },
-  // Enhanced Progress Styles
+
   progressTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1661,7 +1659,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  // Quick Actions Styles
+
   actionsCard: {
     ...theme.elevation.sm,
     shadowColor: theme.colors.neutral[900],
@@ -1698,12 +1696,12 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
 
-  // Header Spacer
+
   headerSpacer: {
-    width: 40, // Same width as back button to maintain balance
+    width: 40, 
   },
 
-  // Budget Action Buttons Styles
+
   budgetActionButtonsContainer: {
     flexDirection: 'column',
   },

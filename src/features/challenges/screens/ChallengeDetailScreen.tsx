@@ -933,23 +933,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg, // Diperbesar dari md ke lg
+    paddingVertical: theme.spacing.lg, 
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.neutral[200],
-    minHeight: 64, // Tambahkan minimum height
+    minHeight: 64, 
   },
   backButton: {
     padding: theme.spacing.sm,
     borderRadius: theme.borderRadius.round,
     backgroundColor: 'transparent',
-    marginLeft: theme.spacing.xs, // Proper spacing from left edge
+    marginLeft: theme.spacing.xs, 
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     marginHorizontal: theme.spacing.md,
-    minHeight: 40, // Ensure consistent height
+    minHeight: 40, 
   },
   headerSpacer: {
     width: 40,
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'stretch', // Use stretch to make both elements same height
+    alignItems: 'stretch', 
     gap: theme.spacing.md,
   },
   currencyInputContainer: {
@@ -1060,7 +1060,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.primary[200],
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md, // Keep original padding
+    paddingVertical: theme.spacing.md, 
     ...theme.elevation.sm,
   },
   currencyLabelContainer: {
@@ -1083,17 +1083,17 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   updateButton: {
-    minWidth: 120, // Increased width for better proportion
+    minWidth: 120, 
     borderRadius: theme.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg, // Horizontal padding for better touch area
-    paddingVertical: theme.spacing.md, // Same vertical padding as input field
-    borderWidth: 2, // Add border width to match input field structure
-    borderColor: 'transparent', // Transparent border to maintain same structure
+    paddingHorizontal: theme.spacing.lg, 
+    paddingVertical: theme.spacing.md, 
+    borderWidth: 2, 
+    borderColor: 'transparent', 
     ...theme.elevation.md,
   },
-  // Quick Amount Styles
+
   quickAmountContainer: {
     marginBottom: theme.spacing.lg,
   },
@@ -1117,7 +1117,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
     alignItems: 'center',
   },
-  // Info Cards Styles
+
   infoCardsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1142,7 +1142,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
   },
-  // Status Card Styles
+
   statusCard: {
     marginBottom: theme.spacing.lg,
     padding: theme.spacing.xl,

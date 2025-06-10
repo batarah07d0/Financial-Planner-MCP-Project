@@ -16,7 +16,6 @@ import { Typography, Card, SuperiorDialog } from '../../../core/components';
 import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { useSuperiorDialog } from '../../../core/hooks';
-// import { useAppDimensions } from '../../../core/hooks/useAppDimensions';
 import { getBudgetById, getBudgetSpending } from '../../../core/services/supabase/budget.service';
 import { getCategories } from '../../../core/services/supabase/category.service';
 import { getTransactions } from '../../../core/services/supabase/transaction.service';
@@ -24,7 +23,7 @@ import { useAuthStore } from '../../../core/services/store/authStore';
 import { Budget, Category, Transaction } from '../../../core/services/supabase/types';
 import { RootStackParamList } from '../../../core/navigation/types';
 
-// const { width: screenWidth } = Dimensions.get('window');
+
 
 type BudgetAnalysisDetailRouteProp = RouteProp<{ BudgetAnalysisDetail: { budgetId: string; categoryId: string } }, 'BudgetAnalysisDetail'>;
 type BudgetAnalysisDetailNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -95,7 +94,7 @@ export const BudgetAnalysisDetailScreen = () => {
       dailyAverage,
       weeklyTrend,
       monthlyTrend,
-      categoryBreakdown: [], // Will be implemented if needed
+      categoryBreakdown: [], 
       spendingPattern,
       topTransactions,
       insights,

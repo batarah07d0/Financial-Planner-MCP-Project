@@ -165,7 +165,7 @@ export const SettingItem: React.FC<SettingItemProps> = ({
           {
             transform: [{ scale: pressAnim }],
           },
-          { backgroundColor }, // Gunakan backgroundColor sebagai style terpisah
+          { backgroundColor }, 
         ]}
       >
         {renderContent()}

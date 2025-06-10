@@ -20,7 +20,6 @@ import { theme } from '../../../core/theme';
 import { formatCurrency, formatDate } from '../../../core/utils';
 import { Category } from '../../../core/services/supabase/types';
 
-// Extended Transaction interface to match database structure
 interface TransactionDetail {
   id: string;
   user_id: string;
@@ -725,7 +724,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: theme.spacing.xs,
-    marginLeft: theme.spacing.xs, // Proper spacing from left edge
+    marginLeft: theme.spacing.xs, 
   },
   content: {
     flex: 1,
@@ -845,7 +844,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: theme.spacing.md,
-    minHeight: 40, // Ensure consistent height
+    minHeight: 40, 
   },
   headerTitle: {
     textAlign: 'center',
@@ -858,8 +857,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginTop: theme.spacing.xs,
   },
-
-  // Enhanced Amount Card Styles
   enhancedAmountCard: {
     overflow: 'hidden',
     marginTop: theme.spacing.lg,
@@ -925,8 +922,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.5,
   },
-
-  // Enhanced Detail Card Styles
   enhancedDetailCard: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.xl,
@@ -1030,12 +1025,10 @@ const styles = StyleSheet.create({
     ...theme.elevation.xs,
   },
 
-  // Header Spacer
   headerSpacer: {
-    width: 40, // Same width as back button to maintain balance
+    width: 40, 
   },
 
-  // Action Buttons Styles
   actionButtonsContainer: {
     flexDirection: 'column',
   },

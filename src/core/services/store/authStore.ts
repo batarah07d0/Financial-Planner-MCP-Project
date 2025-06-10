@@ -248,13 +248,9 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      // Clear stored credentials untuk biometric login
-      try {
-        const { clearStoredCredentials } = await import('../security/credentialService');
-        await clearStoredCredentials();
-      } catch (credentialError) {
-        // Ignore credential clearing errors
-      }
+      // JANGAN hapus stored credentials untuk biometric login
+      // Credentials harus tetap tersimpan agar user bisa login dengan biometrik
+      // Hanya hapus credentials jika user secara eksplisit menonaktifkan biometrik
 
       const { error } = await supabase.auth.signOut();
 

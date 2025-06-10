@@ -23,7 +23,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../config/supabase';
 import { useAuthStore } from '../../../core/services/store';
 
-// Enhanced interfaces for superior dashboard visualization
 interface TransactionWithLocation {
   id: string;
   amount: number;
@@ -883,7 +882,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.neutral[50],
   },
-  // Header styles
+
   header: {
     width: '100%',
     zIndex: 10,
@@ -921,7 +920,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Loading styles
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -932,7 +931,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
   },
 
-  // Map styles
+
   mapContainer: {
     flex: 1,
     position: 'relative',
@@ -952,7 +951,7 @@ const styles = StyleSheet.create({
     ...theme.elevation.md,
   },
 
-  // Custom marker styles
+
   customMarker: {
     alignItems: 'center',
   },
@@ -978,7 +977,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
 
-  // Callout styles
+
   callout: {
     width: 250,
     backgroundColor: theme.colors.white,
@@ -1029,8 +1028,6 @@ const styles = StyleSheet.create({
     marginLeft: -10,
     transform: [{ rotate: '45deg' }],
   },
-
-  // Filter styles
   filterContainer: {
     backgroundColor: theme.colors.white,
     paddingVertical: theme.spacing.sm,
@@ -1065,7 +1062,6 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.xs,
   },
 
-  // Heatmap legend styles
   heatmapLegend: {
     position: 'absolute',
     bottom: 16,
@@ -1090,13 +1086,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
 
-  // Transaction detail styles
+
   selectedTransactionContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    maxHeight: '50%', // Maksimal 50% dari tinggi layar
+    maxHeight: '50%', 
     ...theme.elevation.lg,
   },
   transactionCardGradient: {
@@ -1159,7 +1155,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Superior Floating Action Button styles
+
   fabContainer: {
     position: 'absolute',
     right: 20,
@@ -1190,7 +1186,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // Superior Detail Card styles
+
   detailCard: {
     position: 'absolute',
     left: 20,
@@ -1261,7 +1257,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  // Enhanced Heatmap Legend styles
   legendBlur: {
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
@@ -1269,7 +1264,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // Dashboard styles
+
   dashboardMainContainer: {
     flex: 1,
     backgroundColor: theme.colors.neutral[50],
@@ -1289,7 +1284,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.layout.md,
   },
 
-  // Bar Chart styles
+
   barChartContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -1325,7 +1320,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Category Grid styles
+
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1349,9 +1344,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
 
-
-
-  // Empty state styles
   emptyStateContainer: {
     position: 'absolute',
     top: '40%',

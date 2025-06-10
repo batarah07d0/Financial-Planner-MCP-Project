@@ -68,7 +68,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
       toValue: progress / 100,
       duration: 1000,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false, // Karena kita menganimasikan width
+      useNativeDriver: false, 
     }).start();
   }, [progress, progressAnim]);
 
@@ -412,7 +412,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     overflow: 'hidden',
     backgroundColor: theme.colors.white,
-    // Tambahkan border subtle untuk efek premium
     borderWidth: 1,
     borderColor: theme.colors.neutral[100],
   },
@@ -437,7 +436,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
-    // Tambahkan shadow untuk efek superior
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -476,7 +474,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.round,
     marginRight: theme.spacing.sm,
     overflow: 'hidden',
-    // Tambahkan shadow untuk depth
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
